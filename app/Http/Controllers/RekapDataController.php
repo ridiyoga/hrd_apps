@@ -1,0 +1,679 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Imports\AbsensiImport;
+use App\Models\Bagian;
+use App\Models\Cuti;
+use App\Models\Departemen;
+use App\Models\Divisi;
+use App\Models\Izin;
+use App\Models\Jabatan;
+use App\Models\Karyawan;
+use App\Models\Lembur;
+use App\Models\User;
+use App\Models\MappingShift;
+use App\Models\Shift;
+use App\Models\Titik;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use DateTime;
+use PDF;
+use Facade\Ignition\Tabs\Tab;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use RealRashid\SweetAlert\Facades\Alert;
+use Maatwebsite\Excel\Facades\Excel;
+use Yajra\DataTables\Facades\DataTables;
+
+class RekapDataController extends Controller
+{
+    public function index(Request $request)
+    {
+        $holding = request()->segment(count(request()->segments()));
+        date_default_timezone_set('Asia/Jakarta');
+
+        // $bulan = date('m');
+        // $tahun = date('Y');
+        // $hari_per_bulan = cal_days_in_month(CAL_GREGORIAN,$bulan,$tahun);
+        $tanggal_mulai = date('Y-m-01');
+        $tanggal_akhir = date('Y-m-d');
+
+        $title = "Rekap Data Absensi Tanggal " . date('Y-m-01') . " s/d " . date('Y-m-d');
+
+        $user = Karyawan::with('Cuti')->with('Izin')->where('status_aktif', 'AKTIF')->get();
+        // dd($user->Cuti->nama_cuti);
+        // dd($user);
+
+        if ($request["mulai"] && $request["akhir"]) {
+            $tanggal_mulai = $request["mulai"];
+            $tanggal_akhir = $request["akhir"];
+            $title = "Rekap Data Absensi Tanggal " . $tanggal_mulai . " s/d " . $tanggal_akhir;
+        }
+        $departemen = Departemen::where('holding', $holding)->orderBy('nama_departemen', 'ASC')->get();
+        // dd($departemen);
+        // dd(Carbon::createFromFormat('H:i:s', '17:12:00'));
+        return view('admin.rekapdata.index', [
+            'title' => $title,
+            'data_user' => $user,
+            'tanggal_mulai' => $tanggal_mulai,
+            'departemen' => $departemen,
+            'holding' => $holding,
+            'tanggal_akhir' => $tanggal_akhir
+        ]);
+    }
+
+    public function datatable(Request $request)
+    {
+        $holding = request()->segment(count(request()->segments()));
+        // dd($request->all());
+        // $now = Carbon::parse($request->filter_month)->startOfMonth();
+        // dd(request()->ajax());
+        if (request()->ajax()) {
+            if (!empty($request->departemen_filter)) {
+                $now = Carbon::parse($request->start_date);
+                $now1 = Carbon::parse($request->end_date);
+                // dd($date1, $date2);
+                if (!empty($request->divisi_filter)) {
+                    if (!empty($request->bagian_filter)) {
+                        if (!empty($request->jabatan_filter)) {
+                            $table = Karyawan::with('Cuti')
+                                ->with('Izin')
+                                ->with('Mappingshift')
+                                ->where('dept_id', $request->departemen_filter)
+                                ->where('divisi_id', $request->divisi_filter)
+                                ->where('bagian_id', $request->bagian_filter)
+                                ->where('jabatan_id', $request->jabatan_filter)
+                                ->where('kontrak_kerja', $holding)
+                                ->where('kategori', 'Karyawan Bulanan')
+                                ->where('status_aktif', 'AKTIF')
+                                ->get();
+                        } else {
+                            $table = Karyawan::with('Cuti')
+                                ->with('Izin')
+                                ->with('Mappingshift')
+                                ->where('dept_id', $request->departemen_filter)
+                                ->where('divisi_id', $request->divisi_filter)
+                                ->where('bagian_id', $request->bagian_filter)
+                                ->where('kontrak_kerja', $holding)
+                                ->where('kategori', 'Karyawan Bulanan')
+                                ->where('status_aktif', 'AKTIF')
+                                ->get();
+                        }
+                    } else {
+                        $table = Karyawan::with('Cuti')
+                            ->with('Izin')
+                            ->with('Mappingshift')
+                            ->where('dept_id', $request->departemen_filter)
+                            ->where('divisi_id', $request->divisi_filter)
+                            ->where('kontrak_kerja', $holding)
+                            ->where('kategori', 'Karyawan Bulanan')
+                            ->where('status_aktif', 'AKTIF')
+                            ->get();
+                    }
+                } else {
+                    $table = Karyawan::with('Cuti')
+                        ->with('Izin')
+                        ->with('Mappingshift')
+                        ->where('dept_id', $request->departemen_filter)
+                        ->where('kontrak_kerja', $holding)
+                        ->where('kategori', 'Karyawan Bulanan')
+                        ->where('status_aktif', 'AKTIF')
+                        ->get();
+                }
+            } else {
+                $now = Carbon::parse($request->start_date);
+                $now1 = Carbon::parse($request->end_date);
+                // dd($now, $now1);
+                // dd($tgl_mulai, $tgl_selesai);
+                $table = Karyawan::where('kontrak_kerja', $holding)
+                    ->where('kategori', 'Karyawan Bulanan')
+                    ->where('status_aktif', 'AKTIF')
+                    ->select('karyawans.name', 'karyawans.nomor_identitas_karyawan')
+                    // ->limit(2)
+                    ->get();
+            }
+            return DataTables::of($table)
+                ->addColumn('btn_detail', function ($row) use ($holding) {
+                    $btn_detail = '<a id="btn_detail" type="button" href="' . url('rekap-data/detail', ['id' => $row->nomor_identitas_karyawan]) . '/' . $holding . '" class="btn btn-sm btn-info"><i class="menu-icon tf-icons mdi mdi-eye"></i> Detail</a>';
+                    return $btn_detail;
+                })
+                ->addColumn('total_hadir_tepat_waktu', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $jumlah_hadir_tepat_waktu = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('keterangan_absensi', 'TEPAT WAKTU')->where('status_absen', 'HADIR KERJA')->count();
+                    // dd($jumlah_hadir_tepat_waktu);
+                    return $jumlah_hadir_tepat_waktu;
+                })
+                ->addColumn('total_hadir_telat_hadir', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $jumlah_hadir_telat_hadir = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'HADIR KERJA')->where('keterangan_absensi', 'TELAT HADIR')->where('telat', '<', '00:10:59')->count();
+                    return $jumlah_hadir_telat_hadir;
+                })
+                ->addColumn('total_hadir_telat_hadir1', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $total_hadir_telat_hadir1 = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'HADIR KERJA')->where('keterangan_absensi', 'TELAT HADIR')->where('telat', '>', '00:10:59')->count();
+                    return $total_hadir_telat_hadir1;
+                })
+                ->addColumn('total_izin_true', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $total_izin_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('keterangan_absensi', 'IZIN SAKIT')
+                                ->orWhere('keterangan_absensi', 'IZIN TIDAK MASUK');
+                        })->where('keterangan_izin', 'TRUE')
+                        ->count();
+                    return $total_izin_true;
+                })
+                ->addColumn('total_cuti_true', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $total_cuti_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('keterangan_absensi', 'CUTI');
+                        })->where('keterangan_cuti', 'TRUE')->count();
+                    return $total_cuti_true;
+                })
+                ->addColumn('total_dinas_true', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $total_dinas_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('keterangan_absensi', 'PENUGASAN');
+                        })->where('keterangan_dinas', 'TRUE')->count();
+                    return $total_dinas_true;
+                })
+
+                ->addColumn('tidak_hadir_kerja', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $tidak_hadir_kerja = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')->where('keterangan_dinas', 'FALSE')->where('keterangan_cuti', 'FALSE')->where('keterangan_izin', 'FALSE')->count();
+                    return $tidak_hadir_kerja;
+                })
+                ->addColumn('total_libur', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $total_libur = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'LIBUR')->count();
+                    return $total_libur;
+                })
+                ->addColumn('total_semua', function ($row) use ($now, $now1) {
+                    $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+                    $total_hadir = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'HADIR KERJA')->count();
+                    $total_libur = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'LIBUR')->count();
+                    $total_dinas_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('keterangan_absensi', 'PENUGASAN');
+                        })->where('keterangan_dinas', 'TRUE')->count();
+                    $total_tidak_hadir = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')->count();
+                    $total_cuti_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('keterangan_absensi', 'CUTI');
+                        })->where('keterangan_cuti', 'TRUE')->count();
+                    $total_izin_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])
+                        ->where('status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('keterangan_absensi', 'IZIN SAKIT')
+                                ->orWhere('keterangan_absensi', 'IZIN TIDAK MASUK');
+                        })
+                        ->where('keterangan_izin', 'TRUE')
+                        ->count();
+                    $total_dinas_true = MappingShift::where('user_id', $id_karyawan)->whereBetween('tanggal_masuk', [$now, $now1])->where('status_absen', 'TIDAK HADIR KERJA')->where('keterangan_dinas', 'TRUE')->count();
+                    $total_semua = ($total_hadir + $total_cuti_true + $total_libur + $total_izin_true + $total_dinas_true + $total_tidak_hadir);
+                    return $total_semua;
+                })
+                ->rawColumns(['total_hadir_tepat_waktu', 'total_libur', 'btn_detail', 'total_hadir_telat_hadir', 'total_hadir_telat_hadir1', 'total_izin_true', 'total_cuti_true', 'total_dinas_true', 'total_pulang_cepat', 'tidak_hadir_kerja', 'total_semua'])
+                ->make(true);
+        }
+    }
+
+    public function datatable_harian(Request $request)
+    {
+        $holding = request()->segment(count(request()->segments()));
+        $table = Karyawan::with('Cuti')->with('Izin')->with('Mappingshift')->where('karyawans.kontrak_kerja', $holding)->where('kategori', 'Karyawan Harian')->where('status_aktif', 'AKTIF')->get();
+        // dd($table);
+        if (request()->ajax()) {
+            return DataTables::of($table)
+                ->addColumn('total_hadir_tepat_waktu', function ($row) {
+                    $jumlah_hadir_tepat_waktu = $row->MappingShift->where('status_absen', 'HADIR KERJA')->where('keterangan_absensi', 'TEPAT WAKTU')->count();
+                    return $jumlah_hadir_tepat_waktu;
+                })
+                ->addColumn('total_hadir_telat_hadir', function ($row) {
+                    $jumlah_hadir_telat_hadir = $row->MappingShift->where('status_absen', 'HADIR KERJA')->where('keterangan_absensi', 'TELAT HADIR')->count();
+                    return $jumlah_hadir_telat_hadir;
+                })
+                ->addColumn('total_izin_true', function ($row) {
+                    $total_izin_true = $row->MappingShift->where('status_absen', 'TIDAK HADIR KERJA')->where('keterangan_izin', 'TRUE')->count();
+                    return $total_izin_true;
+                })
+                ->addColumn('total_cuti_true', function ($row) {
+                    $total_cuti_true = $row->MappingShift->where('status_absen', 'TIDAK HADIR KERJA')->where('keterangan_cuti', 'TRUE')->count();
+                    return $total_cuti_true;
+                })
+                ->addColumn('total_dinas_true', function ($row) {
+                    $total_dinas_true = $row->MappingShift->where('status_absen', 'TIDAK HADIR KERJA')->where('keterangan_dinas', 'TRUE')->count();
+                    return $total_dinas_true;
+                })
+                ->addColumn('total_menit_terlambat', function ($row) {
+                    $total = $row->MappingShift->sum('telat');
+                    $jam = floor($total / (60));
+                    $menit = floor($total - ($jam * (60)));
+                    $detik = $total % 60;
+
+                    if ($jam <= 0 && $menit <= 0) {
+                        $total_terlambat = '<span class="badge bg-label-success">TIDAK Pernah Telat</span>';
+                    } else {
+                        $total_terlambat = '<span class="badge bg-label-danger">' . $jam . ' Jam ' . $menit . ' Menit</span>';
+                    }
+                    return $total_terlambat;
+                })
+                ->addColumn('total_pulang_cepat', function ($row) {
+                    $total = $row->MappingShift->sum('pulang_cepat');
+                    $jam = floor($total / (60));
+                    $menit = floor($total - ($jam * (60)));
+                    $detik = $total % 60;
+
+                    if ($jam <= 0 && $menit <= 0) {
+                        $total_pulang_cepat =  '<span class="badge bg-label-success">Tidak Pernah Pulang Cepat</span>';
+                    } else {
+                        $total_pulang_cepat =   '<span class="badge bg-label-danger">' . $jam . ' Jam ' . $menit . ' Menit</span>';
+                    }
+                    return $total_pulang_cepat;
+                })
+                ->addColumn('tidak_hadir_kerja', function ($row) {
+                    $tidak_hadir_kerja = $row->MappingShift->where('status_absen', 'TIDAK HADIR KERJA')->where('keterangan_dinas', 'FALSE')->where('keterangan_cuti', 'FALSE')->where('keterangan_izin', 'FALSE')->count();
+                    return $tidak_hadir_kerja;
+                })
+                ->addColumn('total_semua', function ($row) {
+                    $total_hadir = $row->MappingShift->where('status_absen', 'HADIR KERJA')->count();
+                    $total_tidak_hadir = $row->MappingShift->where('status_absen', 'TIDAK HADIR KERJA')->count();
+                    $total_semua = ($total_hadir + $total_tidak_hadir) . ' x';
+                    return $total_semua;
+                })
+                ->rawColumns(['total_hadir_tepat_waktu', 'total_hadir_telat_hadir', 'total_izin_true', 'total_cuti_true', 'total_dinas_true', 'total_pulang_cepat', 'tidak_hadir_kerja', 'total_semua'])
+                ->make(true);
+        }
+    }
+    public function get_divisi(Request $request)
+    {
+        // dd($request->all());
+        $id_departemen    = $request->departemen_filter;
+
+        $divisi      = Divisi::where('dept_id', $id_departemen)->where('holding', $request->holding)->orderBy('nama_divisi', 'ASC')->get();
+        echo "<option value=''>Pilih Divisi...</option>";
+        foreach ($divisi as $divisi) {
+            echo "<option value='$divisi->id'>$divisi->nama_divisi</option>";
+        }
+    }
+    public function get_bagian(Request $request)
+    {
+        $id_divisi    = $request->divisi_filter;
+
+        $bagian      = Bagian::where('divisi_id', $id_divisi)->where('holding', $request->holding)->orderBy('nama_bagian', 'ASC')->get();
+        echo "<option value=''>Pilih Bagian...</option>";
+        foreach ($bagian as $bagian) {
+            echo "<option value='$bagian->id'>$bagian->nama_bagian</option>";
+        }
+    }
+    public function get_jabatan(Request $request)
+    {
+        $id_bagian    = $request->bagian_filter;
+        $jabatan      = Jabatan::where('bagian_id', $id_bagian)->where('holding', $request->holding)->orderBy('nama_jabatan', 'ASC')->get();
+        echo "<option value=''>Pilih Jabatan...</option>";
+        foreach ($jabatan as $jabatan) {
+            echo "<option value='$jabatan->id'>$jabatan->nama_jabatan</option>";
+        }
+    }
+    public function cetak_form_izin($id)
+    {
+        $mapping_shift = MappingShift::where('id', $id)->first();
+        $jabatan = Jabatan::join('users', function ($join) {
+            $join->on('jabatans.id', '=', 'karyawans.jabatan_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan1_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan2_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan3_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan4_id');
+        })->where('karyawans.id', $mapping_shift->user_id)->get();
+        $divisi = Divisi::join('users', function ($join) {
+            $join->on('divisis.id', '=', 'karyawans.divisi_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi1_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi2_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi3_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi4_id');
+        })->where('karyawans.id', $mapping_shift->user_id)->get();
+        $izin = Izin::where('id', $mapping_shift->izin_id)->first();
+        $date1          = new DateTime($izin->tanggal);
+        $date2          = new DateTime($izin->tanggal_selesai);
+        $interval       = $date1->diff($date2);
+        $data_interval  = $interval->days;
+        // dd($data_interval);
+        $departemen = Departemen::where('id', $izin->departements_id)->first();
+        $user_backup = Karyawan::where('id', $izin->user_id_backup)->first();
+        // dd(Izin::with('User')->where('izins.id', $mapping_shift->izin_id)->where('izins.status_izin', '2')->first());
+        $jam_kerja = MappingShift::with('Shift')->where('user_id', $izin->user_id)->where('tanggal_masuk', date('Y-m-d'))->first();
+        $data = [
+            'data_izin' => Izin::with('User')->where('izins.id', $mapping_shift->izin_id)->where('izins.status_izin', '2')->first(),
+            'jabatan' => $jabatan,
+            'divisi' => $divisi,
+            'departemen' => $departemen,
+            'jam_kerja' => $jam_kerja,
+            'user_backup' => $user_backup,
+            'data_interval' => $data_interval,
+        ];
+        if ($izin->izin == 'Datang Terlambat') {
+            $pdf = PDF::loadView('admin/rekapdata/form_izin_terlambat', $data)->setPaper('A5', 'landscape');
+            return $pdf->download('FORM_KETERANGAN_DATANG_TERLAMBAT_' . $mapping_shift->nama_karyawan . '_' . date('Y-m-d H:i:s') . '.pdf');
+        } else if ($izin->izin == 'Tidak Masuk (Mendadak)') {
+            $pdf = PDF::loadView('admin/rekapdata/form_izin_tidak_masuk', $data);
+            return $pdf->stream('FORM_PENGAJUAN_IZIN_TIDAK_MASUK_' . $mapping_shift->nama_karyawan . '_' . date('Y-m-d H:i:s') . '.pdf');
+        } else if ($izin->izin == 'Pulang Cepat') {
+            $pdf = PDF::loadView('admin/rekapdata/form_izin_pulang_cepat', $data)->setPaper('A5', 'landscape');
+            return $pdf->stream('FORM_PENGAJUAN_IZIN_PULANG_CEPAT_' . $mapping_shift->nama_karyawan . '_' . date('Y-m-d H:i:s') . '.pdf');
+        } else if ($izin->izin == 'Keluar Kantor') {
+            $pdf = PDF::loadView('admin/rekapdata/form_izin_keluar', $data)->setPaper('A5', 'landscape');
+            return $pdf->stream('FORM_PENGAJUAN_IZIN_KELUAR_KANTOR_' . $mapping_shift->nama_karyawan . '_' . date('Y-m-d H:i:s') . '.pdf');
+        }
+    }
+    public function cetak_form_cuti($id)
+    {
+        $mapping_shift = MappingShift::where('id', $id)->first();
+        $jabatan = Jabatan::join('karyawans', function ($join) {
+            $join->on('jabatans.id', '=', 'karyawans.jabatan_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan1_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan2_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan3_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan4_id');
+        })->where('karyawans.id', $mapping_shift->user_id)->get();
+        $divisi = Divisi::join('karyawans', function ($join) {
+            $join->on('divisis.id', '=', 'karyawans.divisi_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi1_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi2_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi3_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi4_id');
+        })->where('karyawans.id', $mapping_shift->user_id)->get();
+        $cuti = Cuti::Join('karyawans', 'cutis.user_id', 'karyawans.id')->where('cutis.id', $mapping_shift->cuti_id)->first();
+        $departemen = Departemen::where('id', $cuti->dept_id)->first();
+        $pengganti = Karyawan::where('id', $cuti->user_id_backup)->first();
+        // dd(Cuti::with('KategoriCuti')->with('User')->where('cutis.id', $id)->where('cutis.status_cuti', '3')->first());
+        $data = [
+            'title' => 'domPDF in Laravel 10',
+            'data_cuti' => Cuti::with('KategoriCuti')->with('User')->where('cutis.id', $mapping_shift->cuti_id)->where('cutis.status_cuti', '3')->first(),
+            'jabatan' => $jabatan,
+            'divisi' => $divisi,
+            'departemen' => $departemen,
+            'pengganti' => $pengganti,
+        ];
+        $pdf = PDF::loadView('admin/rekapdata/form_cuti', $data);
+        return $pdf->download('FORM_PENGAJUAN_CUTI_' . $mapping_shift->nama_karyawan . '_' . date('Y-m-d H:i:s') . '.pdf');
+    }
+    public function cetak_form_penugasan($id)
+    {
+        $jabatan = Jabatan::join('users', function ($join) {
+            $join->on('jabatans.id', '=', 'karyawans.jabatan_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan1_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan2_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan3_id');
+            $join->orOn('jabatans.id', '=', 'karyawans.jabatan4_id');
+        })->where('karyawans.id', Auth::user()->id)->get();
+        $divisi = Divisi::join('users', function ($join) {
+            $join->on('divisis.id', '=', 'karyawans.divisi_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi1_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi2_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi3_id');
+            $join->orOn('divisis.id', '=', 'karyawans.divisi4_id');
+        })->where('karyawans.id', Auth::user()->id)->get();
+        $cuti = Cuti::where('id', $id)->first();
+        $departemen = Departemen::where('id', Auth::user()->dept_id)->first();
+        $pengganti = Karyawan::where('id', $cuti->user_id_backup)->first();
+        // dd(Cuti::with('KategoriCuti')->with('User')->where('cutis.id', $id)->where('cutis.status_cuti', '3')->first());
+        $data = [
+            'title' => 'domPDF in Laravel 10',
+            'data_cuti' => Cuti::with('KategoriCuti')->with('User')->where('cutis.id', $id)->where('cutis.status_cuti', '3')->first(),
+            'jabatan' => $jabatan,
+            'divisi' => $divisi,
+            'departemen' => $departemen,
+            'pengganti' => $pengganti,
+        ];
+        $pdf = PDF::loadView('users/cuti/form_cuti', $data);
+        return $pdf->download('FORM_PENGAJUAN_CUTI_' . Auth::user()->name . '_' . date('Y-m-d H:i:s') . '.pdf');
+    }
+    public function ImportAbsensi(Request $request)
+    {
+        // dd('ok');
+        $holding = request()->segment(count(request()->segments()));
+        Excel::import(new AbsensiImport, $request->file_excel);
+
+        return redirect('/rekap-data/' . $holding)->with('success', 'Import Karyawan Sukses');
+    }
+
+    public function ExportAbsensi($kategori)
+    {
+        $date = date('YmdHis');
+        $holding = request()->segment(count(request()->segments()));
+        $data =  Izin::leftJoin('users', 'karyawans.id', 'izins.user_id')
+            ->leftJoin('departemens', 'departemens.id', 'izins.departements_id')
+            ->leftJoin('divisis', 'divisis.id', 'izins.divisi_id')
+            ->leftJoin('jabatans', 'jabatans.id', 'izins.jabatan_id')
+            ->where('izins.izin', $kategori)
+            ->where('karyawans.kontrak_kerja', $holding)
+            // ->select('izins.no_form_izin', 'karyawans.name', 'departemens.nama_departemen', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'izins.tanggal', 'izins.jam_masuk_kerja', 'izins.jam', 'izins.terlambat', 'izins.keterangan_izin', 'izins.ttd_pengajuan', 'izins.approve_atasan', 'izins.waktu_approve', 'izins.catatan', 'izins.status_izin')
+            ->select('izins.*', 'karyawans.name', 'departemens.nama_departemen', 'divisis.nama_divisi', 'jabatans.nama_jabatan')
+            ->get();
+        return Excel::download(new IzinExport($holding, $kategori, $data), 'Data Izin Karyawan_' . $kategori . '_' . $holding . '_' . $date . '.xlsx');
+    }
+    public function get_grafik_absensi(Request $request)
+    {
+        $get_holding = $request->holding;
+        if ($get_holding == 'sp') {
+            $holding = 'SP';
+        } else if ($get_holding == 'sps') {
+            $holding = 'SPS';
+        } else {
+            $holding = 'SIP';
+        }
+
+        $start_date = Carbon::parse($request->start_date);
+        $end_date = Carbon::parse($request->end_date);
+        $period = CarbonPeriod::create($start_date, $end_date);
+        // dd($request->all());
+        foreach ($period as $date) {
+            $label_absensi[] = $date->format('d/m/Y');
+            if ($request->departemen_filter != '' || $request->departemen_filter != NULL) {
+                if ($request->divisi_filter != '' || $request->divisi_filter != NULL) {
+                    if ($request->bagian_filter != '' || $request->bagian_filter != NULL) {
+                        if ($request->jabatan_filter != '' || $request->jabatan_filter != NULL) {
+                            $data_absensi_masuk_tepatwaktu[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.keterangan_absensi', 'TEPAT WAKTU')
+                                ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->where('karyawans.jabatan_id', $request->jabatan_filter)
+                                ->count();
+                            $data_absensi_masuk_telat[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.keterangan_absensi', 'TELAT HADIR')
+                                ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->where('karyawans.jabatan_id', $request->jabatan_filter)
+                                ->count();
+                            $data_absensi_masuk_tidak_hadir[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->where('karyawans.jabatan_id', $request->jabatan_filter)
+                                ->count();
+                            $data_absensi_masuk_cuti[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                                ->where(function ($query) {
+                                    $query->where('mapping_shifts.keterangan_absensi', 'CUTI');
+                                })->where('mapping_shifts.keterangan_cuti', 'TRUE')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->where('karyawans.jabatan_id', $request->jabatan_filter)
+                                ->count();
+                        } else {
+                            $data_absensi_masuk_tepatwaktu[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.keterangan_absensi', 'TEPAT WAKTU')
+                                ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->count();
+                            $data_absensi_masuk_telat[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.keterangan_absensi', 'TELAT HADIR')
+                                ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->count();
+                            $data_absensi_masuk_tidak_hadir[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->count();
+                            $data_absensi_masuk_cuti[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                                ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                                ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                                ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                                ->where(function ($query) {
+                                    $query->where('mapping_shifts.keterangan_absensi', 'CUTI');
+                                })->where('mapping_shifts.keterangan_cuti', 'TRUE')
+                                ->where('karyawans.kontrak_kerja', $holding)
+                                ->where('karyawans.dept_id', $request->departemen_filter)
+                                ->where('karyawans.divisi_id', $request->divisi_filter)
+                                ->where('karyawans.bagian_id', $request->bagian_filter)
+                                ->count();
+                        }
+                    } else {
+                        $data_absensi_masuk_tepatwaktu[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                            ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                            ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                            ->where('mapping_shifts.keterangan_absensi', 'TEPAT WAKTU')
+                            ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                            ->where('karyawans.kontrak_kerja', $holding)
+                            ->where('karyawans.dept_id', $request->departemen_filter)
+                            ->where('karyawans.divisi_id', $request->divisi_filter)
+                            ->count();
+                        $data_absensi_masuk_telat[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                            ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                            ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                            ->where('mapping_shifts.keterangan_absensi', 'TELAT HADIR')
+                            ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                            ->where('karyawans.kontrak_kerja', $holding)
+                            ->where('karyawans.dept_id', $request->departemen_filter)
+                            ->where('karyawans.divisi_id', $request->divisi_filter)
+                            ->count();
+                        $data_absensi_masuk_tidak_hadir[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                            ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                            ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                            ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                            ->where('karyawans.kontrak_kerja', $holding)
+                            ->where('karyawans.dept_id', $request->departemen_filter)
+                            ->where('karyawans.divisi_id', $request->divisi_filter)
+                            ->count();
+                        $data_absensi_masuk_cuti[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                            ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                            ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                            ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                            ->where(function ($query) {
+                                $query->where('mapping_shifts.keterangan_absensi', 'CUTI');
+                            })->where('mapping_shifts.keterangan_cuti', 'TRUE')
+                            ->where('karyawans.kontrak_kerja', $holding)
+                            ->where('karyawans.dept_id', $request->departemen_filter)
+                            ->where('karyawans.divisi_id', $request->divisi_filter)
+                            ->count();
+                    }
+                } else {
+                    $data_absensi_masuk_tepatwaktu[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                        ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                        ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                        ->where('mapping_shifts.keterangan_absensi', 'TEPAT WAKTU')
+                        ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                        ->where('karyawans.kontrak_kerja', $holding)
+                        ->where('karyawans.dept_id', $request->departemen_filter)
+                        ->count();
+                    $data_absensi_masuk_telat[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                        ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                        ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                        ->where('mapping_shifts.keterangan_absensi', 'TELAT HADIR')
+                        ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                        ->where('karyawans.dept_id', $request->departemen_filter)
+                        ->where('karyawans.kontrak_kerja', $holding)
+                        ->count();
+                    $data_absensi_masuk_tidak_hadir[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                        ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                        ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                        ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                        ->where('karyawans.kontrak_kerja', $holding)
+                        ->where('karyawans.dept_id', $request->departemen_filter)
+                        ->count();
+                    $data_absensi_masuk_cuti[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                        ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                        ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                        ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                        ->where(function ($query) {
+                            $query->where('mapping_shifts.keterangan_absensi', 'CUTI');
+                        })->where('mapping_shifts.keterangan_cuti', 'TRUE')
+                        ->where('karyawans.kontrak_kerja', $holding)
+                        ->where('karyawans.dept_id', $request->departemen_filter)
+                        ->count();
+                }
+            } else if ($request->departemen_filter == '') {
+                // dd('p');
+                $data_absensi_masuk_tepatwaktu[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                    ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                    ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                    ->where('mapping_shifts.keterangan_absensi', 'TEPAT WAKTU')
+                    ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                    ->where('karyawans.kontrak_kerja', $holding)
+                    ->count();
+                $data_absensi_masuk_telat[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                    ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                    ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                    ->where('mapping_shifts.keterangan_absensi', 'TELAT HADIR')
+                    ->where('mapping_shifts.status_absen', 'HADIR KERJA')
+                    ->where('karyawans.kontrak_kerja', $holding)
+                    ->count();
+                $data_absensi_masuk_tidak_hadir[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                    ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                    ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                    ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                    ->where('karyawans.kontrak_kerja', $holding)
+                    ->count();
+                $data_absensi_masuk_cuti[] = MappingShift::Join('karyawans', 'karyawans.id', 'mapping_shifts.user_id')
+                    ->where('mapping_shifts.tanggal_masuk', $date->format('Y-m-d'))
+                    ->where('mapping_shifts.tanggal_masuk', '<=', date('Y-m-d'))
+                    ->where('mapping_shifts.status_absen', 'TIDAK HADIR KERJA')
+                    ->where(function ($query) {
+                        $query->where('mapping_shifts.keterangan_absensi', 'CUTI');
+                    })->where('mapping_shifts.keterangan_cuti', 'TRUE')
+                    ->where('karyawans.kontrak_kerja', $holding)
+                    ->count();
+                // dd($date->format('dmY'), date('dmY'));
+            }
+        }
+        $data_result = ['label_absensi' => $label_absensi, 'data_absensi_masuk_tepatwaktu' => $data_absensi_masuk_tepatwaktu, 'data_absensi_masuk_cuti' => $data_absensi_masuk_cuti, 'data_absensi_masuk_tidak_hadir' => $data_absensi_masuk_tidak_hadir, 'data_absensi_masuk_telat' => $data_absensi_masuk_telat];
+        // dd($data_result);
+        return response()->json($data_result);
+    }
+}
