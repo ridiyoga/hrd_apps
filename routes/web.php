@@ -291,7 +291,7 @@ Route::middleware('auth')->group(function () {
 
     // Mapping User
     Route::get('mapping_shift/dashboard/', [MappingShiftController::class, 'index']);
-    Route::get('mapping_shift/tambah_mapping/', [MappingShiftController::class, 'tambah_mapping']);
+    Route::get('mapping_shift/tambah_mapping/', [MappingShiftController::class, 'tambah_mapping'])->name('tambah_mapping');
     Route::get('mapping_shift/get_shiftData/', [MappingShiftController::class, 'getShiftData']);
     Route::get('mapping_shift/getKaryawanMappingShift', [MappingShiftController::class, 'getKaryawanMappingShift']);
     Route::post('/mapping_shift/addMappingShift', [MappingShiftController::class, 'addMappingShift']);

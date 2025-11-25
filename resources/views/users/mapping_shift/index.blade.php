@@ -398,7 +398,7 @@
         // let table = new DataTable('#table_mapping_shift');
         $(".btnSelected").on('click', function() {
             $.ajax({
-                url: "{{url('mapping_shift/tambah_mapping')}}",
+                url: "{{route('tambah_mapping')}}",
                 type: 'GET',
                 beforeSend: function() {
                     Swal.fire({
@@ -414,7 +414,7 @@
                 },
                 success: function(response) {
                     Swal.close();
-                    window.location.href = "{{url('mapping_shift/tambah_mapping')}}";
+                    window.location.href = "{{route('tambah_mapping')}}";
                 },
                 error: function(xhr, status, error) {
                     Swal.close();
