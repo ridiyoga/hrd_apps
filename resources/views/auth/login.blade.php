@@ -612,7 +612,7 @@
 <body>
     <div class="page-wraper">
         <div class="page-content">
-            @if(Session::has('login_error'))
+            @if(session()->has('login_error'))
             <div class="offcanvas offcanvas-bottom show text-center">
                 <div class="container">
                     <div class="offcanvas-body small">
@@ -651,7 +651,7 @@
                     </div>
                 </div>
             </div>
-            @elseif(Session::has('user_nonaktif'))
+            @elseif(session()->has('user_nonaktif'))
             <div class="offcanvas offcanvas-bottom show text-center">
                 <div class="container">
                     <div class="offcanvas-body small">
@@ -690,7 +690,7 @@
                     </div>
                 </div>
             </div>
-            @elseif(Session::has('karyawan_nonaktif'))
+            @elseif(session()->has('karyawan_nonaktif'))
             <div class="offcanvas offcanvas-bottom show text-center">
                 <div class="container">
                     <div class="offcanvas-body small">
@@ -729,7 +729,7 @@
                     </div>
                 </div>
             </div>
-            @elseif(Session::has('karyawan_null'))
+            @elseif(session()->has('karyawan_null'))
             <div class="offcanvas offcanvas-bottom show text-center">
                 <div class="container">
                     <div class="offcanvas-body small">
@@ -768,7 +768,7 @@
                     </div>
                 </div>
             </div>
-            @elseif(Session::has('logout_success'))
+            @elseif(session()->has('logout_success'))
             <div class="offcanvas offcanvas-bottom show text-center">
                 <div class="container">
                     <div class="offcanvas-body small">

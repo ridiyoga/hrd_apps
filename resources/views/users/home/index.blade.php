@@ -511,7 +511,7 @@ APPS | KARYAWAN - SP
 </style>
 @endsection
 @section('alert')
-@if (Session::has('absenmasuksuccess'))
+@if (session()->has('absenmasuksuccess'))
 <div id="alert_absen_masuk_success" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
@@ -527,7 +527,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('login_success'))
+@elseif(session()->has('login_success'))
 <div id="alert_login_success" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
@@ -543,7 +543,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('absenmasukerror'))
+@elseif(session()->has('absenmasukerror'))
 <div id="alert_absen_masuk_error" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
@@ -558,7 +558,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('absenmasukoutradius'))
+@elseif(session()->has('absenmasukoutradius'))
 <div id="alert_absenmasukoutradius" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
@@ -573,7 +573,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('absenpulangoutradius'))
+@elseif(session()->has('absenpulangoutradius'))
 <div id="alert_absenpulangoutradius" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -588,7 +588,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('absen_tidak_masuk'))
+@elseif(session()->has('absen_tidak_masuk'))
 <div id="alert_absen_tidak_masuk" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -630,7 +630,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('absenpulangsuccess'))
+@elseif(session()->has('absenpulangsuccess'))
 <div id="alert_absenpulangsuccess" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -646,7 +646,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('absenkeluarerror'))
+@elseif(session()->has('absenkeluarerror'))
 <div id="alert_absenkeluarerror" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -661,7 +661,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('lokasikerjanull'))
+@elseif(session()->has('lokasikerjanull'))
 <div id="alert_lokasikerjanull" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -676,7 +676,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('latlongnull'))
+@elseif(session()->has('latlongnull'))
 <div id="alert_latlongnull" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -691,7 +691,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('approveperdinsukses'))
+@elseif(session()->has('approveperdinsukses'))
 <div id="alert_approve_penugasan_sukses" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -707,7 +707,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('approvecuti_not_approve'))
+@elseif(session()->has('approvecuti_not_approve'))
 <div id="alert_approve_cuti_not_approve" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -723,7 +723,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('approvecuti_success'))
+@elseif(session()->has('approvecuti_success'))
 <div id="alert_approve_cuti_success" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -739,7 +739,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('approveizin_not_approve'))
+@elseif(session()->has('approveizin_not_approve'))
 <div id="alert_approve_izin_not_approve" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -755,7 +755,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('approveizin_success'))
+@elseif(session()->has('approveizin_success'))
 <div id="alert_approve_izin_success" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -771,7 +771,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('kontrakkerjaNULL'))
+@elseif(session()->has('kontrakkerjaNULL'))
 <div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -786,7 +786,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('karyawan_null'))
+@elseif(session()->has('karyawan_null'))
 <div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -801,7 +801,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('kontrakkerjaNULL'))
+@elseif(session()->has('kontrakkerjaNULL'))
 <div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -816,7 +816,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('jabatanNULL'))
+@elseif(session()->has('jabatanNULL'))
 <div id="alert_jabatan_null" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -831,7 +831,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('mapping_shift_null'))
+@elseif(session()->has('mapping_shift_null'))
 <div class="container" style="margin-top:-5%">
     <div class="alert alert-warning light alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -847,7 +847,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('penugasan_wilayah_kantor'))
+@elseif(session()->has('penugasan_wilayah_kantor'))
 <div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -862,7 +862,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('simpanface_success'))
+@elseif(session()->has('simpanface_success'))
 <div id="alert_simpanface_success" class="container" style="margin-top:-5%">
     <div class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -878,7 +878,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('simpanface_error'))
+@elseif(session()->has('simpanface_error'))
 <div id="alert_simpanface_danger" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -894,7 +894,7 @@ APPS | KARYAWAN - SP
         </button>
     </div>
 </div>
-@elseif(Session::has('jam_kerja_libur'))
+@elseif(session()->has('jam_kerja_libur'))
 <div id="alert_jam_kerja_libur" class="container" style="margin-top:-5%">
     <div class="alert alert-danger light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
@@ -1231,10 +1231,10 @@ APPS | KARYAWAN - SP
 @endsection
 @section('content')
 
-@if (Session::has('absenmasukoutradius'))
+@if (session()->has('absenmasukoutradius'))
 <div id="canvas_absenmasukoutradius" class="offcanvas offcanvas-bottom pwa-offcanvas">
     <input type="hidden" name="home_index" id="home_index"
-        value="{{ Session::has('absenmasukoutradius') }}">
+        value="{{ session()->has('absenmasukoutradius') }}">
     <div class="container">
         <div class="offcanvas-body small text-center">
             <img src="{{ asset('assets/assets_users/images/location.gif') }}" width="70" height="70"
@@ -1247,7 +1247,7 @@ APPS | KARYAWAN - SP
     </div>
 </div>
 <div class="offcanvas-backdrop pwa-backdrop"></div>
-@elseif(Session::has('absenpulangoutradius'))
+@elseif(session()->has('absenpulangoutradius'))
 <div class="offcanvas offcanvas-bottom pwa-offcanvas">
     <div class="container">
         <div class="offcanvas-body small text-center">
@@ -2583,6 +2583,12 @@ APPS | KARYAWAN - SP
 
 
 <script type="text/javascript">
+    window.addEventListener("pageshow", function(event) {
+        if (event.persisted) {
+            // Reinitialize JS
+            Swal.close();
+        }
+    });
     $(document).ready(function() {
         // Swal.close();
         load_data();
@@ -2665,6 +2671,7 @@ APPS | KARYAWAN - SP
                 window.scrollTo(0, 50);
             }
         }
+
         $(document).on('click', '.btn_klik', function(e) {
             console.log('oke');
             Swal.fire({
@@ -2673,6 +2680,7 @@ APPS | KARYAWAN - SP
                 html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
                 showCancelButton: false,
                 showConfirmButton: false,
+
             });
         });
 

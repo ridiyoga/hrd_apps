@@ -25,7 +25,7 @@ class Departemen extends Model
     }
     public function Divisi(): BelongsTo
     {
-        return $this->belongsTo(Divisi::class);
+        return $this->belongsTo(Divisi::class, 'dept_id', 'id');
     }
     public function Holding(): BelongsTo
     {

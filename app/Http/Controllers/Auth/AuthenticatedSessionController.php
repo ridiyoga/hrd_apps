@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -37,7 +38,8 @@ class AuthenticatedSessionController extends Controller
 
             // Kita harus melemparkan ValidationException lagi
             // Tapi karena di Controller, kita bisa menggunakan return back() dengan error spesifik
-            return back()->withErrors([
+            $request->session()->flash('user_nonaktif', 'Akun Anda non-aktif. Silakan hubungi administrator.');
+            return redirect()->route('login')->withErrors([
                 'username' => 'Akun Anda non-aktif. Silakan hubungi administrator.',
             ]);
         }
@@ -53,8 +55,8 @@ class AuthenticatedSessionController extends Controller
                 $errorMessage = !$karyawan
                     ? 'Data karyawan tidak ditemukan.'
                     : 'Status karyawan Anda non-aktif.';
-
-                return back()->withErrors(['username' => $errorMessage]);
+                $request->session()->flash('user_nonaktif', 'Akun Anda non-aktif. Silakan hubungi administrator.');
+                return redirect()->route('login')->withErrors(['username' => $errorMessage]);
             }
 
             // Alert::success('Berhasil', 'Selamat Datang');
@@ -73,7 +75,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
-
-        return redirect('/');
+        $request->session()->flash('logout_success', true);
+        return redirect()->route('login');
     }
 }

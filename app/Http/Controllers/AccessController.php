@@ -67,16 +67,16 @@ class AccessController extends Controller
         $table = User::with(['roleUsers' => function ($query) {
             $query->with('roleMenu');
         }])
-            // ->with(['Karyawan' => function ($query) use ($holding) {
-            //     $query->with('Departemen', 'Divisi', 'Jabatan')
-            //         ->whereIn('kontrak_kerja', [$holding->id, NULL])
-            //         ->orderBy('name', 'ASC');
-            // }])
-            // ->whereHas('Karyawan', function ($query) use ($holding) {
-            //     $query->whereIn('kontrak_kerja', [$holding->id, NULL])
-            //         ->orderBy('name', 'ASC');
-            // })
-            ->where('is_admin', 'admin')
+            ->with(['Karyawan' => function ($query) use ($holding) {
+                $query->with('Departemen', 'Divisi', 'Jabatan')
+                    ->whereIn('kontrak_kerja', [$holding->id, NULL])
+                    ->orderBy('name', 'ASC');
+            }])
+            ->whereHas('Karyawan', function ($query) use ($holding) {
+                $query->whereIn('kontrak_kerja', [$holding->id, NULL])
+                    ->orderBy('name', 'ASC');
+            })
+            // ->where('is_admin', 'admin')
             // ->limit(10)
             // ->where('username', 'cerdasbadrus')
             ->get();

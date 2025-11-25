@@ -69,8 +69,8 @@ class dashboardController extends Controller
         $tgl_skrg = date("Y-m-d");
 
         $logs = ActivityLog::query();
-        $date_30day = Carbon::now()->addDay('30');
-        $date_now = Carbon::now()->addDay('-30');
+        $date_30day = Carbon::now()->addDay(30);
+        $date_now = Carbon::now()->subDay(-30);
         $date_now1 = Carbon::now();
         // dd($date_30day);
         $logs = $logs->orderBy('created_at', 'desc')->limit(5)->get();
@@ -92,7 +92,27 @@ class dashboardController extends Controller
             ->get();
 
         // dd($count_karyawan_habis_kontrak);
-
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        // dd($get_role);
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
 
         // dd(json_encode($nama_jabatan));
         $start_date = Carbon::now()->startOfMonth();
@@ -119,6 +139,7 @@ class dashboardController extends Controller
             'count_karyawan_habis_kontrak' => $count_karyawan_habis_kontrak,
             'karyawan_habis_kontrak' => $karyawan_habis_kontrak,
             'date_now1' => $date_now1,
+            'menus' => $menus,
             'title' => 'Dashboard',
             'label_absensi' => json_encode($label_absensi),
             'data_absensi_masuk' => json_encode($data_absensi_masuk),
@@ -173,7 +194,27 @@ class dashboardController extends Controller
             ->get();
 
         // dd($count_karyawan_habis_kontrak);
-
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        // dd($get_role);
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
 
         // dd(json_encode($nama_jabatan));
         $start_date = Carbon::now()->startOfMonth();
@@ -201,6 +242,7 @@ class dashboardController extends Controller
             'karyawan_habis_kontrak' => $karyawan_habis_kontrak,
             'date_now1' => $date_now1,
             'title' => 'Dashboard',
+            'menus' => $menus,
             'label_absensi' => json_encode($label_absensi),
             'data_absensi_masuk' => json_encode($data_absensi_masuk),
             'data_absensi_pulang' => json_encode($data_absensi_pulang),
