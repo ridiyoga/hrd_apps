@@ -24,10 +24,125 @@ use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use ParagonIE\Sodium\Core\Curve25519\H;
 use RealRashid\SweetAlert\Facades\Alert;
+use Jmrashed\Zkteco\Lib\ZKTeco;
 use Yajra\DataTables\Facades\DataTables;
 
 class ReportController extends Controller
 {
+
+    public function getLogsOnly()
+    {
+        $ip   = '192.168.100.150';
+        $port = 4370;
+
+        $zk = new \Jmrashed\Zkteco\Lib\ZKTeco($ip, $port);
+
+        if (!$zk->connect()) {
+            return response()->json(['error' => 'Gagal connect']);
+        }
+
+        // dd($zk);
+        $allLogs = $zk->getAttendance();
+        $zk->disconnect();
+        // Ambil timestamp terakhir dari DB
+        $last = DB::table('last_pull')->where('id', 1)->first();
+
+        $lastTimestamp = $last->last_timestamp;
+
+        // Filter hanya log baru
+        $newLogs = array_filter($allLogs, function ($log) use ($lastTimestamp) {
+            if ($lastTimestamp === null) return true;
+            return $log['timestamp'] > $lastTimestamp;
+        });
+        // dd($newLogs);
+        // Update last timestamp
+        if (!empty($newLogs)) {
+            $latest = max(array_column($newLogs, 'timestamp'));
+            DB::table('last_pull')->where('id', 1)->update([
+                'last_timestamp' => $latest
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'count' => count($newLogs),
+            'data' => array_values($newLogs)
+        ]);
+    }
+    // public function getLogsOnly()
+    // {
+    //     $ip   = '192.168.100.150'; // IP mesin Anda
+    //     $port = 4370;
+
+    //     try {
+    //         $zk = new \Jmrashed\Zkteco\Lib\ZKTeco($ip, $port);
+
+    //         if (!$zk->connect()) {
+    //             return response()->json([
+    //                 'status' => 'failed',
+    //                 'message' => 'Gagal connect ke mesin fingerprint'
+    //             ]);
+    //         }
+
+    //         // Ambil semua log dari mesin
+    //         $attendance = $zk->getAttendance();
+    //         $zk->disconnect();
+
+    //         // Ambil tanggal hari ini (YYYY-mm-dd)
+    //         $today = date('Y-m-d');
+
+    //         // Filter log yang hanya dari hari ini
+    //         $todayLogs = array_filter($attendance, function ($item) use ($today) {
+    //             return strpos($item['dateTime'], $today) === 0;
+    //         });
+
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'count'  => count($todayLogs),
+    //             'data'   => array_values($todayLogs)
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => $e->getMessage()
+    //         ]);
+    //     }
+    // }
+
+    public function testConnection()
+    {
+        $ip   = '192.168.100.150'; // ganti dengan IP fingerprint
+        $port = 4370;
+
+        try {
+            $zk = new \Jmrashed\Zkteco\Lib\ZKTeco($ip, $port);
+
+            // test connect
+            if ($zk->connect()) {
+
+                // kalau connect sukses
+                $zk->disconnect();
+
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Berhasil connect ke fingerprint ($ip:$port)"
+                ]);
+            } else {
+
+                // gagal connect
+                return response()->json([
+                    'status' => 'failed',
+                    'message' => "Gagal connect ke mesin fingerprint",
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
     public function index(Request $request, $holding)
     {
         // dd($request->all());

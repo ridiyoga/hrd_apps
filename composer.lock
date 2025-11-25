@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "73558464038bfe134bba713abd2a66cc",
+    "content-hash": "7416a91ac5b74e6fc38e85c28953c16c",
     "packages": [
         {
             "name": "brick/math",
@@ -1130,6 +1130,50 @@
                 }
             ],
             "time": "2025-08-22T14:27:06+00:00"
+        },
+        {
+            "name": "jmrashed/zkteco",
+            "version": "1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/jmrashed/zkteco.git",
+                "reference": "4672f6769a760e28cd10c4721bf418af28bed970"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/jmrashed/zkteco/zipball/4672f6769a760e28cd10c4721bf418af28bed970",
+                "reference": "4672f6769a760e28cd10c4721bf418af28bed970",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^6.0",
+                "phpunit/phpunit": "^10.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Jmrashed\\Zkteco\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Md Rasheduzzaman",
+                    "email": "jmrashed@gmail.com"
+                }
+            ],
+            "description": "ZKTeco Package For Laravel. This package provides seamless integration with ZKTeco devices within Laravel applications, enabling communication with attendance devices such as fingerprint, face recognition, or RFID using UDP protocol.",
+            "support": {
+                "issues": "https://github.com/jmrashed/zkteco/issues",
+                "source": "https://github.com/jmrashed/zkteco/tree/v1.2.0"
+            },
+            "time": "2025-10-01T12:47:08+00:00"
         },
         {
             "name": "laravel/framework",
@@ -2522,6 +2566,43 @@
                 }
             ],
             "time": "2025-01-27T12:07:53+00:00"
+        },
+        {
+            "name": "maliklibs/zkteco",
+            "version": "dev-wm/backup",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/malikwaqasmustafa/zkteco.git",
+                "reference": "63aeb277edd359151c7e703ddfd68cde2ee511b4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/malikwaqasmustafa/zkteco/zipball/63aeb277edd359151c7e703ddfd68cde2ee511b4",
+                "reference": "63aeb277edd359151c7e703ddfd68cde2ee511b4",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "maliklibs\\Zkteco\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Malik Waqas",
+                    "email": "malik.waqas.09@hotmail.com"
+                }
+            ],
+            "description": "ZKTeco Laravel Library",
+            "support": {
+                "issues": "https://github.com/malikwaqasmustafa/zkteco/issues",
+                "source": "https://github.com/malikwaqasmustafa/zkteco/tree/main"
+            },
+            "time": "2022-08-09T10:40:30+00:00"
         },
         {
             "name": "markbaker/complex",

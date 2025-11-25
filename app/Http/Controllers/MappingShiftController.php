@@ -11,6 +11,7 @@ use App\Models\Jabatan;
 use App\Models\Karyawan;
 use App\Models\MappingShift;
 use App\Models\Menu;
+use App\Models\RoleMenu;
 use App\Models\RoleUsers;
 use App\Models\Shift;
 use App\Models\User;
@@ -130,69 +131,90 @@ class MappingShiftController extends Controller
     }
     function tambah_mapping()
     {
-        $hrd = Karyawan::with(['Departemen' => function ($query) {
-            $query->where('nama_departemen', 'HRD & GA');
-            $query->with(['Divisi' => function ($q) {
-                $q->with(['Jabatan' => function ($l) {
-                    $l->with('LevelJabatan');
+        try {
+
+            $hrd = Karyawan::with(['Jabatan' => function ($query) {
+                $query->with(['LevelJabatan' => function ($q) {
+                    $q->whereIn('level_jabatan', [1, 2, 3, 4]);
                 }]);
-            }]);
-        }])->whereHas('Departemen', function ($query) {
-            $query->where('nama_departemen', 'HRD & GA');
-        })->whereHas('Departemen.Divisi.Jabatan.LevelJabatan', function ($query) {
-            $query->whereIn('level_jabatan', ['1', '2']);
-        })
-            ->get();
-        dd($hrd);
-        $shift = Shift::whereNotIn('nama_shift', ['NON SHIFT'])->orderBy('nama_shift')->get();
-        $user_karyawan = User::with([
-            'Karyawan' => function ($query) {
-                $query->with('Departemen');
-                $query->with('Divisi');
-                $query->with('Jabatan');
-                $query->with('KontrakKerja');
-                $query->with('PenempatanKerja');
+                $query->with(['Divisi' => function ($q) {
+                    $q->with(['Departemen' => function ($l) {
+                        $l->where('nama_departemen', 'HRD & GA');
+                    }]);
+                }]);
+            }])->whereHas('Jabatan', function ($q) {
+                $q->whereHas('LevelJabatan', function ($q2) {
+                    $q2->whereIn('level_jabatan', [1, 2, 3, 4]);
+                });
+                $q->whereHas('Divisi', function ($q2) {
+                    $q2->whereHas('Departemen', function ($q3) {
+                        $q3->where('nama_departemen', 'HRD & GA');
+                    });
+                });
+            })->get();
+            $shift = Shift::whereNotIn('nama_shift', ['NON SHIFT'])->orderBy('nama_shift')->get();
+            $user_karyawan = User::with([
+                'Karyawan' => function ($query) {
+                    $query->with('Departemen');
+                    $query->with('Divisi');
+                    $query->with('Jabatan');
+                    $query->with('KontrakKerja');
+                    $query->with('PenempatanKerja');
+                }
+            ])->where('id', Auth::user()->id)
+                ->first();
+            if ($user_karyawan->Karyawan->Departemen == NULL) {
+                $departemen = NULL;
+            } else {
+                $departemen = $user_karyawan->Karyawan->Departemen->nama_departemen;
             }
-        ])->where('id', Auth()->user()->id)
-            ->first();
-        if ($user_karyawan->Karyawan->Departemen == NULL) {
-            $departemen = NULL;
-        } else {
-            $departemen = $user_karyawan->Karyawan->Departemen->nama_departemen;
-        }
-        $roleId = Auth::user()->role;
-        // dd($roleId);
-        if ($roleId == null) {
-            $all_menu = collect();
-        } else {
-            $all_menu  = Menu::whereIn('id', function ($query) use ($roleId) {
-                $query->select('menu_id')
-                    ->from('role_menus')
-                    ->where('role_id', $roleId);
-            })
-                ->whereNull('parent_id') // menu utama
-                ->with('children')       // load submenunya
-                ->orderBy('sort_order')
+            $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+            // dd($get_role);
+            if (count($get_role) == 0) {
+                $roleId = null;
+            } else {
+                $roleId = $get_role;
+            }
+            if ($roleId == null) {
+                $all_menu = collect();
+            } else {
+                $all_menu = Menu::whereIn('id', function ($query) use ($roleId) {
+                    $query->select('menu_id')
+                        ->from('role_menus')
+                        ->whereIn('role_id', $roleId);
+                })
+                    ->whereNull('parent_id') // menu utama
+                    ->with('children')
+                    ->where('kategori', 'web')      // load submenunya
+                    ->orderBy('sort_order')
+                    ->get();
+            }
+            // dd($departemen);
+            $user_shift = Karyawan::with('Departemen', 'Divisi', 'Jabatan', 'KontrakKerja', 'PenempatanKerja')->with(['MappingShift' => function ($query) {
+                $query;
+            }])->where('dept_id', $user_karyawan->Karyawan->dept_id)
+                ->where('divisi_id', $user_karyawan->Karyawan->divisi_id)
+                ->where('penempatan_kerja', $user_karyawan->Karyawan->penempatan_kerja)
+                ->where('shift', 'SHIFT')
+                ->where('status_aktif', 'AKTIF')
+                ->whereNotIn('id', [$user_karyawan->Karyawan->id])
                 ->get();
+            // dd($user_shift);
+            return view('users.mapping_shift.tambah_mapping', [
+                'user_karyawan' => $user_karyawan,
+                'all_menus' => $all_menu,
+                'shift' => $shift,
+                'hrd' => $hrd,
+                'departemen' => $departemen,
+                'user_shift' => $user_shift
+            ]);
+        } catch (\Exception $e) {
+            session()->flash('tambahmappingerror', $e->getMessage());
+            return redirect()->back()->with([
+                'code' => 500,
+                'message' => $e->getMessage()
+            ]);
         }
-        // dd($departemen);
-        $user_shift = Karyawan::with('Departemen', 'Divisi', 'Jabatan', 'KontrakKerja', 'PenempatanKerja')->with(['MappingShift' => function ($query) {
-            $query;
-        }])->where('dept_id', $user_karyawan->Karyawan->dept_id)
-            ->where('divisi_id', $user_karyawan->Karyawan->divisi_id)
-            ->where('penempatan_kerja', $user_karyawan->Karyawan->penempatan_kerja)
-            ->where('shift', 'SHIFT')
-            ->where('status_aktif', 'AKTIF')
-            ->whereNotIn('id', [$user_karyawan->Karyawan->id])
-            ->get();
-        // dd($user_shift);
-        return view('users.mapping_shift.tambah_mapping', [
-            'user_karyawan' => $user_karyawan,
-            'all_menus' => $all_menu,
-            'shift' => $shift,
-            'departemen' => $departemen,
-            'user_shift' => $user_shift
-        ]);
     }
     public function index(Request $request)
     {
@@ -205,7 +227,7 @@ class MappingShiftController extends Controller
                 $query->with('KontrakKerja');
                 $query->with('PenempatanKerja');
             }
-        ])->where('id', Auth()->user()->id)
+        ])->where('id', Auth::user()->id)
             ->first();
         if ($user_karyawan->Karyawan->Departemen == NULL) {
             $departemen = NULL;
@@ -215,38 +237,33 @@ class MappingShiftController extends Controller
         $weekStart = Carbon::now()->startOfWeek();
         $days = collect(range(0, 6))->map(fn($i) => $weekStart->copy()->addDays($i));
 
-        // Contoh data shift
-        $shifts = [
-            '2025-11-10' => [
-                ['name' => 'Budi', 'shift' => 'Pagi (08:00 - 16:00)'],
-                ['name' => 'Siti', 'shift' => 'Malam (20:00 - 04:00)'],
-            ],
-            '2025-11-11' => [
-                ['name' => 'Andi', 'shift' => 'Siang (12:00 - 20:00)'],
-            ],
-        ];
+
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
-        // dd($get_role);
         if (count($get_role) == 0) {
             $roleId = null;
         } else {
             $roleId = $get_role;
         }
         if ($roleId == null) {
-            $menus = collect();
+            $all_menu = collect();
         } else {
-            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-                $query->select('menu_id')
-                    ->from('role_menus')
-                    ->whereIn('role_id', $roleId);
-            })
-                ->whereNull('parent_id') // menu utama
-                ->with('children')
-                ->where('kategori', 'web')      // load submenunya
-                ->orderBy('sort_order')
-                ->get();
+
+            $all_menu  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                })
+                ->whereIn('role_id', $get_role)->get();
         }
-        return view('users.mapping_shift.index', compact(['user_karyawan', 'shift', 'departemen', 'shifts', 'days', 'all_menus']));
+        // dd($all_menu);
+        return view('users.mapping_shift.index', [
+            'user_karyawan' => $user_karyawan,
+            'shift' => $shift,
+            'departemen' => $departemen,
+            'days' => $days,
+            'all_menus' => $all_menu
+        ]);
     }
     public function getShiftData(Request $request)
     {
@@ -346,7 +363,6 @@ class MappingShiftController extends Controller
                             'tanggal_pulang' => $tanggal_pulang,
                         ]);
                     } else {
-
                         MappingShift::create([
                             'karyawan_id' => $user,
                             'nik_karyawan' => $get_karyawan->nik,

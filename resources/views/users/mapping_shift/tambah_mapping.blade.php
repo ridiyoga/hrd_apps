@@ -244,7 +244,7 @@
                                                     </span>
                                                     <select class="form-control" name="approve_hrd" id="approve_hrd" required>
                                                         <option value="">Pilih Approval HRD</option>
-                                                        foreach($hrd as $hrd)
+                                                        @foreach($hrd as $hrd)
                                                         <option value="{{$hrd->id}}">{{$hrd->name}}</option>
                                                         @endforeach
                                                     </select>
@@ -279,8 +279,13 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="text/javascript">
+    window.addEventListener("pageshow", function(event) {
+        if (event.persisted) {
+            // Reinitialize JS
+            Swal.close();
+        }
+    });
     $(document).ready(function() {
-        Swal.close();
         // let table = new DataTable('#table_mapping_shift');
         $("#btn_lihat_jadwal").on('click', function() {
             $.ajax({

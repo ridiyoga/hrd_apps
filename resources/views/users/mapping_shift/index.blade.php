@@ -116,7 +116,7 @@
 
 
 <div class="container">
-    @if(Session::has('mappingshiftsuccess'))
+    @if(session()->has('mappingshiftsuccess'))
     <div id="alert_addmappingsuccess" class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
             <circle cx="12" cy="12" r="10"></circle>
@@ -129,8 +129,26 @@
             <i class="fa-solid fa-xmark"></i>
         </button>
     </div>
+    @elseif(session()->has('tambahmappingerror'))
+    <div id="alert_statusmappingeditsuccess" class="alert alert-danger light alert-lg alert-dismissible fade show">
 
-    @elseif(Session::has('mappingshiftupdatesuccess'))
+        <strong> <i class="fa-solid fa-triangle-exclamation"></i>&nbsp;Error!</strong>&nbsp;Error Memuat Laman Tambah Jadwal
+        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+    <div class="offcanvas offcanvas-bottom pwa-offcanvas">
+        <div class="container">
+            <div class="offcanvas-body small text-center">
+                <img src="{{ asset('assets/assets_users/images/icon_error.gif') }}" width="50" height="50"
+                    alt="">
+                <div>{{session()->get('tambahmappingerror')}}</div>
+            </div>
+        </div>
+    </div>
+    <div class="offcanvas-backdrop pwa-backdrop"></div>
+
+    @elseif(session()->has('mappingshiftupdatesuccess'))
     <div id="alert_statusmappingeditsuccess" class="alert alert-success light alert-lg alert-dismissible fade show">
         <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
             <circle cx="12" cy="12" r="10"></circle>
@@ -246,8 +264,13 @@
 
 </script>
 <script type="text/javascript">
+    window.addEventListener("pageshow", function(event) {
+        if (event.persisted) {
+            // Reinitialize JS
+            Swal.close();
+        }
+    });
     $(document).ready(function() {
-        Swal.close();
         const dateContainer = $("#dateContainer")[0];
         const shiftList = $("#shiftList")[0];
         const weekLabel = $("#weekLabel")[0];

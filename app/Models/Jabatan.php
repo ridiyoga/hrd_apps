@@ -13,7 +13,18 @@ class Jabatan extends Model
     use HasFactory, UuidTrait;
     public $incrementing = false;
     protected $guarded = ['id', 'created_at', 'updated_at'];
-    protected $fillable = ['divisi_id', 'holding', 'atasan_id', 'atasan2_id', 'bagian_id', 'nama_jabatan', 'level_id', 'lintas_departemen', 'created_at', 'updated_at'];
+    protected $fillable = [
+        'divisi_id',
+        'holding',
+        'atasan_id',
+        'atasan2_id',
+        'bagian_id',
+        'nama_jabatan',
+        'level_id',
+        'lintas_departemen',
+        'created_at',
+        'updated_at'
+    ];
 
     public function LevelJabatan(): BelongsTo
     {

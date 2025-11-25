@@ -1,27 +1,44 @@
 <?php
 
+use App\Http\Controllers\AccessController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\authController;
 use App\Http\Controllers\BagianController;
 use App\Http\Controllers\dashboardController;
 use App\Http\Controllers\DepartemenController;
 use App\Http\Controllers\DivisiController;
+use App\Http\Controllers\FingerController;
+use App\Http\Controllers\HistoryUserController;
 use App\Http\Controllers\HoldingController;
+use App\Http\Controllers\HomeUserController;
 use App\Http\Controllers\jabatanController;
 use App\Http\Controllers\karyawanController;
 use App\Http\Controllers\KaryawanKesehatanController;
 use App\Http\Controllers\KaryawanRiwayatController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\MappingShiftController;
+use App\Http\Controllers\MenuController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProfileUserController;
+use App\Http\Controllers\RecruitmentController;
+use App\Http\Controllers\RecruitmentUserController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\SitesController;
 use App\Http\Controllers\StrukturOrganisasiController;
+use App\Http\Controllers\SummernoteController;
+use App\Http\Controllers\UjianUserController;
 use App\Http\Controllers\UserKaryawanController;
 use App\Models\Holding;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [authController::class, 'index']);
+Route::get('/testConnection', [ReportController::class, 'testConnection']);
+Route::get('/getLogsOnly', [ReportController::class, 'getLogsOnly']);
 Route::middleware('auth')->group(function () {
+    // TEST
+
     // DASHBOARD
     Route::get('/dashboard/hrd/{holding}', [dashboardController::class, 'index']);
     Route::get('/dashboard/portal/{holding}', [dashboardController::class, 'index_portal']);
@@ -101,6 +118,37 @@ Route::middleware('auth')->group(function () {
     Route::get('/lokasi/delete/{id}/{holding}', [LokasiController::class, 'deleteLokasi']);
     Route::put('/lokasi/radius/{id}/{holding}', [LokasiController::class, 'updateRadiusLokasi']);
     Route::get('/lokasi/get_lokasi/{holding}', [LokasiController::class, 'get_lokasi']);
+
+    // SHIFT
+    Route::get('/shift/{holding}', [ShiftController::class, 'index']);
+    Route::get('/shift-datatable/{holding}', [ShiftController::class, 'datatable']);
+    Route::get('/shift/create/{holding}', [ShiftController::class, 'create']);
+    Route::post('/shift/store/{holding}', [ShiftController::class, 'store']);
+    Route::post('/shift/update/{holding}', [ShiftController::class, 'update']);
+    Route::get('/shift/delete/{id}/{holding}', [ShiftController::class, 'destroy']);
+    Route::get('/karyawan/shift/{id}/{holding}', [karyawanController::class, 'shift']);
+
+
+    // FINGER MACHINE
+    Route::get('/finger/{holding}', [FingerController::class, 'index']);
+    Route::get('/finger-datatable/{holding}', [FingerController::class, 'datatable']);
+    Route::post('/finger/store/{holding}', [FingerController::class, 'store']);
+    Route::post('/finger/update/{holding}', [FingerController::class, 'update']);
+    Route::get('/finger/delete/{id}/{holding}', [FingerController::class, 'destroy']);
+
+    // MASTER MENU
+    Route::get('/menu/{holding}', [MenuController::class, 'index']);
+    Route::post('/menu/save_all_change', [MenuController::class, 'save_all_change']);
+    Route::post('/menu/store/{holding}', [MenuController::class, 'store']);
+    Route::get('/menu/delete/{id}', [MenuController::class, 'delete']);
+
+    // ROLE
+    Route::get('/role/{holding}', [RoleController::class, 'index']);
+    Route::get('/role-datatable/{holding}', [RoleController::class, 'datatable']);
+    Route::get('/menu-datatable/{holding}', [RoleController::class, 'datatable_menu']);
+    Route::get('/role/add_role/{id}/{holding}', [RoleController::class, 'add_role']);
+    Route::post('/role/role_save_add/{holding}', [RoleController::class, 'role_save_add']);
+    Route::post('/role/role_save_update/{holding}', [RoleController::class, 'role_save_update']);
 
     // MASTER KARYAWAN
     Route::put('/karyawan/proses-edit-shift/sp', [karyawanController::class, 'prosesEditShift']);
@@ -257,6 +305,186 @@ Route::middleware('auth')->group(function () {
     Route::get('/approval/mapping_shift', [ApprovalController::class, 'mapping_shift']);
     // STRUKTUR ORGANISASI
     Route::get('/struktur_organisasi/{holding}', [StrukturOrganisasiController::class, 'index']);
+    Route::get('/home', [HomeUserController::class, 'index'])->name('home');
+    Route::get('/pusher', [HomeUserController::class, 'pusher'])->name('pusher');
+    Route::post('/home/absenMasuk', [HomeUserController::class, 'absenMasuk'])->name('absenMasuk');
+    Route::get('/datatableHome', [HomeUserController::class, 'datatableHome'])->name('datatableHome');
+    Route::get('/get_count_absensi_home', [HomeUserController::class, 'get_count_absensi_home'])->name('get_count_absensi_home');
+    Route::get('/home/absen', [HomeUserController::class, 'HomeAbsen'])->name('absen');
+    Route::post('/home/absenPulang', [HomeUserController::class, 'absenPulang'])->name('absenPulang');
+    Route::get('/home/maps/{lat}/{long}', [HomeUserController::class, 'maps']);
+    Route::get('/home/my-absen', [HomeUserController::class, 'myAbsen']);
+    Route::get('/home/my-location', [HomeUserController::class, 'myLocation']);
+    Route::get('/home/form_datang_terlambat', [HomeUserController::class, 'form_datang_terlambat']);
+    Route::post('/home/pulang_cepat_proses', [HomeUserController::class, 'proses_izin_pulang_cepats']);
+    Route::get('/home/get_notif', [HomeUserController::class, 'get_notif']);
+    Route::get('/home/get_notif_cuti', [HomeUserController::class, 'get_notif_cuti']);
+    Route::get('/home/get_notif_penugasan', [HomeUserController::class, 'get_notif_penugasan']);
+    Route::get('/home/create_face_id', [HomeUserController::class, 'create_face_id'])->name('create_face_id');
+    Route::post('/home/savefaceid', [HomeUserController::class, 'savefaceid'])->name('savefaceid');
+
+    // ACCESS
+    Route::get('/access/{holding}', [AccessController::class, 'index']);
+    Route::get('/access-datatable/{holding}', [AccessController::class, 'datatable']);
+    Route::get('/access/role_access_datatable/{id}/{holding}', [AccessController::class, 'role_access_datatable']);
+    Route::get('/access/add_access/{id}/{holding}', [AccessController::class, 'add_access']);
+    Route::post('/access/access_save_add/{holding}', [AccessController::class, 'access_save_add']);
+
+
+    // MENU RECRUITMENT
+
+    // RECRUITMENT DASHBOARD ADMIN
+    Route::get('/pg-data-recruitment/{holding}', [RecruitmentController::class, 'pg_recruitment']);
+
+    Route::post('/recruitment/create/{holding}', [RecruitmentController::class, 'create']);
+
+    Route::post('/recruitment/update', [RecruitmentController::class, 'update']);
+
+    Route::get('/recruitment/delete/{id?}/{holding}', [RecruitmentController::class, 'delete']);
+
+    Route::get('/dt/data-recruitment/{holding}', [RecruitmentController::class, 'dt_recruitment']);
+    Route::get('/recruitment/update/status-recruitment/{id?}/{holding}', [RecruitmentController::class, 'update_status']);
+
+    Route::get('/pg/data-list-pelamar/{id?}/{holding}', [RecruitmentController::class, 'pg_list_pelamar']);
+    Route::get('/pg/data-list-user_meta/{id?}/{holding}', [RecruitmentController::class, 'user_meta']);
+    Route::get('/pg/data-list-user_kandidat/{id?}/{holding}', [RecruitmentController::class, 'user_kandidat']);
+    Route::get('/pg/data-list-user_wait/{id?}/{holding}', [RecruitmentController::class, 'user_wait']);
+    Route::get('/pg/data-list-user_reject/{id?}/{holding}', [RecruitmentController::class, 'user_reject']);
+
+
+    Route::get('/pg/pelamar-detail/{id?}/{holding}', [RecruitmentController::class, 'pelamar_detail']);
+
+    Route::get('/pg/pelamar-detail_pdf/{id?}/{holding}', [RecruitmentController::class, 'pelamar_detail_pdf']);
+    Route::get('/pg/pelamar-nilai_pdf/{id?}', [RecruitmentController::class, 'pelamar_nilai_pdf']);
+
+    Route::post('/pg/pelamar-detail-ubah/{holding}', [RecruitmentController::class, 'pelamar_detail_ubah']);
+
+
+    Route::get('/pg-data-interview/{holding}', [RecruitmentController::class, 'pg_data_interview']);
+    Route::get('/dt/data-interview/{holding}', [RecruitmentController::class, 'dt_data_interview']);
+    Route::get('/dt/data-interview1/{holding}', [RecruitmentController::class, 'dt_data_interview1']);
+    Route::get('/dt/data-interview2/{holding}', [RecruitmentController::class, 'dt_data_interview2']);
+    Route::get('/dt/data-interview3/{holding}', [RecruitmentController::class, 'dt_data_interview3']);
+    Route::get('/dt/data-data_ujian_user/{id}/{holding}', [RecruitmentController::class, 'data_ujian_user']);
+
+    Route::get('/dt/data-get_data_esai/{id}/{holding}', [UjianUserController::class, 'dt_ujian_esai']);
+
+    Route::get('/dt/data-dt_interview_user/{id}/{holding}', [UjianUserController::class, 'dt_interview_user']);
+
+    Route::post('/dt/interview_user_post', [UjianUserController::class, 'interview_user_post']);
+    Route::get('/dt/get_catatan_interview/{id}', [UjianUserController::class, 'get_catatan_interview']);
+    Route::post('/dt/update_catatan', [UjianUserController::class, 'update_catatan']);
+    Route::get('/dt/dt_catatan/{id}', [UjianUserController::class, 'dt_catatan']);
+
+    Route::get('/dt/data-get_data_pg/{id}/{holding}', [UjianUserController::class, 'dt_ujian_pg']);
+
+    Route::post('/dt/data-interview/penilaian_esai', [UjianUserController::class, 'penilaian_esai'])->name('penilaian_esai');
+
+    Route::get('/dt/data-get_esai_interview/{id}/{id_user}/{holding}', [UjianUserController::class, 'show_esai']);
+
+    Route::get('/dt/data-get_interview_user/{id}/{id_user}/sp', [UjianUserController::class, 'show_interview_user']);
+    Route::get('/dt/data-get_interview_user/{id}/{id_user}/sps', [UjianUserController::class, 'show_interview_user']);
+    Route::get('/dt/data-get_interview_user/{id}/{id_user}/sip', [UjianUserController::class, 'show_interview_user']);
+
+    Route::get('/dt/data-get_pg_interview/{id}/{id_user}/{holding}', [UjianUserController::class, 'show_pg']);
+
+    Route::post('/dt/data-interview/presensi_recruitment_update', [RecruitmentController::class, 'presensi_recruitment_update']);
+    Route::post('/dt/data-interview/ranking_update_status', [RecruitmentController::class, 'ranking_update_status']);
+    Route::post('/dt/data-interview/integrasi', [RecruitmentController::class, 'user_integrasi']);
+
+
+    Route::get('/pg-data-ujian/{holding}', [RecruitmentController::class, 'pg_ujian']);
+
+    Route::post('/pg-data-pembobotan_post', [RecruitmentController::class, 'pembobotan_post']);
+    Route::get('/pg-data-dt_pembobotan', [RecruitmentController::class, 'dt_pembobotan'])->name('dt_pembobotan');
+
+    Route::get('/dt-data-list-ujian/{holding}', [RecruitmentController::class, 'dt_ujian']);
+
+    Route::get('/dt-data-list-esai/{holding}', [RecruitmentController::class, 'dt_esai']);
+
+    Route::get('/dt-data-list-ujian_kategori/{holding}', [RecruitmentController::class, 'dt_ujian_kategori']);
+
+    Route::get('/dt-data-list-interview_admin/{holding}', [RecruitmentController::class, 'dt_interview_admin']);
+
+    Route::get('/dt_referensi', [RecruitmentController::class, 'dt_referensi']);
+    Route::post('/referensi_add', [RecruitmentController::class, 'referensi_add']);
+    Route::post('/delete_referensi', [RecruitmentController::class, 'delete_referensi']);
+    Route::post('/referensi_update', [RecruitmentController::class, 'referensi_update']);
+
+
+
+    Route::post('ujian_kategori_post', [RecruitmentController::class, 'ujian_kategori_post']);
+    Route::post('delete_ujian_kategori', [RecruitmentController::class, 'delete_ujian_kategori']);
+    Route::post('ujian_kategori_update', [RecruitmentController::class, 'ujian_kategori_update']);
+
+    Route::post('interview_admin_post', [RecruitmentController::class, 'interview_admin_post']);
+    Route::post('interview_admin_update', [RecruitmentController::class, 'interview_admin_update']);
+    Route::post('interview_admin_delete', [RecruitmentController::class, 'interview_admin_delete']);
+
+    Route::get('/edit-ujian/{kode?}/{holding}', [RecruitmentController::class, 'edit_ujian']);
+
+    Route::get('/show-esai/{kode?}/{holding}', [RecruitmentController::class, 'show_esai']);
+
+    Route::get('/edit-esai/{kode?}/{holding}', [RecruitmentController::class, 'edit_esai']);
+
+    Route::get('/pg-data-ujian/ujian_pg/{holding}', [RecruitmentController::class, 'pg_ujian_pg']);
+
+    Route::get('/pg-data-ujian/ujian_pg_esai/{holding}', [RecruitmentController::class, 'pg_esai_pg']);
+
+    Route::post('/ujian/ujian-pg-store', [RecruitmentController::class, 'ujian_pg_store']);
+    Route::post('/ujian/ujian-pg-update', [RecruitmentController::class, 'ujian_pg_update']);
+    Route::post('/ujian/esai-pg-store', [RecruitmentController::class, 'esai_pg_store']);
+    Route::post('/ujian/esai-pg-update', [RecruitmentController::class, 'esai_pg_update']);
+    Route::post('/ujian/esai-pg-update', [RecruitmentController::class, 'esai_pg_update']);
+
+    // SUMMERNOTE
+    Route::post('/summernote/upload', [SummernoteController::class, 'upload'])->name('summernote_upload');
+    Route::post('/summernote/delete', [SummernoteController::class, 'delete'])->name('summernote_delete');
+    Route::get('/summernote/unduh/{file}', [SummernoteController::class, 'unduh']);
+    Route::post('/summernote/delete_file', [SummernoteController::class, 'delete_file']);
+
+    Route::post('/nilai-interview-hrd/update/sp', [RecruitmentController::class, 'nilai_interview_hrd']);
+    Route::post('/nilai-interview-hrd/update/sps', [RecruitmentController::class, 'nilai_interview_hrd']);
+    Route::post('/nilai-interview-hrd/update/sip', [RecruitmentController::class, 'nilai_interview_hrd']);
+
+    Route::post('/nilai-interview-manager/update/sp', [RecruitmentController::class, 'nilai_interview_manager']);
+    Route::post('/nilai-interview-manager/update/sps', [RecruitmentController::class, 'nilai_interview_manager']);
+    Route::post('/nilai-interview-manager/update/sip', [RecruitmentController::class, 'nilai_interview_manager']);
+
+    Route::get('/pg-data-ranking/{holding}', [RecruitmentController::class, 'pg_ranking']);
+
+    Route::get('/dt/data-ranking/{holding}', [RecruitmentController::class, 'dt_data_ranking']);
+
+    Route::get('/pg/data-list-ranking/{id?}/{holding}', [RecruitmentController::class, 'pg_list_ranking']);
+
+    Route::get('/dt/data-list-ranking/{id?}/{holding}', [RecruitmentController::class, 'dt_list_ranking']);
+
+    Route::get('/dt/data-list-progres/{id?}/{holding}', [RecruitmentController::class, 'dt_list_progres']);
+
+    Route::get('/konfirmasi-interview/{email?}/tidak-konfirmasi', [RecruitmentUserController::class, 'tidak_konfirmasi']);
+    Route::get('/konfirmasi-interview/{email?}/konfirmasi', [RecruitmentUserController::class, 'konfirmasi']);
 });
+Route::get('/profile', [ProfileUserController::class, 'index'])->name('profile');
+
+Route::get('/detail_profile', [ProfileUserController::class, 'detail_profile']);
+Route::post('/save_detail_profile', [ProfileUserController::class, 'save_detail_profile']);
+
+Route::get('/detail_alamat', [ProfileUserController::class, 'detail_alamat']);
+Route::post('/save_detail_alamat', [ProfileUserController::class, 'save_detail_alamat']);
+
+Route::get('/detail_account', [ProfileUserController::class, 'detail_account']);
+Route::post('/save_detail_account', [ProfileUserController::class, 'save_detail_account']);
+
+Route::get('/change_photoprofile_camera', [ProfileUserController::class, 'change_photoprofile_camera']);
+Route::post('/save_capture_profile', [ProfileUserController::class, 'save_capture_profile']);
+
+Route::get('/profile/lihat_jabatan', [ProfileUserController::class, 'lihat_jabatan']);
+Route::get('/profile/lihat_kontrak_kerja', [ProfileUserController::class, 'lihat_kontrak_kerja']);
+Route::get('/profile/lihat_dokumen', [ProfileUserController::class, 'lihat_dokumen']);
+Route::get('/profile/lihat_struktur_organisasi', [ProfileUserController::class, 'lihat_struktur_organisasi']);
+Route::get('/profile/lihat_rekan_kerja', [ProfileUserController::class, 'lihat_rekan_kerja']);
+// HISTORY
+Route::get('/history', [HistoryUserController::class, 'index'])->name('history');
+
 
 require __DIR__ . '/auth.php';

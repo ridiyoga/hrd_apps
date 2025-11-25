@@ -37,14 +37,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 class HomeUserController extends Controller
 {
-
     public function index(Request $request)
     {
-        dd(Auth::user());
-        if (auth()->user()->is_admin == 'admin') {
-            return redirect('/dashboard/holding');
-        } else if (auth()->user()->is_admin == 'hrd') {
-            return redirect('/dashboard/holding');
+        // dd(Auth::user());
+        if (Auth::user()->is_admin == 'admin') {
         } else {
             $user_karyawan = Karyawan::with('MappingShift', 'PenempatanKerja')->where('id', Auth::user()->karyawan_id)->first();
 
@@ -5097,7 +5093,7 @@ class HomeUserController extends Controller
 
         date_default_timezone_set('Asia/Jakarta');
         $tglskrg = date('Y-m-d');
-        $data_absen = MappingShift::where('tanggal_masuk', $tglskrg)->where('user_id', auth()->user()->id);
+        $data_absen = MappingShift::where('tanggal_masuk', $tglskrg)->where('user_id', Auth::user()->id);
 
         if ($request["mulai"] == null) {
             $request["mulai"] = $request["akhir"];
@@ -5108,7 +5104,7 @@ class HomeUserController extends Controller
         }
 
         if ($request["mulai"] && $request["akhir"]) {
-            $data_absen = MappingShift::where('karyawan_id', auth()->user()->id)->whereBetween('tanggal_masuk', [$request["mulai"], $request["akhir"]]);
+            $data_absen = MappingShift::where('karyawan_id', Auth::user()->id)->whereBetween('tanggal_masuk', [$request["mulai"], $request["akhir"]]);
         }
 
         return view('absen.myabsen', [

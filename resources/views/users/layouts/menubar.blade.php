@@ -63,7 +63,7 @@
             $randomColorClass = $color[$randomKey];
             @endphp
             <li class="text-center">
-                <a id="btn_klik" class="nav-link " href="{{ url($role_menus->Menu->url) }}">
+                <a class="nav-link btn_klik" href="{{ url($role_menus->Menu->url) }}">
                     <span class="dz-icon {{$randomColorClass}} light" style="height: 50px; width: 50px; box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
                         {!!$role_menus->Menu->icon!!}
                     </span>
