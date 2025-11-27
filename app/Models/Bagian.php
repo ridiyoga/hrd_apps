@@ -10,6 +10,7 @@ class Bagian extends Model
 {
     use HasFactory;
     public $incrementing = false;
+    protected $keyType = 'string';
     protected $guarded = ['id'];
     protected $fillable = ['id', 'holding', 'nama_bagian', 'divisi_id', 'created_at', 'updated_at'];
 

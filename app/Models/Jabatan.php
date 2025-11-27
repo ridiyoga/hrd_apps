@@ -12,6 +12,7 @@ class Jabatan extends Model
 {
     use HasFactory, UuidTrait;
     public $incrementing = false;
+    protected $keyType = 'string';
     protected $guarded = ['id', 'created_at', 'updated_at'];
     protected $fillable = [
         'divisi_id',

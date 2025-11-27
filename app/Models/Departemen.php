@@ -11,6 +11,7 @@ class Departemen extends Model
     use HasFactory;
     public $incrementing = false;
     protected $guarded = ['id'];
+    protected $keyType = 'string';
     protected $fillable = [
         'id',
         'holding',

@@ -387,9 +387,12 @@ class dashboardController extends Controller
     }
     public function holding()
     {
-        // dd(Auth::user());
+        // $holding = Holding::with(['Site' => function ($query) {
+        //     $query;
+        // }])->get();
         $holding = Holding::with(['Site' => function ($query) {
             $query->whereIn('site_status', ['SITE', 'PUSAT']);
+            $query->get();
         }])->get();
         // dd($holding);
         return view('admin.dashboard.holding', ['holding' => $holding]);

@@ -9,10 +9,11 @@ class Holding extends Model
 {
     use HasFactory;
     public $incrementing = false;
-    protected $guarded = ['id'];
+    protected $keyType = 'string';
     protected $fillable = [
         'holding_code',
         'holding_name',
+        'holding_number',
         'holding_name_hint',
         'holding_category'
     ];

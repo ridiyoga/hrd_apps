@@ -14,6 +14,7 @@ class Karyawan extends Model
     use HasFactory, UuidTrait;
     // protected $primaryKey = null;
     public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = [
         'id',
         'nomor_identitas_karyawan',

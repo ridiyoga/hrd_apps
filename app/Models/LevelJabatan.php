@@ -10,5 +10,6 @@ class LevelJabatan extends Model
 {
     use HasFactory;
     public $incrementing = false;
+    protected $keyType = 'string';
     protected $guarded = ['id', 'level_jabatan', 'created_at', 'updated_at'];
 }
