@@ -25,12 +25,8 @@
         <!-- Dashboards -->
         <li
             class="menu-item
-        @if (Auth::user()->is_admin == 'hrd') {{ Request::is('hrd/dashboard*') ? 'active' : '' }}
-        @else {{ Request::is('dashboard*') ? 'active' : '' }} @endif">
-            <a href="@if (Auth::user()->is_admin == 'hrd') {{ url('/hrd/dashboard/option/' . $holding->holding_code) }}
-            @else
-            {{ url('/dashboard/option/' . $holding->holding_code) }} @endif
-            "
+        {{ Request::is('dashboard*') ? 'active' : '' }}">
+            <a href="{{ url('/dashboard/option/' . $holding->holding_code) }}"
                 class="menu-link">
                 <i class="menu-icon tf-icons mdi mdi-home-outline"></i>
                 <div style="font-size: 10pt;" data-i18n="Dashboards">Dashboards</div>

@@ -363,7 +363,7 @@
                     <div class="row card-container-row g-4 justify-content-center">
                         @foreach($holding as $data)
                         <div class="col-sm-6 col-md-6 col-lg-4">
-                            <a href="@if(Auth::user()->is_admin =='hrd'){{ url('hrd/dashboard/option/'.$data->holding_code) }}@else {{ url('dashboard/option/'.$data->holding_code) }} @endif" class="text-decoration-none">
+                            <a href=" {{ url('dashboard/option/'.$data->holding_code) }}" class="text-decoration-none">
                                 <div class="card holding-card-elegant">
                                     <div class="card-body">
                                         <h4 class="card-title-elegant mb-1">{{$data->holding_name}}</h4>
