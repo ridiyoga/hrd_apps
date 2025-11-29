@@ -330,7 +330,33 @@ Route::middleware('auth')->group(function () {
     Route::get('/access/add_access/{id}/{holding}', [AccessController::class, 'add_access']);
     Route::post('/access/access_save_add/{holding}', [AccessController::class, 'access_save_add']);
 
+    // REPORT ABSENSI
+    Route::get('/report/{holding}', [ReportController::class, 'index']);
+    Route::get('/report-datatable/{holding}', [ReportController::class, 'datatable']);
+    Route::get('/report-datatable_finger/{holding}', [ReportController::class, 'datatable_finger']);
+    Route::get('/report/get_divisi/{holding}', [ReportController::class, 'get_divisi']);
+    Route::get('/report/get_bagian/{holding}', [ReportController::class, 'get_bagian']);
+    Route::get('/report/get_jabatan/{holding}', [ReportController::class, 'get_jabatan']);
+    Route::get('/report/get_columns/{holding}', [ReportController::class, 'get_columns']);
+    Route::get('/report/get_filter_month', [ReportController::class, 'get_filter_month']);
+    Route::get('/report/ExportReport', [ReportController::class, 'ExportReport']);
 
+    Route::get('/report_kedisiplinan/{holding}', [ReportController::class, 'index_kedisiplinan']);
+    Route::get('/report_kedisiplinan1/{holding}', [ReportController::class, 'index_kedisiplinan1']);
+    Route::get('/report_kedisiplinan-datatable/{holding}', [ReportController::class, 'datatable_kedisiplinan']);
+    Route::get('/report_kedisiplinan-datatable1/{holding}', [ReportController::class, 'datatable_kedisiplinan1']);
+    Route::get('/report_kedisiplinan/get_divisi/{holding}', [ReportController::class, 'get_divisi']);
+    Route::get('/report_kedisiplinan/get_bagian/{holding}', [ReportController::class, 'get_bagian']);
+    Route::get('/report_kedisiplinan/get_jabatan/{holding}', [ReportController::class, 'get_jabatan']);
+    Route::get('/report_kedisiplinan/get_columns/{holding}', [ReportController::class, 'get_columns_kedisiplinan']);
+    Route::get('/report_kedisiplinan/get_grafik_absensi/{holding}', [ReportController::class, 'get_grafik_absensi']);
+
+    // DETAIL REPORT KEDISIPLINAN 
+    Route::get('/report_kedisiplinan/detail/{id}/{holding}', [ReportController::class, 'detail_index_kedisiplinan']);
+    Route::get('/report_kedisiplinan/detail_datatable/{id}/{holding}', [ReportController::class, 'detail_datatable']);
+
+    // Export
+    Route::get('/report_kedisiplinan/RekapAbsensiKedisiplinan/{holding}', [ExportController::class, 'RekapAbsensiKedisiplinan']);
     // MENU RECRUITMENT
 
     // RECRUITMENT DASHBOARD ADMIN

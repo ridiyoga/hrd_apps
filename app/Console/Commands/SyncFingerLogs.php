@@ -21,23 +21,26 @@ class SyncFingerLogs extends Command
             ->get();
 
         if ($machines->isEmpty()) {
-            $this->warn('⚠️ Tidak ada mesin fingerprint di database.');
+            $this->warn(' Tidak ada mesin fingerprint di database.');
             return Command::SUCCESS;
         }
 
-        $this->info('🔄 Mulai sync dari ' . $machines->count() . ' mesin fingerprint...');
+        $this->info(' Mulai sync dari ' . $machines->count() . ' mesin fingerprint...');
 
         // jalankan request paralel
         $responses = Http::pool(function (Pool $pool) use ($machines) {
             $reqs = [];
+            $now = now();
+            $dateFrom = $now->copy()->subHour(1)->toDateTimeString();
+            $dateTo   = $now->toDateTimeString();
             foreach ($machines as $machine) {
                 $reqs[] = $pool
                     ->timeout(360)
                     ->get('http://localhost:5000/api/ZK/logs', [
                         'ip' => $machine->Ip,
                         'port' => $machine->Port,
-                        'dateFrom' => now()->subHour(1)->toDateTimeString(),
-                        'dateTo' => now()->toDateTimeString(),
+                        'dateFrom' => $dateFrom,
+                        'dateTo' => $dateTo,
                         // 'dateFrom' => now()->subHour(10)->toDateTimeString(),
                         // 'dateTo' => now()->toDateTimeString(),
                     ]);
@@ -53,7 +56,7 @@ class SyncFingerLogs extends Command
 
             // jika koneksi gagal (exception)
             if ($response instanceof ConnectException) {
-                $this->error("❌ {$ip}: Tidak bisa terhubung ({$response->getMessage()})");
+                $this->error(" {$ip}: Tidak bisa terhubung ({$response->getMessage()})");
                 continue;
             }
 
@@ -61,7 +64,7 @@ class SyncFingerLogs extends Command
             if ($response->successful()) {
                 $logs = $response->json();
                 if (empty($logs)) {
-                    $this->line("ℹ️ {$ip}: tidak ada log baru.");
+                    $this->line(" {$ip}: tidak ada log baru.");
                     continue;
                 }
                 // $this->line(json_encode($logs, JSON_PRETTY_PRINT));
@@ -83,11 +86,12 @@ class SyncFingerLogs extends Command
                     // Bagi ke batch kecil untuk hindari limit MySQL
                     $chunks = array_chunk($insertData, 1000);
                     foreach ($chunks as $chunk) {
-                        DB::table('attendance_logs')->insertOrIgnore($chunk);
+                        // DB::table('attendance_logs')->insertOrIgnore($chunk);
+                        DB::table('attendance_logs')->upsert($chunk, ['MachineIp', 'EnrollNumber', 'LogTime']);
                     }
-                    $this->info("✅ {$ip}: berhasil sync " . count($insertData) . " log valid.");
+                    $this->info(" {$ip}: berhasil sync " . count($insertData) . " log valid.");
                 } else {
-                    $this->line("ℹ️ {$ip}: tidak ada log valid untuk disimpan.");
+                    $this->line(" {$ip}: tidak ada log valid untuk disimpan.");
                 }
             } else {
                 $status = $response->status() ?? 'unknown';
@@ -95,7 +99,7 @@ class SyncFingerLogs extends Command
             }
         }
 
-        $this->info('🎯 Semua mesin fingerprint sudah diproses!');
+        $this->info(' Semua mesin fingerprint sudah diproses!');
         return Command::SUCCESS;
     }
 }
