@@ -31,8 +31,8 @@ class SyncFingerLogs extends Command
         $responses = Http::pool(function (Pool $pool) use ($machines) {
             $reqs = [];
             $now = now();
-            $dateFrom = $now->copy()->subHour(1)->toDateTimeString();
-            $dateTo   = $now->toDateTimeString();
+            $dateFrom = $now->copy()->subDays(20)->toIso8601String();
+            $dateTo   = $now->toIso8601String();
             foreach ($machines as $machine) {
                 $reqs[] = $pool
                     ->timeout(360)
