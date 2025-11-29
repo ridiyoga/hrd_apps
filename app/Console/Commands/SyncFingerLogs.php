@@ -35,7 +35,7 @@ class SyncFingerLogs extends Command
             $dateTo   = $now->toIso8601String();
             foreach ($machines as $machine) {
                 $reqs[] = $pool
-                    ->timeout(360)
+                    // ->timeout(3600)
                     ->get('http://localhost:5000/api/ZK/logs', [
                         'ip' => $machine->Ip,
                         'port' => $machine->Port,
