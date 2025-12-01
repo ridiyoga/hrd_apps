@@ -161,9 +161,7 @@
         });
         $(document).on('click', '#btn_reset_foto', function() {
             $('#foto_karyawan').val('');
-            $('#template_foto_karyawan').attr('src',
-                '{{ asset('
-                storage / foto_karyawan / default_profil.jpg ') }}');
+            $('#template_foto_karyawan').attr("src", "{{ asset('storage/foto_karyawan/default_profil.jpg') }}");
             $('#group-button-foto')
                 .empty()
                 .append(
@@ -188,9 +186,7 @@
         });
         $(document).on('click', '#btn_reset_foto', function() {
             $('#foto_karyawan').val('');
-            $('#template_foto_karyawan').attr('src',
-                '{{ asset('
-                storage / foto_karyawan / default_profil.jpg ') }}');
+            $('#template_foto_karyawan').attr("src", "{{ asset('storage/foto_karyawan/default_profil.jpg') }}");
             $('#group-button-foto')
                 .empty()
                 .append(
@@ -234,9 +230,7 @@
         });
         $(document).on('click', '#btn_reset_ktp', function() {
             $('#ktp').val('');
-            $('#template_ktp').attr('src',
-                '{{ asset('
-                storage / ktp / default_ktp.jpg ') }}');
+            $('#template_ktp').attr('src', "{{ asset('storage/ktp/default_ktp.jpg') }}");
             $('#group-button-ktp')
                 .empty()
                 .append(
@@ -261,9 +255,7 @@
         });
         $(document).on('click', '#btn_reset_ktp', function() {
             $('#ktp').val('');
-            $('#template_ktp').attr('src',
-                '{{ asset('
-                storage / ktp / default_ktp.jpg ') }}');
+            $('#template_ktp').attr("src", "{{ asset('storage/ktp/default_ktp.jpg') }}");
             $('#group-button-ktp')
                 .empty()
                 .append(
