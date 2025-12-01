@@ -37,7 +37,6 @@ Route::get('/', [authController::class, 'index']);
 Route::get('/testConnection', [ReportController::class, 'testConnection']);
 Route::get('/getLogsOnly', [ReportController::class, 'getLogsOnly']);
 Route::middleware('auth')->group(function () {
-    // TEST
 
     // DASHBOARD
     Route::get('/dashboard/hrd/{holding}', [dashboardController::class, 'index']);
