@@ -212,12 +212,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/karyawan_ingin_bergabung/sps', [karyawanController::class, 'karyawan_ingin_bergabung']);
     Route::get('/karyawan_ingin_bergabung/sip', [karyawanController::class, 'karyawan_ingin_bergabung']);
 
-    Route::get('/karyawan/karyawan_masa_tenggang_kontrak/sp', [karyawanController::class, 'karyawan_masa_tenggang_kontrak']);
-    Route::get('/karyawan/karyawan_masa_tenggang_kontrak/sps', [karyawanController::class, 'karyawan_masa_tenggang_kontrak']);
-    Route::get('/karyawan/karyawan_masa_tenggang_kontrak/sip', [karyawanController::class, 'karyawan_masa_tenggang_kontrak']);
-    Route::get('/karyawan/database_karyawan_masa_tenggang_kontrak/sp', [karyawanController::class, 'database_karyawan_masa_tenggang_kontrak']);
-    Route::get('/karyawan/database_karyawan_masa_tenggang_kontrak/sps', [karyawanController::class, 'database_karyawan_masa_tenggang_kontrak']);
-    Route::get('/karyawan/database_karyawan_masa_tenggang_kontrak/sip', [karyawanController::class, 'database_karyawan_masa_tenggang_kontrak']);
+    Route::get('/karyawan_masa_tenggang_kontrak/{holding}', [karyawanController::class, 'karyawan_masa_tenggang_kontrak']);
+    Route::get('/database_karyawan_masa_tenggang_kontrak/{holding}', [karyawanController::class, 'database_karyawan_masa_tenggang_kontrak']);
     Route::post('/karyawan/update_kontrak_proses', [karyawanController::class, 'update_kontrak_proses']);
 
     Route::get('/users/{holding}', [UserKaryawanController::class, 'index_users']);

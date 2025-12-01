@@ -257,7 +257,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/karyawan/database_karyawan_masa_tenggang_kontrak') }}@else{{ url('karyawan/database_karyawan_masa_tenggang_kontrak') }}@endif" + '/' + holding,
+            url: "{{ url('database_karyawan_masa_tenggang_kontrak') }}" + '/' + holding,
         },
         columns: [{
                 data: "id",
