@@ -289,6 +289,7 @@ class karyawanController extends Controller
                 ->make(true);
         }
     }
+
     public function database_karyawan_masa_tenggang_kontrak(Request $request)
     {
         $date_30day = Carbon::now()->addDay('30');
