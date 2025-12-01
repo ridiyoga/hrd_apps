@@ -426,7 +426,7 @@
                             </div> --}}
                             <div class="col-md-6">
                                 <h5>KTP</h5>
-                                @if ($karyawan->foto_karyawan)
+                                @if ($karyawan->ktp != null)
                                 <img src="{{ asset('storage/ktp/' . $karyawan->ktp) }}" id="template_ktp"
                                     max-height="200" height="200" class="rounded" alt="">
                                 @else
