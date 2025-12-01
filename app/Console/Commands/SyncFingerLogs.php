@@ -16,90 +16,84 @@ class SyncFingerLogs extends Command
 
     public function handle()
     {
-        $machines = FingerMachine::where('IsActive', '1')
-            // ->limit(1)
-            ->get();
+        $machines = FingerMachine::where('IsActive', 1)->get();
 
         if ($machines->isEmpty()) {
-            $this->warn(' Tidak ada mesin fingerprint di database.');
+            $this->warn(' Tidak ada mesin fingerprint.');
             return Command::SUCCESS;
         }
 
-        $this->info(' Mulai sync dari ' . $machines->count() . ' mesin fingerprint...');
+        $this->info(' Mulai sync dari ' . $machines->count() . ' mesin...');
 
-        // jalankan request paralel
-        $responses = Http::pool(function (Pool $pool) use ($machines) {
-            $reqs = [];
-            $now = now();
-            $dateFrom = $now->copy()->subDays(20)->toIso8601String();
-            $dateTo   = $now->toIso8601String();
-            foreach ($machines as $machine) {
-                $reqs[] = $pool
-                    // ->timeout(3600)
-                    ->get('http://localhost:5000/api/ZK/logs', [
-                        'ip' => $machine->Ip,
-                        'port' => $machine->Port,
-                        'dateFrom' => $dateFrom,
-                        'dateTo' => $dateTo,
-                        // 'dateFrom' => now()->subHour(10)->toDateTimeString(),
-                        // 'dateTo' => now()->toDateTimeString(),
-                    ]);
-            }
-            return $reqs;
-        });
+        // RANGE WAKTU
+        $now = now();
+        $dateFrom = $now->copy()->subDay(2)->toIso8601String();
+        $dateTo   = $now->toIso8601String();
 
-        // proses hasil
-        foreach ($responses as $i => $response) {
-            $machine = $machines[$i];
+        foreach ($machines as $machine) {
+
             $ip = $machine->Ip;
             $port = $machine->Port;
 
-            // jika koneksi gagal (exception)
-            if ($response instanceof ConnectException) {
-                $this->error(" {$ip}: Tidak bisa terhubung ({$response->getMessage()})");
+            $this->line(" Proses mesin {$ip}:{$port} ...");
+
+            try {
+
+                // ⚠️ JALANKAN SEQUENTIAL — TANPA POOL
+                $response = Http::timeout(3600)->get('http://localhost:5000/api/ZK/logs', [
+                    'ip'       => $ip,
+                    'port'     => $port,
+                    'dateFrom' => $dateFrom,
+                    'dateTo'   => $dateTo,
+                ]);
+            } catch (\Exception $e) {
+
+                $this->error(" {$ip}: gagal connect ({$e->getMessage()})");
                 continue;
             }
 
-            // jika response HTTP valid
-            if ($response->successful()) {
-                $logs = $response->json();
-                if (empty($logs)) {
-                    $this->line(" {$ip}: tidak ada log baru.");
-                    continue;
-                }
-                // $this->line(json_encode($logs, JSON_PRETTY_PRINT));
-                $insertData = [];
-                foreach ($logs as $log) {
+            if (!$response->successful()) {
+                $this->error(" {$ip}: HTTP error " . $response->status());
+                continue;
+            }
+
+            $logs = $response->json();
+
+            if (empty($logs)) {
+                $this->line(" {$ip}: tidak ada log.");
+                continue;
+            }
+
+            $insertData = [];
+
+            foreach ($logs as $log) {
+                if (!empty($log['enrollNumber']) && !empty($log['dateTime'])) {
                     $insertData[] = [
-                        'MachineIp' => $ip,
-                        'EnrollNumber' => $log['enrollNumber'] ?? null,
-                        'LogTime' => $log['dateTime'] ?? null,
-                        'VerifyMode' => $log['verifyMode'] ?? null,
-                        'InOutMode' => $log['inOutMode'] ?? null,
-                        'WorkCode' => $log['workCode'] ?? null
+                        'MachineIp'    => $ip,
+                        'EnrollNumber' => $log['enrollNumber'],
+                        'LogTime'      => $log['dateTime'],
+                        'VerifyMode'   => $log['verifyMode'] ?? null,
+                        'InOutMode'    => $log['inOutMode'] ?? null,
+                        'WorkCode'     => $log['workCode'] ?? null,
                     ];
                 }
-                // filter data yang invalid (misalnya timestamp kosong)
-                $insertData = array_filter($insertData, fn($row) => !empty($row['EnrollNumber']) && !empty($row['LogTime']));
+            }
 
-                if (!empty($insertData)) {
-                    // Bagi ke batch kecil untuk hindari limit MySQL
-                    $chunks = array_chunk($insertData, 1000);
-                    foreach ($chunks as $chunk) {
-                        // DB::table('attendance_logs')->insertOrIgnore($chunk);
-                        DB::table('attendance_logs')->upsert($chunk, ['MachineIp', 'EnrollNumber', 'LogTime']);
-                    }
-                    $this->info(" {$ip}: berhasil sync " . count($insertData) . " log valid.");
-                } else {
-                    $this->line(" {$ip}: tidak ada log valid untuk disimpan.");
+            if (!empty($insertData)) {
+                foreach (array_chunk($insertData, 1000) as $chunk) {
+                    DB::table('attendance_logs')->upsert(
+                        $chunk,
+                        ['MachineIp', 'EnrollNumber', 'LogTime']
+                    );
                 }
+
+                $this->info(" {$ip}: berhasil sync " . count($insertData) . " log.");
             } else {
-                $status = $response->status() ?? 'unknown';
-                $this->error("⚠️ {$ip}: gagal dengan status {$status}");
+                $this->line(" {$ip}: tidak ada data valid.");
             }
         }
 
-        $this->info(' Semua mesin fingerprint sudah diproses!');
+        $this->info(' Selesai! Semua mesin diproses.');
         return Command::SUCCESS;
     }
 }
