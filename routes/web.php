@@ -14,6 +14,7 @@ use App\Http\Controllers\HomeUserController;
 use App\Http\Controllers\jabatanController;
 use App\Http\Controllers\karyawanController;
 use App\Http\Controllers\KaryawanKesehatanController;
+use App\Http\Controllers\KaryawanPendidikanController;
 use App\Http\Controllers\KaryawanRiwayatController;
 use App\Http\Controllers\LokasiController;
 use App\Http\Controllers\MappingShiftController;
@@ -189,15 +190,31 @@ Route::middleware('auth')->group(function () {
     Route::post('/karyawan/delete_riwayat/{id}', [karyawanRiwayatController::class, 'delete_riwayat']);
     Route::get('/karyawan/button_riwayat/{id?}', [KaryawanRiwayatController::class, 'button_riwayat'])->name('button_riwayat');
 
+    // MASTER KARYAWAN TAB
+    Route::post('/karyawan/profil-edit/{id}', [karyawanController::class, 'editProfil']);
+    Route::post('/karyawan/bank-edit/{id}', [karyawanController::class, 'editBank']);
+    Route::post('/karyawan/pajak-edit/{id}', [karyawanController::class, 'editPajak']);
+    Route::post('/karyawan/bpjs-edit/{id}', [karyawanController::class, 'editBPJS']);
+    Route::post('/karyawan/jabatan-edit/{id}', [karyawanController::class, 'editJabatan']);
+    Route::post('/karyawan/ijazah-edit/{id}', [karyawanController::class, 'ijazah_update']);
+
+    // PENDIDIKAN KARYAWAN
+    Route::get('/karyawan/pendidikan/button_pendidikan/{id}', [KaryawanPendidikanController::class, 'button_pendidikan'])->name('button_pendidikan');
+    Route::get('/karyawan/pendidikan/{id}', [KaryawanPendidikanController::class, 'pendidikan_datatable']);
+    Route::post('/karyawan/AddPendidikan/', [karyawanPendidikanController::class, 'add_pendidikan']);
+    Route::post('/karyawan/UpdatePendidikan/', [karyawanPendidikanController::class, 'update_pendidikan']);
+    Route::post('/karyawan/DeletePendidikan/{id}', [karyawanPendidikanController::class, 'delete_pendidikan']);
+
     // kesehatan
     Route::get('/cpanel/cv/kesehatan/kesehatan_get/{id}', [KaryawanKesehatanController::class, 'kesehatan_get'])->name('kesehatan_get');
     Route::post('/cpanel/cv/kesehatan/kesehatan_post', [KaryawanKesehatanController::class, 'kesehatan_post'])->name('kesehatan_post');
 
     // KEAHLIAN KARYAWAN
+    Route::get('/karyawan/button_keahlian/{id}', [karyawanController::class, 'button_keahlian'])->name('button_keahlian');
     Route::get('/karyawan/keahlian/{id}', [karyawanController::class, 'keahlian_datatable']);
     Route::post('/karyawan/AddKeahlian/', [karyawanController::class, 'add_keahlian']);
     Route::post('/karyawan/UpdateKeahlian/', [karyawanController::class, 'update_keahlian']);
-    Route::post('/karyawan/DeleteKeahlian/', [karyawanController::class, 'delete_keahlian']);
+    Route::post('/karyawan/DeleteKeahlian/{id}', [karyawanController::class, 'delete_keahlian']);
 
     Route::get('/karyawan_non_aktif/sp', [karyawanController::class, 'karyawan_non_aktif']);
     Route::get('/karyawan_non_aktif/sps', [karyawanController::class, 'karyawan_non_aktif']);
