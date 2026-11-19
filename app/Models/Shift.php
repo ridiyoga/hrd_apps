@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Shift extends Model
 {
     use HasFactory, UuidTrait;
+    protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = ['id'];
     protected $fillable = [
@@ -20,7 +21,8 @@ class Shift extends Model
         'jam_keluar',
         'hari_libur',
         'kode_warna',
-        'tgl_pulang_besok'
+        'tgl_pulang_besok',
+        'jam_max_terlambat'
     ];
 
     public function MappingShift()

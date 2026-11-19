@@ -1,0 +1,18 @@
+@php
+    $meeting = $meeting ?? null;
+    $selectedParticipants = collect(old('participant_ids', $meeting?->participants?->pluck('user_id')->filter()->all() ?? [auth()->id()]));
+    $externalParticipants = old('external_participants', $meeting?->participants?->whereNull('user_id')->pluck('participant_name')->implode("\n"));
+    $types = ['kickoff'=>'Kickoff','progress'=>'Progress','review'=>'Review','uat'=>'UAT','escalation'=>'Escalation','closing'=>'Closing','other'=>'Other'];
+    $userLabel = fn($user) => $user->username . (data_get($user, 'KaryawanNIK.name') ? ' - ' . data_get($user, 'KaryawanNIK.name') : '');
+@endphp
+<div class="row g-3">
+    <div class="col-md-3"><label class="form-label">Jenis Meeting *</label><select name="meeting_type" class="form-select" required>@foreach($types as $v=>$l)<option value="{{ $v }}" @selected(old('meeting_type',$meeting?->meeting_type)===$v)>{{ $l }}</option>@endforeach</select><small class="text-muted">Klasifikasi kebutuhan meeting.</small></div>
+    <div class="col-md-6"><label class="form-label">Judul Meeting *</label><input name="title" class="form-control" value="{{ old('title',$meeting?->title) }}" required><small class="text-muted">Topik utama yang dibahas.</small></div>
+    <div class="col-md-3"><label class="form-label">Tanggal & Jam *</label><input type="datetime-local" name="meeting_at" class="form-control" value="{{ old('meeting_at',$meeting?->meeting_at?->format('Y-m-d\TH:i')) }}" required><small class="text-muted">Waktu aktual meeting.</small></div>
+    <div class="col-md-4"><label class="form-label">Milestone</label><select name="milestone_id" class="form-select"><option value="">-- Umum / Seluruh Project --</option>@foreach($project->milestones as $m)<option value="{{ $m->id }}" @selected(old('milestone_id',$meeting?->milestone_id)===$m->id)>{{ $m->milestone_name }}</option>@endforeach</select><small class="text-muted">Kosongkan bila membahas keseluruhan project.</small></div>
+    <div class="col-md-8"><label class="form-label">Lokasi / Media</label><input name="location" class="form-control" value="{{ old('location',$meeting?->location) }}" placeholder="Ruang meeting, Teams, Google Meet"><small class="text-muted">Tempat atau media pelaksanaan.</small></div>
+    <div class="col-12"><label class="form-label">Agenda *</label><textarea name="agenda" rows="3" class="form-control" required>{{ old('agenda',$meeting?->agenda) }}</textarea><small class="text-muted">Agenda global dan susunan topik meeting.</small></div>
+    <div class="col-md-7"><label class="form-label">Participant Internal</label><div class="border p-2" style="max-height:190px;overflow:auto">@foreach($users as $user)<div class="form-check"><input class="form-check-input" type="checkbox" name="participant_ids[]" value="{{ $user->id }}" id="participant-{{ $user->id }}" @checked($selectedParticipants->contains($user->id))><label class="form-check-label" for="participant-{{ $user->id }}">{{ $userLabel($user) }}</label></div>@endforeach</div><small class="text-muted">Participant project yang hadir dalam meeting.</small></div>
+    <div class="col-md-5"><label class="form-label">Participant Eksternal</label><textarea name="external_participants" rows="6" class="form-control" placeholder="Satu nama per baris">{{ $externalParticipants }}</textarea><small class="text-muted">Direktur, stakeholder, atau peserta tanpa akun. Satu nama per baris.</small></div>
+    <div class="col-12"><label class="form-label">Lampiran</label><input type="file" name="attachments[]" class="form-control" multiple><small class="text-muted">Maksimal 10 file, masing-masing 10 MB.</small></div>
+</div>

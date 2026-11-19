@@ -24,7 +24,8 @@
     }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
 @endsection
 @section('isi')
 @include('sweetalert::alert')
@@ -34,22 +35,29 @@
         <div class="col-lg-12">
             <div class="modal fade" id="modal_non_aktif_user" data-bs-backdrop="static" tabindex="-1">
                 <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                    <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('hrd/users/non_aktif_proses') }}@else{{ url('users/non_aktif_proses') }}@endif" class="modal-content" enctype="multipart/form-data">
+                    <form method="post" action="{{ url('users/non_aktif_proses') }}" class="modal-content"
+                        enctype="multipart/form-data">
                         @csrf
                         <div class="modal-header">
                             <h4 class="modal-title" id="backDropModalTitle">Form Non Aktif User</h4>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <div class="row g-2 mt-2">
                                 <div class="col-md-12" style="position: relative;">
                                     <div class="card mb-4" id="card-profile">
-                                        <img id="icon_resign" style="visibility: hidden;" src="{{asset('admin/assets/img/resign.png')}}" alt="" class="img_resign d-block w-px-150 h-px-120 rounded" />
+                                        <img id="icon_resign" style="visibility: hidden;"
+                                            src="{{ asset('admin/assets/img/resign.png') }}" alt=""
+                                            class="img_resign d-block w-px-150 h-px-120 rounded" />
                                         <!-- Account -->
                                         <div class="card-body">
                                             <div class="d-flex align-items-start align-items-sm-center gap-4">
-                                                <input type="hidden" name="id_nonactive" id="id_nonactive" value="">
-                                                <img src="{{asset('admin/assets/img/avatars/1.png')}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                                                <input type="hidden" name="id_nonactive" id="id_nonactive"
+                                                    value="">
+                                                <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
+                                                    alt="user-avatar" class="d-block w-px-120 h-px-120 rounded"
+                                                    id="template_foto_karyawan" />
                                                 <table>
                                                     <tr>
                                                         <th>Nama</th>
@@ -100,7 +108,8 @@
 
                                 <div class="col-md-12">
                                     <div class="form-floating form-floating-outline">
-                                        <textarea rows="10" id="alasan_non_aktif" name="alasan_non_aktif" class="form-control @error('alasan_non_aktif') is-invalid @enderror" placeholder="Alasan"></textarea>
+                                        <textarea rows="10" id="alasan_non_aktif" name="alasan_non_aktif"
+                                            class="form-control @error('alasan_non_aktif') is-invalid @enderror" placeholder="Alasan"></textarea>
                                         <label for="alasan_non_aktif">Alasan User Non Aktif</label>
                                     </div>
                                 </div>
@@ -119,22 +128,28 @@
             </div>
             <div class="modal fade" id="modal_aktif_user" data-bs-backdrop="static" tabindex="-1">
                 <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                    <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('hrd/users/aktif_proses') }}@else{{ url('users/aktif_proses') }}@endif" class="modal-content" enctype="multipart/form-data">
+                    <form method="post" action="{{ url('users/aktif_proses') }}" class="modal-content"
+                        enctype="multipart/form-data">
                         @csrf
                         <div class="modal-header">
                             <h4 class="modal-title" id="backDropModalTitle">Form Aktif User</h4>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <div class="row g-2 mt-2">
                                 <div class="col-md-12" style="position: relative;">
                                     <div class="card mb-4" id="card-profile">
-                                        <img id="icon_resign" style="visibility: hidden;" src="{{asset('admin/assets/img/resign.png')}}" alt="" class="img_resign d-block w-px-150 h-px-120 rounded" />
+                                        <img id="icon_resign" style="visibility: hidden;"
+                                            src="{{ asset('admin/assets/img/resign.png') }}" alt=""
+                                            class="img_resign d-block w-px-150 h-px-120 rounded" />
                                         <!-- Account -->
                                         <div class="card-body">
                                             <div class="d-flex align-items-start align-items-sm-center gap-4">
                                                 <input type="hidden" name="id_active" id="id_active" value="">
-                                                <img src="{{asset('admin/assets/img/avatars/1.png')}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                                                <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
+                                                    alt="user-avatar" class="d-block w-px-120 h-px-120 rounded"
+                                                    id="template_foto_karyawan" />
                                                 <table>
                                                     <tr>
                                                         <th>Nama</th>
@@ -185,7 +200,8 @@
 
                                 <div class="col-md-12">
                                     <div class="form-floating form-floating-outline">
-                                        <textarea rows="10" id="alasan_aktif" name="alasan_aktif" class="form-control @error('alasan_aktif') is-invalid @enderror" placeholder="Alasan"></textarea>
+                                        <textarea rows="10" id="alasan_aktif" name="alasan_aktif"
+                                            class="form-control @error('alasan_aktif') is-invalid @enderror" placeholder="Alasan"></textarea>
                                         <label for="alasan_aktif">Alasan User Aktif</label>
                                     </div>
                                 </div>
@@ -210,38 +226,55 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <a type="button" href="javascript:void(0)" id="btn_tambah_users" class="btn btn-xs btn-primary waves-effect waves-light"><i class="menu-icon tf-icons mdi mdi-plus"></i>Tambah</a>
+                    <a type="button" href="javascript:void(0)" id="btn_tambah_users"
+                        class="btn btn-xs btn-primary waves-effect waves-light"><i
+                            class="menu-icon tf-icons mdi mdi-plus"></i>Tambah</a>
 
-                    <button class="btn btn-xs btn-success waves-effect waves-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn btn-xs btn-success waves-effect waves-light dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="menu-icon tf-icons mdi mdi-file-excel"></i> Excel
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modal_import_user_karyawan" href="">Import Add Excel</a></li>
-                        <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modal_import_update_user_karyawan" href="">Import Update Excel</a></li>
-                        <li><a class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modal_export_user_karyawan" href="#">Export Excel</a></li>
+                        <li><a class="dropdown-item" data-bs-toggle="modal"
+                                data-bs-target="#modal_import_user_karyawan" href="">Import Add Excel</a></li>
+                        <li><a class="dropdown-item" data-bs-toggle="modal"
+                                data-bs-target="#modal_import_update_user_karyawan" href="">Import Update
+                                Excel</a></li>
+                        <li><a class="dropdown-item" data-bs-toggle="modal"
+                                data-bs-target="#modal_export_user_karyawan" href="#">Export Excel</a></li>
                     </ul>
-                    <a type="button" href="@if(Auth::user()->is_admin=='hrd'){{url('hrd/users/pdfUserKaryawan/'.$holding)}}@else{{url('users/pdfUserKaryawan/'.$holding)}}@endif" class="btn btn-xs btn-danger waves-effect waves-light"><i class="menu-icon tf-icons mdi mdi-file-pdf-box"></i>PDF</a>
-                    <div class="modal fade" id="modal_tambah_users" role="dialog" data-bs-backdrop="static" aria-hidden="true">
+                    <a type="button" href="{{ url('users/pdfUserKaryawan/' . $holding) }}"
+                        class="btn btn-xs btn-danger waves-effect waves-light"><i
+                            class="menu-icon tf-icons mdi mdi-file-pdf-box"></i>PDF</a>
+                    <div class="modal fade" id="modal_tambah_users" role="dialog" data-bs-backdrop="static"
+                        aria-hidden="true">
                         <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                            <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/users/prosesTambahUser/'.$holding) }}@else{{ url('/users/prosesTambahUser/'.$holding) }}@endif" class="modal-content" enctype="multipart/form-data">
+                            <form method="post" action="{{ url('/users/prosesTambahUser/' . $holding) }}"
+                                class="modal-content" enctype="multipart/form-data">
                                 @csrf
                                 <div class="modal-header">
                                     <h4 class="modal-title" id="backDropModalTitle">Tambah User</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body" style="height:400px">
                                     <div class="row g-2 mt-2">
                                         <div class="col-md-12 mb-2">
                                             <div class="form-floating form-floating-outline">
-                                                <select id="nama_karyawan" name="nama_karyawan" class="form-control" data-placeholder="Pilih Karyawan" style="font-size: small;">
+                                                <select id="nama_karyawan" name="nama_karyawan" class="form-control"
+                                                    data-placeholder="Pilih Karyawan" style="font-size: small;">
 
                                                     <option value="">Pilih Karyawan</option>
 
-                                                    @foreach($karyawan as $karyawanid)
-                                                    @if(old('nama_karyawan') == $karyawanid->id)
-                                                    <option selected style="font-size: small;" value="{{$karyawanid->id}}">{{$karyawanid->name}}</option>
+                                                    @foreach ($karyawan as $karyawanid)
+                                                    @if (old('nama_karyawan') == $karyawanid->id)
+                                                    <option selected style="font-size: small;"
+                                                        value="{{ $karyawanid->id }}">{{ $karyawanid->name }}
+                                                    </option>
                                                     @else
-                                                    <option style="font-size: small;" value="{{$karyawanid->id}}">{{$karyawanid->name}}</option>
+                                                    <option style="font-size: small;"
+                                                        value="{{ $karyawanid->id }}">{{ $karyawanid->name }}
+                                                    </option>
                                                     @endif
                                                     @endforeach
                                                 </select>
@@ -250,7 +283,9 @@
                                         </div>
                                         <div class="col-md-12 mb-2">
                                             <div class="form-floating form-floating-outline">
-                                                <input type="text" id="username" name="username" class="form-control" placeholder="Username" value="{{old('username')}}" />
+                                                <input type="text" id="username" name="username"
+                                                    class="form-control" placeholder="Username"
+                                                    value="{{ old('username') }}" />
                                                 <label for="username">Username</label>
                                             </div>
                                         </div>
@@ -258,22 +293,25 @@
                                             <div class="form-password-toggle">
                                                 <label class="form-label" for="password">Password</label>
                                                 <div class="input-group input-group-merge">
-                                                    <input
-                                                        type="password" value="{{old('password')}}"
-                                                        class="form-control"
-                                                        id="password" name="password"
+                                                    <input type="password" value="{{ old('password') }}"
+                                                        class="form-control" id="password" name="password"
                                                         placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
                                                         aria-describedby="password" />
-                                                    <span class="input-group-text cursor-pointer"><i class="mdi mdi-eye-off-outline"></i></span>
+                                                    <span class="input-group-text cursor-pointer"><i
+                                                            class="mdi mdi-eye-off-outline"></i></span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="col-md-12 mb-2">
                                             <div class="form-floating form-floating-outline">
-                                                <select id="level" name="level" class="form-control" placeholder="Level Access">
-                                                    <option @if(old('level')=='' ) selected else @endif disabled value=""> ~Pilih Access~ </option>
-                                                    <option @if(old('level')=='user' )selected else @endif value="user">Karyawan</option>
-                                                    <option @if(old('level')=='admin' )selected else @endif value="admin">HRD</option>
+                                                <select id="level" name="level" class="form-control"
+                                                    placeholder="Level Access">
+                                                    <option @if (old('level')=='' ) selected else @endif
+                                                        disabled value=""> ~Pilih Access~ </option>
+                                                    <option @if (old('level')=='user' ) selected else @endif
+                                                        value="user">Karyawan</option>
+                                                    <option @if (old('level')=='admin' ) selected else @endif
+                                                        value="admin">HRD</option>
                                                 </select>
                                                 <label for="level">Level Access</label>
                                             </div>
@@ -289,25 +327,32 @@
                             </form>
                         </div>
                     </div>
-                    <div class="modal fade" id="modal_import_user_karyawan" data-bs-backdrop="static" tabindex="-1">
+                    <div class="modal fade" id="modal_import_user_karyawan" data-bs-backdrop="static"
+                        tabindex="-1">
                         <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                            <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/users/ImportUser/'.$holding) }}@else{{ url('/users/ImportUser/'.$holding) }}@endif" class="modal-content" enctype="multipart/form-data">
+                            <form method="post" action="{{ url('/users/ImportUser/' . $holding) }}"
+                                class="modal-content" enctype="multipart/form-data">
                                 @csrf
                                 <div class="modal-header">
                                     <h4 class="modal-title" id="backDropModalTitle">Import Add User</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="row g-2 mt-2">
                                         <div class="col mb-2">
                                             <div class="form-floating form-floating-outline">
-                                                <input type="file" id="file_excel" name="file_excel" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="form-control" placeholder="Masukkan File" />
+                                                <input type="file" id="file_excel" name="file_excel"
+                                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                                    class="form-control" placeholder="Masukkan File" />
                                                 <label for="file_excel">File Excel</label>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="row g-2 mt-2">
-                                        <a href="{{asset('admin/template_import/TEMPLATE IMPORT TAMBAH KARYAWAN BULANAN SP_SPS.xlsx')}}" type="button" download="" class="btn btn-xs btn-primary"> Download Format Excel</a>
+                                        <a href="{{ asset('admin/template_import/TEMPLATE IMPORT TAMBAH KARYAWAN BULANAN SP_SPS.xlsx') }}"
+                                            type="button" download="" class="btn btn-xs btn-primary"> Download
+                                            Format Excel</a>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -319,25 +364,32 @@
                             </form>
                         </div>
                     </div>
-                    <div class="modal fade" id="modal_import_update_user_karyawan" data-bs-backdrop="static" tabindex="-1">
+                    <div class="modal fade" id="modal_import_update_user_karyawan" data-bs-backdrop="static"
+                        tabindex="-1">
                         <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                            <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/users/ImportUpdateUser/'.$holding) }}@else{{ url('/users/ImportUpdateUser/'.$holding) }}@endif" enctype="multipart/form-data" class="modal-content">
+                            <form method="post" action="{{ url('/users/ImportUpdateUser/' . $holding) }}"
+                                enctype="multipart/form-data" class="modal-content">
                                 @csrf
                                 <div class="modal-header">
                                     <h4 class="modal-title" id="backDropModalTitle">Import Update User Karyawan</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="row g-2 mt-2">
                                         <div class="col mb-2">
                                             <div class="form-floating form-floating-outline">
-                                                <input type="file" id="file_excel_update" name="file_excel_update" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" class="form-control" placeholder="Masukkan File" />
+                                                <input type="file" id="file_excel_update" name="file_excel_update"
+                                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                                    class="form-control" placeholder="Masukkan File" />
                                                 <label for="file_excel_update">File Excel</label>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="row g-2 mt-2">
-                                        <a href="{{asset('admin/template_import/TEMPLATE IMPORT UPDATE KARYAWAN BULANAN SP_SPS.xlsx')}}" type="button" download="" class="btn btn-xs btn-primary"> Download Format Excel</a>
+                                        <a href="{{ asset('admin/template_import/TEMPLATE IMPORT UPDATE KARYAWAN BULANAN SP_SPS.xlsx') }}"
+                                            type="button" download="" class="btn btn-xs btn-primary"> Download
+                                            Format Excel</a>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -349,19 +401,22 @@
                                 <form>
                         </div>
                     </div>
-                    <div class="modal fade" id="modal_export_user_karyawan" data-bs-backdrop="static" tabindex="-1">
+                    <div class="modal fade" id="modal_export_user_karyawan" data-bs-backdrop="static"
+                        tabindex="-1">
                         <div class="modal-dialog modal-dialog-scrollable modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
                                     <h4 class="modal-title" id="backDropModalTitle">Export Excel User Karyawan</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="row g-2 mt-2">
                                         <div class="col mb-2">
                                             <div class="form-floating form-floating-outline">
                                                 <h6>Download File Excel Data User Karyawan</h6>
-                                                <a href="@if(Auth::user()->is_admin=='hrd'){{url('hrd/users/ExportUser/'.$holding)}}@else{{url('users/ExportUser/'.$holding)}}@endif" type="button" class="btn btn-xs btn-success"> Download Excel</a>
+                                                <a href="{{ url('users/ExportUser/' . $holding) }}" type="button"
+                                                    class="btn btn-xs btn-success"> Download Excel</a>
                                             </div>
                                         </div>
                                     </div>
@@ -403,8 +458,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    let holding = '{{$holding->holding_code}}';
-    console.log(holding);
+    let holding = '{{ $holding->holding_code }}';
+    // console.log(holding);
     var table = $('#table_users_finger').DataTable({
         pageLength: 50,
         "scrollY": true,
@@ -412,7 +467,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/users_finger_datatable') }}@else{{ url('users_finger-datatable') }}@endif" + '/' + holding,
+            url: "{{ url('users/users_finger-datatable') }}" + '/' + holding,
         },
         columns: [{
                 data: "USERID",
@@ -450,7 +505,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/users_harian-datatable') }}@else{{ url('users_harian-datatable') }}@endif" + '/' + holding,
+            url: "{{ url('users_harian-datatable') }}" + '/' + holding,
         },
         columns: [{
                 data: "id",
@@ -501,11 +556,36 @@
         placeholder: $(this).data('placeholder'),
         dropdownCssClass: "myFont"
     });
+    $(document).ready(function() {
+        var menu_id = $('#asoy_sub').val();
+        // console.log(menu_id);
+        $('#menu_id_add').val(menu_id);
+
+        var formData = new FormData();
+
+        //ambil data dari form
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('menu_id', menu_id);
+        // console.log(formData);
+
+        $.ajax({
+            type: "POST",
+
+            url: "{{ url('/recruitment/update_menu') }}",
+            data: formData,
+            contentType: false,
+            processData: false,
+            error: function() {
+                alert('Something is wrong!');
+                // console.log(formData);
+            },
+        });
+    });
     $(document).on("click", "#btn_edit_password", function() {
         let id = $(this).data('id');
         let holding = $(this).data("holding");
         // console.log(holding);
-        let url = "@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/users/edit-password/')}}@else{{ url('/users/edit-password/')}}@endif" + '/' + id + '/' + holding;
+        let url = "{{ url('/users/edit-password/') }}" + '/' + id + '/' + holding;
         Swal.fire({
             allowOutsideClick: false,
             background: 'transparent',
@@ -556,16 +636,16 @@
         var kontrak_kerja = $(this).data('kontrak_kerja');
         var penempatan_kerja = $(this).data('penempatan_kerja');
         var status_aktif = $(this).data('status_aktif');
-        console.log(status_aktif);
+        // console.log(status_aktif);
         if (status_aktif == 'NON AKTIF') {
             $('.img_resign').show();
         } else {
             $('.img_resign').hide();
         }
         if (foto == '' | foto == null) {
-            $('#template_foto_karyawan').attr('src', "{{asset('admin/assets/img/avatars/1.png')}}");
+            $('#template_foto_karyawan').attr('src', "{{ asset('admin/assets/img/avatars/1.png') }}");
         } else {
-            $('#template_foto_karyawan').attr('src', "{{url('storage/app/public/foto_karyawan/')}}" + foto);
+            $('#template_foto_karyawan').attr('src', "{{ url('storage/app/public/foto_karyawan/') }}" + foto);
         }
         $('#td_nama').html(nama);
         $('#td_divisi').html(divisi);
@@ -606,12 +686,13 @@
             var tgl_selesai_kontrak = $(this).data('tgl_selesai_kontrak');
             var kontrak_kerja = $(this).data('kontrak_kerja');
             var penempatan_kerja = $(this).data('penempatan_kerja');
-            console.log(id);
+            // console.log(id);
 
             if (foto == '' | foto == null) {
-                $('#template_foto_karyawan').attr('src', "{{asset('admin/assets/img/avatars/1.png')}}");
+                $('#template_foto_karyawan').attr('src', "{{ asset('admin/assets/img/avatars/1.png') }}");
             } else {
-                $('#template_foto_karyawan').attr('src', "{{url('storage/app/public/foto_karyawan/')}}" + foto);
+                $('#template_foto_karyawan').attr('src', "{{ url('storage/app/public/foto_karyawan/') }}" +
+                    foto);
             }
             $('#td_nama_active').html(nama);
             $('#td_divisi_active').html(divisi);

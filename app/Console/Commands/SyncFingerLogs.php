@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ActivityLog;
 use App\Models\FingerMachine;
 use GuzzleHttp\Exception\ConnectException;
 use Illuminate\Console\Command;
@@ -20,27 +21,56 @@ class SyncFingerLogs extends Command
 
         if ($machines->isEmpty()) {
             $this->warn(' Tidak ada mesin fingerprint.');
+            ActivityLog::create([
+                'user_id'     => 1,
+                'user_name'   => 'System HRD-APPS',
+                'activity'    => 'finger:sync',
+                'description' => 'Tidak ada mesin fingerprint.',
+                'karir'       => 3,
+                'keterangan'  => 'Failed',
+                'table'       => 'attendance_logs',
+                'created_at'  => now(),
+            ]);
             return Command::SUCCESS;
         }
 
-        $this->info(' Mulai sync dari ' . $machines->count() . ' mesin...');
-
+        $this->info(' Mulai sync dari ' . $machines->count() . ' mesin, Jam : ' . date("Y-m-d H:i"));
+        ActivityLog::create([
+            'user_id'     => 1,
+            'user_name'   => 'System HRD-APPS',
+            'activity'    => 'finger:sync',
+            'description' => 'Mulai sync dari ' . $machines->count() . ' mesin, Jam : ' . date("Y-m-d H:i"),
+            'karir'       => 3,
+            'keterangan'  => 'Success',
+            'table'       => 'attendance_logs',
+            'created_at'  => now(),
+        ]);
         // RANGE WAKTU
         $now = now();
-        $dateFrom = $now->copy()->subDay(2)->toIso8601String();
-        $dateTo   = $now->toIso8601String();
+        $dateFrom = $now->copy()->subDay(1)->toIso8601String();
+        $dateTo   = $now->copy()->addDay(1)->toIso8601String();
 
         foreach ($machines as $machine) {
 
             $ip = $machine->Ip;
             $port = $machine->Port;
+            $name = $machine->Name;
 
-            $this->line(" Proses mesin {$ip}:{$port} ...");
-
+            $this->line(" Proses mesin Finger {$name} IP: {$ip}:{$port} ...");
+            ActivityLog::create([
+                'user_id'     => 1,
+                'user_name'   => 'System HRD-APPS',
+                'activity'    => 'finger:sync',
+                'description' => "Proses mesin Finger {$name} IP:{$ip}:{$port} ...",
+                'karir'       => 3,
+                'keterangan'  => 'Success',
+                'table'       => 'attendance_logs',
+                'created_at'  => now(),
+            ]);
             try {
 
                 // ⚠️ JALANKAN SEQUENTIAL — TANPA POOL
-                $response = Http::timeout(3600)->get('http://localhost:5000/api/ZK/logs', [
+                $response = Http::timeout(520)->get('http://localhost:5000/api/ZK/logs', [
                     'ip'       => $ip,
                     'port'     => $port,
                     'dateFrom' => $dateFrom,
@@ -49,11 +79,32 @@ class SyncFingerLogs extends Command
             } catch (\Exception $e) {
 
                 $this->error(" {$ip}: gagal connect ({$e->getMessage()})");
+                ActivityLog::create([
+                    'user_id'     => 1,
+                    'user_name'   => 'System HRD-APPS',
+                    'activity'    => 'finger:sync',
+                    'description' => " {$ip}: gagal connect ({$e->getMessage()})",
+                    'karir'       => 3,
+                    'keterangan'  => 'Failed',
+                    'table'       => 'attendance_logs',
+                    'created_at'  => now(),
+                ]);
                 continue;
             }
 
             if (!$response->successful()) {
                 $this->error(" {$ip}: HTTP error " . $response->status());
+                ActivityLog::create([
+                    'user_id'     => 1,
+                    'user_name'   => 'System HRD-APPS',
+                    'activity'    => 'finger:sync',
+                    'description' => " {$ip}: HTTP error " . $response->status(),
+                    'karir'       => 3,
+                    'keterangan'  => 'Error',
+                    'table'       => 'attendance_logs',
+                    'created_at'  => now(),
+                ]);
+
                 continue;
             }
 
@@ -61,6 +112,17 @@ class SyncFingerLogs extends Command
 
             if (empty($logs)) {
                 $this->line(" {$ip}: tidak ada log.");
+                ActivityLog::create([
+                    'user_id'     => 1,
+                    'user_name'   => 'System HRD-APPS',
+                    'activity'    => 'finger:sync',
+                    'description' => " {$ip}: tidak ada log.",
+                    'karir'       => 3,
+                    'keterangan'  => 'Not Found',
+                    'table'       => 'attendance_logs',
+                    'created_at'  => now(),
+                ]);
+
                 continue;
             }
 
@@ -88,12 +150,42 @@ class SyncFingerLogs extends Command
                 }
 
                 $this->info(" {$ip}: berhasil sync " . count($insertData) . " log.");
+                ActivityLog::create([
+                    'user_id'     => 1,
+                    'user_name'   => 'System HRD-APPS',
+                    'activity'    => 'finger:sync',
+                    'description' => " Finger {$name} IP:{$ip}: berhasil sync " . count($insertData) . " log.",
+                    'karir'       => 3,
+                    'keterangan'  => 'Success',
+                    'table'       => 'attendance_logs',
+                    'created_at'  => now(),
+                ]);
             } else {
                 $this->line(" {$ip}: tidak ada data valid.");
+                ActivityLog::create([
+                    'user_id'     => 1,
+                    'user_name'   => 'System HRD-APPS',
+                    'activity'    => 'finger:sync',
+                    'description' => " {$ip}: tidak ada data valid.",
+                    'karir'       => 3,
+                    'keterangan'  => 'Not Found',
+                    'table'       => 'attendance_logs',
+                    'created_at'  => now(),
+                ]);
             }
         }
 
         $this->info(' Selesai! Semua mesin diproses.');
+        ActivityLog::create([
+            'user_id'     => 1,
+            'user_name'   => 'System HRD-APPS',
+            'activity'    => 'finger:sync',
+            'description' => " Selesai! Semua mesin diproses.",
+            'karir'       => 3,
+            'keterangan'  => 'Success',
+            'table'       => 'attendance_logs',
+            'created_at'  => now(),
+        ]);
         return Command::SUCCESS;
     }
 }

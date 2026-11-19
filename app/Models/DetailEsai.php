@@ -10,6 +10,9 @@ class DetailEsai extends Model
 {
     use HasFactory;
     public $table = 'ujian_esai_detail';
+
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $guarded = ['id'];
 
     public function ujian()

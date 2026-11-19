@@ -3,18 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Imports\DepartemenImport;
+use App\Models\ActivityLog;
 use App\Models\Bagian;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Holding;
 use App\Models\Jabatan;
 use App\Models\Karyawan;
+use App\Models\KaryawanJabatan;
 use App\Models\Menu;
 use App\Models\RoleUsers;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
 use Ramsey\Uuid\Uuid;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -22,8 +25,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class DepartemenController extends Controller
 {
-    public function index($holding)
+    public function index($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
         if (count($get_role) == 0) {
@@ -67,10 +74,7 @@ class DepartemenController extends Controller
     public function datatable(Request $request, $holding)
     {
         $holding  = Holding::where('holding_code', $holding)->first();
-        $table = Departemen::with(['Karyawan' => function ($query) use ($holding) {
-            $query->where('status_aktif', 'AKTIF')
-                ->where('kontrak_kerja', $holding->id);
-        }])->where('holding', $holding->id)
+        $table = Departemen::where('holding', $holding->id)
             ->orderBy('nama_departemen', 'ASC')->get();
         if (request()->ajax()) {
             return DataTables::of($table)
@@ -79,30 +83,20 @@ class DepartemenController extends Controller
                     if ($cek_divisi == 0) {
                         $jumlah_divisi = $cek_divisi;
                     } else {
-                        $jumlah_divisi = $cek_divisi . '&nbsp; <button id="btn_lihat_divisi" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-primary">
-                    <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
-                  </button>';
+                        $jumlah_divisi = $cek_divisi;
+
+                        //         $jumlah_divisi = $cek_divisi . '&nbsp; <button id="btn_lihat_divisi" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-primary">
+                        //     <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
+                        //   </button>';
                     }
                     return $jumlah_divisi;
                 })
-                ->addColumn('jumlah_karyawan', function ($row) use ($holding) {
-                    $cek_karyawan = $row->Karyawan->count();
-                    if ($cek_karyawan == 0) {
-                        $jumlah_karyawan = $cek_karyawan;
-                    } else {
-                        $jumlah_karyawan = $cek_karyawan . '&nbsp; <button id="btn_lihat_karyawan" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-info">
-                    <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
-                  </button>';
-                    }
-                    return $jumlah_karyawan;
-                })
                 ->addColumn('option', function ($row) use ($holding) {
-                    $user_count = $row->Karyawan->count();
                     $btn = '<button id="btn_edit_dept" data-id="' . $row->id . '" data-dept="' . $row->nama_departemen . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-icon btn-warning waves-effect waves-light"><span class="tf-icons mdi mdi-pencil-outline"></span></button>';
-                    $btn = $btn . '<button type="button" id="btn_delete_dept" data-usercount="' . $user_count . '" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" class="btn btn-icon btn-danger waves-effect waves-light"><span class="tf-icons mdi mdi-delete-outline"></span></button>';
+                    $btn = $btn . '<button type="button" id="btn_delete_dept" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" class="btn btn-icon btn-danger waves-effect waves-light"><span class="tf-icons mdi mdi-delete-outline"></span></button>';
                     return $btn;
                 })
-                ->rawColumns(['option', 'jumlah_karyawan', 'jumlah_divisi'])
+                ->rawColumns(['option', 'jumlah_divisi'])
                 ->make(true);
         }
     }
@@ -118,128 +112,176 @@ class DepartemenController extends Controller
         // dd($table);
         if (request()->ajax()) {
             return DataTables::of($table)
-                ->addColumn('jumlah_karyawan', function ($row) {
-                    $karyawan = $row->Karyawan->count();
-                    return $karyawan;
-                })
-                ->rawColumns(['jumlah_karyawan',])
                 ->make(true);
         }
-    }
-    public function karyawandepartemen_datatable($id, $holding)
-    {
-        $holding = Holding::where('holding_code', $holding)->first();
-        $table =   Karyawan::where('dept_id', $id)
-            ->leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-            ->where('b.is_admin', 'user')
-            ->where('karyawans.status_aktif', 'AKTIF')
-            ->get();
-        // dd($table);
-        if (request()->ajax()) {
-            return DataTables::of($table)
-                ->addColumn('nama_divisi', function ($row) use ($holding, $id) {
-                    $divisi = Divisi::where('holding', $holding->id)->where('id', $row->divisi_id)->value('nama_divisi');
-
-                    return $divisi;
-                })
-                ->addColumn('nama_bagian', function ($row) use ($holding, $id) {
-                    $bagian = Bagian::where('holding', $holding->id)->where('id', $row->bagian_id)->value('nama_bagian');
-
-                    return $bagian;
-                })
-                ->rawColumns(['nama_divisi', 'nama_bagian'])
-                ->make(true);
-        }
-    }
-    public function create()
-    {
-        $holding = request()->segment(count(request()->segments()));
-        return view('departemen.create', [
-            'holding' => $holding,
-            'title' => 'Tambah Data Departemen'
-        ]);
     }
 
     public function insert(Request $request, $holding)
     {
+        // dd($request->all());
         $holding  = Holding::where('holding_code', $holding)->first();
-        $validatedData = $request->validate([
-            'nama_departemen' => 'required|max:255',
-        ]);
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_departemen' => 'required|max:255',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
         try {
+            $id_dept = Uuid::uuid4();
             Departemen::create(
                 [
-                    'id' => Uuid::uuid4(),
+                    'id' => $id_dept,
                     'holding' => $holding->id,
-                    'nama_departemen' => $validatedData['nama_departemen'],
+                    'nama_departemen' => $request->nama_departemen,
                 ]
             );
-            return redirect('/departemen/' . $holding->holding_code)->with('success', 'data berhasil ditambahkan');
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_dept,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'departemen',
+                'activity' => 'create',
+                'description' => 'Menambahkan departemen baru ' . $request->nama_departemen,
+                'keterangan' => 'Success',
+            ]);
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Disimpan',
+            ]);
         } catch (QueryException $e) {
-            return redirect('/departemen/' . $holding->holding_code)->with('Error', $e->getMessage()); // bisa disembunyikan di production
-
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
     }
-
-    public function edit($id, $holding)
-    {
-        $holding = Holding::where('holding_code', $holding)->first();
-        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
-        // dd($get_role);
-        if (count($get_role) == 0) {
-            $roleId = null;
-        } else {
-            $roleId = $get_role;
-        }
-        if ($roleId == null) {
-            $menus = collect();
-        } else {
-            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-                $query->select('menu_id')
-                    ->from('role_menus')
-                    ->whereIn('role_id', $roleId);
-            })
-                ->whereNull('parent_id') // menu utama
-                ->with('children')
-                ->where('kategori', 'web')      // load submenunya
-                ->orderBy('sort_order')
-                ->get();
-        }
-        return view('departemen.edit', [
-            'title' => 'Edit Data Departemen',
-            'holding' => $holding,
-            'menus' => $menus,
-            'data_departemen' => Departemen::findOrFail($id)
-        ]);
-    }
-
     public function update(Request $request, $holding)
     {
         $holding = Holding::where('holding_code', $holding)->first();
-        $validatedData = $request->validate([
-            'nama_departemen_update' => 'required|max:255',
-        ]);
-
-        Departemen::where('id', $request->id_departemen)->update([
-            'holding' => $holding->id,
-            'nama_departemen' => $validatedData['nama_departemen_update'],
-        ]);
-        return redirect('/departemen/' . $holding->holding_code)->with('success', 'data berhasil diupdate');
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_departemen' => 'required|max:255',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
+        try {
+            $id_dept = Uuid::uuid4();
+            Departemen::where('id', $request->id_departemen)->update([
+                'nama_departemen' => $request->nama_departemen,
+            ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_dept,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'departemen',
+                'activity' => 'update',
+                'description' => 'mengedit nama departemen ' . $request->nama_departemen,
+                'keterangan' => 'Success',
+            ]);
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Disimpan',
+            ]);
+        } catch (QueryException $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
     }
 
-    public function delete($id, $holding)
+    public function delete($id, $holding, $menu_id)
     {
         $holding = Holding::where('holding_code', $holding)->first();
         $cek_divisi = Divisi::where('dept_id', $id)->where('holding', $holding->id)->count();
+        $departemen = Departemen::where('id', $id)->first();
         if ($cek_divisi == 0) {
-            $cek_karyawan = Karyawan::where('dept_id', $id)->where('kontrak_kerja', $holding->id)->where('status_aktif', 'AKTIF')->count();
+            $cek_karyawan = KaryawanJabatan::where('departemen_id', $id)->where('is_active', '1')->count();
             if ($cek_karyawan == 0) {
-                $departemen = Departemen::where('id', $id)->delete();
+                $nama_menu = Menu::where('id', $menu_id)->first();
+                $user_name = User::where('id', Auth::user()->id)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $id,
+                    'holding_id' => $holding->id,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'departemen',
+                    'activity' => 'delete',
+                    'description' => 'menghapus departemen ' . $departemen->nama_departemen,
+                    'keterangan' => 'Success',
+                ]);
+
+                $departemen->delete();
                 return response()->json(['status' => 1]);
             } else {
+                $nama_menu = Menu::where('id', $menu_id)->first();
+                $user_name = User::where('id', Auth::user()->id)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $id,
+                    'holding_id' => $holding->id,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'departemen',
+                    'activity' => 'delete',
+                    'description' => 'Gagal menghapus departemen karena sudah memiliki relasi karyawan ' . $departemen->nama_departemen,
+                    'keterangan' => 'Failed',
+                ]);
                 return response()->json(['status' => 2]);
             }
         } else {
+            $nama_menu = Menu::where('id', $menu_id)->first();
+            $user_name = User::where('id', Auth::user()->id)->first();
+            ActivityLog::create([
+                'user_id' => Auth::user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'departemen',
+                'activity' => 'delete',
+                'description' => 'Gagal menghapus departemen karena sudah memiliki relasi divisi ' . $departemen->nama_departemen,
+                'keterangan' => 'Failed',
+            ]);
             return response()->json(['status' => 0]);
         }
     }

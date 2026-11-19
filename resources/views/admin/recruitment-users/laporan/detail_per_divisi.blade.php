@@ -175,7 +175,22 @@
                                             \Carbon\Carbon::parse($record->min('created_at'))->startOfDay() ?? 0;
                                         $tgl_akhir =
                                             \Carbon\Carbon::parse($record->max('created_at'))->startOfDay() ?? 0;
-                                        $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        $today = \Carbon\Carbon::now()->startOfDay();
+                                        if ($record->sortByDesc('created_at')->first()->status_user == '3') {
+                                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        } elseif ($record->sortByDesc('created_at')->first()->status == '2a') {
+                                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        } elseif ($record->sortByDesc('created_at')->first()->status == '2b') {
+                                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        } elseif ($record->sortByDesc('created_at')->first()->status == '3b') {
+                                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        } elseif ($record->sortByDesc('created_at')->first()->status == '5b') {
+                                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        } elseif ($record->sortByDesc('created_at')->first()->status == '8b') {
+                                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                                        } else {
+                                            $total = $tgl_awal->diffInDays($today);
+                                        }
 
                                         // $hasil->push(['total_hari' => $total]);
                                     } else {
@@ -213,7 +228,7 @@
                     <div class="card-header">
                         <div class="d-flex align-items-center justify-content-between">
                             <h5 class="card-title m-0 me-2">
-                                RATA-RATA WAKTU : {{ $rata_rata }} Hari
+                                RATA-RATA WAKTU : {{ round($rata_rata, 2) }} Hari
                             </h5>
                         </div>
                     </div>

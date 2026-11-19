@@ -273,7 +273,8 @@
             let divisi = $(this).data("divisi");
             let departemen = $(this).data("departemen");
             let kontrak_kerja = $(this).data("kontrak");
-            console.log('ok');
+            // console.log(id, idkaryawan, holding, name, jabatan, divisi, departemen, kontrak_kerja);
+
             $('#table-roles').DataTable().destroy();
             var table1 = $('#table-roles').DataTable({
                 pageLength: 50,
@@ -385,7 +386,7 @@
                     }
                 },
                 error: function(data) {
-                    console.log(data);
+                    // console.log(data);
                     $('#form_add_access_karyawan')[0].reset();
                     $('#modal_tambah_access_karyawan').modal('hide');
                     Swal.close();

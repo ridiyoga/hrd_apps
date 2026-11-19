@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class UjianKategori extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $table = 'ujian_kategori';
     public $incrementing = false;
     protected $fillable = [

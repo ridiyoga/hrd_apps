@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RecruitmentInterview extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $table = 'recruitment_interview';
     public $incrementing = false;
     protected $fillable = [

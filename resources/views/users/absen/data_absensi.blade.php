@@ -119,7 +119,7 @@
         load_data();
 
         function load_data(filter_month = '') {
-            console.log(filter_month);
+            // console.log(filter_month);
             var table1 = $('#table_absensi').DataTable({
                 processing: true,
                 serverSide: true,
@@ -172,13 +172,13 @@
                 },
                 success: function(data) {
                     $('#count_absen_hadir').html(data);
-                    console.log(data)
+                    // console.log(data)
                 }
             });
         }
         $('#month').change(function() {
             filter_month = $(this).val();
-            console.log(filter_month);
+            // console.log(filter_month);
             $('#table_absensi').DataTable().destroy();
             load_data(filter_month);
             load_absensi(filter_month);

@@ -12,6 +12,7 @@ use App\Models\Menu;
 use App\Models\Recruitment;
 use App\Models\RecruitmentUser;
 use App\Models\RecruitmentUserRecord;
+use App\Models\RoleUsers;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -24,16 +25,26 @@ class RecruitmentLaporanController extends Controller
     public function index($holding)
     {
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         return view('admin.recruitment-users.laporan.index', [
             'holding' => $holdings,
@@ -125,13 +136,13 @@ class RecruitmentLaporanController extends Controller
                 })
                 ->addColumn('cv', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="/pg/pelamar-detail/' . $row->id . '/' . $holding . '" class="btn btn-info btn-sm m-1">
+                    return '<a href="/report/rekrutmen/pelamar-detail/' . $row->id . '/' . $holding . '" class="btn btn-info btn-sm m-1">
                             <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>LIHAT&nbspCV
                             </a>';
                 })
                 ->addColumn('status_detail', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="/detail_riwayat/' . $row->id . '/' . $holding . '" class="btn btn-info btn-sm m-1">
+                    return '<a href="/report/rekrutmen/pelamar-detail_riwayat/' . $row->id . '/' . $holding . '" class="btn btn-info btn-sm m-1">
                             <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>DETAIL&nbspRIWAYAT
                             </a>';
                 })
@@ -284,11 +295,11 @@ class RecruitmentLaporanController extends Controller
                 })
                 ->addColumn('cv', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return url('/pg/pelamar-detail/' . $row->id . '/' . $holding);
+                    return url('/report/rekrutmen/pelamar-detail/' . $row->id . '/' . $holding);
                 })
                 ->addColumn('status_detail', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return url('/detail_riwayat/' . $row->id . '/' . $holding);
+                    return url('/report/rekrutmen/pelamar-detail_riwayat/' . $row->id . '/' . $holding);
                 })
                 ->addColumn('tanggal_berakhir', function ($row) {
                     $akhir = RecruitmentUserRecord::where('recruitment_user_id', $row->id)->orderBy('created_at', 'desc')->limit(1)->first();
@@ -357,8 +368,12 @@ class RecruitmentLaporanController extends Controller
                 ->make(true);
         }
     }
-    public function detail_riwayat($id, $holding)
+    public function detail_riwayat($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $table = RecruitmentUser::with([
             'Jabatan' => function ($query) {
@@ -397,16 +412,26 @@ class RecruitmentLaporanController extends Controller
 
         $total_day = $first_day_period->diffInDays($last_day_period);
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         // dd($first_day_period, $last_day_period, $total_day);
         return view('admin.recruitment-users.laporan.detail_riwayat', [
             'menus' => $menus,
@@ -518,8 +543,12 @@ class RecruitmentLaporanController extends Controller
                 ->make(true);
         }
     }
-    public function report_pelamar($holding)
+    public function report_pelamar($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         if ($holdings == '' || $holdings == null) {
             Alert::error('Error', 'Get Holding Error', 5000);
@@ -528,16 +557,27 @@ class RecruitmentLaporanController extends Controller
         // dd($holding);
         date_default_timezone_set('Asia/Jakarta');
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        // dd($get_role);
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         $departemen = Departemen::where('holding', $holdings->id)->orderBy('nama_departemen', 'ASC')->get();
         return view('admin.recruitment-users.laporan.report_pelamar', [
             'holding' => $holdings,
@@ -652,8 +692,12 @@ class RecruitmentLaporanController extends Controller
     }
 
     // Laporan Recruitment
-    public function laporan_recruitment($holding)
+    public function laporan_recruitment($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         if ($holdings == '' || $holdings == null) {
             Alert::error('Error', 'Get Holding Error', 5000);
@@ -661,16 +705,27 @@ class RecruitmentLaporanController extends Controller
         }
         date_default_timezone_set('Asia/Jakarta');
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        // dd($get_role);
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         $departemen = Departemen::where('holding', $holdings->id)->orderBy('nama_departemen', 'ASC')->get();
         return view('admin.recruitment-users.laporan.report_recruitment', [
             'holding' => $holdings,
@@ -839,19 +894,34 @@ class RecruitmentLaporanController extends Controller
     }
     // Laporan Recruitment End
     // Laporan Recruitment Per Divisi
-    public function report_per_divisi($holding)
+    public function report_per_divisi($holding, Request $request)
     {
+        // dd($holding);
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         return view('admin.recruitment-users.laporan.report_per_divisi', [
             'holding' => $holdings,
@@ -880,7 +950,7 @@ class RecruitmentLaporanController extends Controller
             }
         ])
             ->where('holding_recruitment', $holdings->id)
-            ->groupBy('nama_divisi')
+            ->selectRaw('DISTINCT ON (nama_divisi) *')
             ->orderBy('nama_divisi', 'asc')
             ->get();
         if (request()->ajax()) {
@@ -894,15 +964,16 @@ class RecruitmentLaporanController extends Controller
                 })
                 ->addColumn('jumlah_pelamar', function ($row) {
                     $pelamar = RecruitmentUser::where('nama_divisi', $row->nama_divisi)->count() ?? 0;
-                    return $pelamar;
+                    $row->pelamar = $pelamar;
+                    return $row->pelamar;
                 })
                 ->addColumn('rata_rata', function ($row) {
+                    $pelamar = RecruitmentUser::where('nama_divisi', $row->nama_divisi)->count();
                     $tanggal_awal = RecruitmentUserRecord::selectRaw(
                         '
                         recruitment_user_id,
-                        MIN(created_at) AS tanggal_awal,
-                        MAX(created_at) AS tanggal_akhir,
-                        DATEDIFF(MAX(created_at), MIN(created_at)) as total_hari'
+                        MIN(created_at) AS min_created,
+                        MAX(created_at) AS max_created'
                     )
                         ->with([
                             'recruitmentUser' => function ($query) {
@@ -915,23 +986,50 @@ class RecruitmentLaporanController extends Controller
                         ->orderBy('recruitment_user_id')
                         ->groupBy('recruitment_user_id')
                         ->get();
+                    $total_semua = 0; // penampung total seluruh hari
+                    foreach ($tanggal_awal as $row) {
 
-                    $total_hari = $tanggal_awal->sum('total_hari');
-                    $pelamar = RecruitmentUser::where('nama_divisi', $row->nama_divisi)->count();
+                        $tgl_awal  = \Carbon\Carbon::parse($row->min_created)->startOfDay();
+                        $tgl_akhir = \Carbon\Carbon::parse($row->max_created)->startOfDay();
+                        $today = Carbon::now()->startOfDay();
+                        $lastRecord = RecruitmentUserRecord::where('recruitment_user_id', $row->recruitment_user_id)
+                            ->latest('created_at')
+                            ->first();
+                        if ($lastRecord->status_user == '3') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '2a') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '2b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '3b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '5b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '8b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } else {
+                            $total = $tgl_awal->diffInDays($today);
+                        }
+                        // tambahkan ke accumulator
+                        $total_semua += $total;
+                    }
 
+                    // dd($total_semua);
+                    $total_hari = $total_semua;
                     $rata_rata = $pelamar > 0 ? $total_hari / $pelamar : 0;
 
                     return round($rata_rata, 2) . ' Hari';
                 })
                 ->addColumn('detail', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="/detail_per_divisi/' . $row->nama_divisi . '/' . $holding . '" class="btn btn-info btn-sm m-1">
+                    return '<a href="/report/rekrutmen/perdivisi-detail/' . $row->nama_divisi . '/' . $holding . '" class="btn btn-info btn-sm m-1">
                             <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>DETAIL
                             </a>';
                 })
                 ->rawColumns([
                     'divisi',
                     'jumlah_peserta',
+                    'jumlah_rekrutmen',
                     'rata_rata',
                     'detail',
                 ])
@@ -960,7 +1058,7 @@ class RecruitmentLaporanController extends Controller
             }
         ])
             ->where('holding_recruitment', $holdings->id)
-            ->groupBy('nama_divisi')
+            ->selectRaw('DISTINCT ON (nama_divisi) *')
             ->orderBy('nama_divisi', 'asc')
             ->get();
         if (request()->ajax()) {
@@ -977,12 +1075,12 @@ class RecruitmentLaporanController extends Controller
                     return $pelamar;
                 })
                 ->addColumn('rata_rata', function ($row) {
+                    $pelamar = RecruitmentUser::where('nama_divisi', $row->nama_divisi)->count();
                     $tanggal_awal = RecruitmentUserRecord::selectRaw(
                         '
                         recruitment_user_id,
-                        MIN(created_at) AS tanggal_awal,
-                        MAX(created_at) AS tanggal_akhir,
-                        DATEDIFF(MAX(created_at), MIN(created_at)) as total_hari'
+                        MIN(created_at) AS min_created,
+                        MAX(created_at) AS max_created'
                     )
                         ->with([
                             'recruitmentUser' => function ($query) {
@@ -995,29 +1093,60 @@ class RecruitmentLaporanController extends Controller
                         ->orderBy('recruitment_user_id')
                         ->groupBy('recruitment_user_id')
                         ->get();
+                    $total_semua = 0; // penampung total seluruh hari
+                    foreach ($tanggal_awal as $row) {
 
-                    $total_hari = $tanggal_awal->sum('total_hari');
-                    $pelamar = RecruitmentUser::where('nama_divisi', $row->nama_divisi)->count();
+                        $tgl_awal  = \Carbon\Carbon::parse($row->min_created)->startOfDay();
+                        $tgl_akhir = \Carbon\Carbon::parse($row->max_created)->startOfDay();
+                        $today = Carbon::now()->startOfDay();
+                        $lastRecord = RecruitmentUserRecord::where('recruitment_user_id', $row->recruitment_user_id)
+                            ->latest('created_at')
+                            ->first();
+                        if ($lastRecord->status_user == '3') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '2a') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '2b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '3b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '5b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } elseif ($lastRecord->status == '8b') {
+                            $total = $tgl_awal->diffInDays($tgl_akhir);
+                        } else {
+                            $total = $tgl_awal->diffInDays($today);
+                        }
+                        // tambahkan ke accumulator
+                        $total_semua += $total;
+                    }
 
+                    // dd($total_semua);
+                    $total_hari = $total_semua;
                     $rata_rata = $pelamar > 0 ? $total_hari / $pelamar : 0;
 
                     return round($rata_rata, 2) . ' Hari';
                 })
                 ->addColumn('detail', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return url('/detail_per_divisi/' . $row->nama_divisi . '/' . $holding);
+                    return url('/report/rekrutmen/perdivisi-detail/' . $row->nama_divisi . '/' . $holding);
                 })
                 ->rawColumns([
                     'divisi',
                     'jumlah_peserta',
+                    'jumlah_rekrutmen',
                     'rata_rata',
                     'detail',
                 ])
                 ->make(true);
         }
     }
-    public function detail_per_divisi($id, $holding)
+    public function detail_per_divisi($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $divisi = RecruitmentUser::where('nama_divisi', $id)->with([
             'Jabatan' => function ($query) {
@@ -1050,65 +1179,92 @@ class RecruitmentLaporanController extends Controller
             ->where('holding', $holdings->id)
             ->get();
 
-        foreach ($divisi as $dd) {
-            $record = $dd->recruitmentUserRecord;
-            if ($record->isNotEmpty()) {
-                $awal = $record->sortBy('created_at')->first();
-                $akhir = $record->sortByDesc('created_at')->first();
-                $tgl_awal = Carbon::parse($awal->created_at) ?? 0;
-                $tgl_akhir = Carbon::parse($akhir->created_at) ?? 0;
-                $total = $tgl_awal->diffInDays($tgl_akhir);
-            } else {
-                $total = 0;
-            }
-        }
+        // foreach ($divisi as $dd) {
+        //     $record = $dd->recruitmentUserRecord;
+        //     if ($record->isNotEmpty()) {
+        //         $awal = $record->sortBy('created_at')->first();
+        //         $akhir = $record->sortByDesc('created_at')->first();
+        //         $tgl_awal = Carbon::parse($awal->created_at) ?? 0;
+        //         $tgl_akhir = Carbon::parse($akhir->created_at) ?? 0;
+        //         $total = $tgl_awal->diffInDays($tgl_akhir);
+        //     } else {
+        //         $total = 0;
+        //     }
+        // }
         $nama_divisi = Divisi::where('id', $id)->first();
-        // $pembagian = $waktu->groupBy('recruitment_user_id');
 
-        $tanggal_awal = RecruitmentUserRecord::selectRaw(
-            '
+        $tanggal_awal = RecruitmentUserRecord::selectRaw("
         recruitment_user_id,
-        MIN(created_at) AS tanggal_awal,
-        MAX(created_at) AS tanggal_akhir,
-        DATEDIFF(MAX(created_at), MIN(created_at)) as total_hari,
-        status,
-        created_at,
-        updated_at'
-        )
+         MIN(created_at) AS min_created,
+        MAX(created_at) AS max_created
+    ")
             ->with([
-                'recruitmentUser' => function ($query) {
-                    $query;
+                'recruitmentUser' => function ($q) {
+                    $q->with('Cv');
                 }
             ])
-            ->whereHas('recruitmentUser', function ($query) use ($id) {
-                $query->with([
-                    'Cv' => function ($query) {
-                        $query;
-                    }
-                ])->where('nama_divisi', $id);
+            ->whereHas('recruitmentUser', function ($q) use ($id) {
+                $q->where('nama_divisi', $id);
             })
-            ->orderBy('recruitment_user_id')
             ->groupBy('recruitment_user_id')
+            ->orderBy('recruitment_user_id')
             ->get();
+        $total_semua = 0; // penampung total seluruh hari
+        foreach ($tanggal_awal as $row) {
 
-        $total_hari = $tanggal_awal->sum('total_hari');
+            $tgl_awal  = \Carbon\Carbon::parse($row->min_created)->startOfDay();
+            $tgl_akhir = \Carbon\Carbon::parse($row->max_created)->startOfDay();
+            $today = Carbon::now()->startOfDay();
+            $lastRecord = RecruitmentUserRecord::where('recruitment_user_id', $row->recruitment_user_id)
+                ->latest('created_at')
+                ->first();
+            if ($lastRecord->status_user == '3') {
+                $total = $tgl_awal->diffInDays($tgl_akhir);
+            } elseif ($lastRecord->status == '2a') {
+                $total = $tgl_awal->diffInDays($tgl_akhir);
+            } elseif ($lastRecord->status == '2b') {
+                $total = $tgl_awal->diffInDays($tgl_akhir);
+            } elseif ($lastRecord->status == '3b') {
+                $total = $tgl_awal->diffInDays($tgl_akhir);
+            } elseif ($lastRecord->status == '5b') {
+                $total = $tgl_awal->diffInDays($tgl_akhir);
+            } elseif ($lastRecord->status == '8b') {
+                $total = $tgl_awal->diffInDays($tgl_akhir);
+            } else {
+                $total = $tgl_awal->diffInDays($today);
+            }
+            // tambahkan ke accumulator
+            $total_semua += $total;
+        }
+
+        // dd($total_semua);
+        $total_hari = $total_semua;
         $pelamar = RecruitmentUser::where('nama_divisi', $id)->count();
-
         $rata_rata = $pelamar > 0 ? $total_hari / $pelamar : 0;
 
         // dd($tanggal_awal);
 
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.laporan.detail_per_divisi', [
             'holding' => $holdings,
             'divisi' => $divisi,

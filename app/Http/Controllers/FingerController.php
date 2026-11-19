@@ -10,11 +10,17 @@ use App\Models\RoleUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use Ramsey\Uuid\Uuid;
+
 
 class FingerController extends Controller
 {
     public function index($holding)
     {
+        if (Auth::check() == false) {
+            $request->session()->flash('session_timeout', 'Silahkan login terlebih dahulu.');
+            return redirect()->route('login');
+        }
         $holding = Holding::where('holding_code', $holding)->first();
         $roleId = Auth::user();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
@@ -52,9 +58,9 @@ class FingerController extends Controller
             return DataTables::of($table)
                 ->addColumn('status', function ($row) {
                     if ($row->IsActive == 1) {
-                        $status = '<button class="btn btn-sm btn-success">Active</button';
+                        $status = '<span class="badge bg-label-success">AKTIF</span>';
                     } else {
-                        $status = '<button class="btn btn-sm btn-secondary">Non Active</button';
+                        $status = '<span class="badge bg-label-secondary">NONAKTIF</span>';
                     }
                     return $status;
                 })
@@ -92,8 +98,10 @@ class FingerController extends Controller
                 'errors' => $e->errors()
             ], 422);
         }
+        $kode = Uuid::uuid4();
 
         FingerMachine::create([
+            'Id' => $kode,
             'Name' => $validatedData['nama_mesin'],
             'Ip' => $validatedData['ip_mesin'],
             'Port' => $validatedData['port_mesin'],
@@ -154,7 +162,7 @@ class FingerController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'message' => 'Data Gagal Dihapus'
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }

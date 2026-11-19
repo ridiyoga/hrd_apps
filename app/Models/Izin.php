@@ -14,7 +14,7 @@ class Izin extends Model
     protected $guarded = ['id'];
 
     protected $fillable = [
-        'user_id',
+        'karyawan_id',
         'departements_id',
         'jabatan_id',
         'divisi_id',

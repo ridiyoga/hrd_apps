@@ -1,17 +1,6 @@
 @extends('admin.layouts.dashboard')
 @section('css')
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
-    <link href="https://cdn.datatables.net/2.3.2/css/dataTables.bootstrap5.css" rel="stylesheet" />
-
-    <style type="text/css">
-        .my-swal {
-            z-index: X;
-        }
-    </style>
-
-    <link href="https://cdn.jsdelivr.net/npm/@icon/entypo@1.0.3/entypo.css" rel="stylesheet">
-    {{-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> --}}
+    @include('css_baru')
 @endsection
 @section('isi')
     @include('sweetalert::alert')
@@ -61,12 +50,13 @@
                                         <div class="table-responsive py-3" style="width: 100%; font-size: small;">
                                             <table class="table table-striped" id="table_pelamar0"
                                                 style="width: 100%; font-size: small;">
-                                                <thead class="table-primary">
+                                                <thead class="table-light">
                                                     <tr>
                                                         <th>No.</th>
                                                         <th>Pelamar</th>
                                                         <th>Nomor Whatsapp</th>
                                                         <th>Status</th>
+                                                        <th>Diinput Pada</th>
                                                         <th>Lihat CV</th>
                                                     </tr>
                                                 </thead>
@@ -80,7 +70,7 @@
                                         <div class="table table-striped py-3">
                                             <table class="table" id="table_pelamar1"
                                                 style="width: 100%; font-size: small;">
-                                                <thead class="table-primary">
+                                                <thead class="table-light">
                                                     <tr>
                                                         <th>No.</th>
                                                         <th>Pelamar</th>
@@ -103,7 +93,7 @@
                                         <div class="table table-striped py-3">
                                             <table class="table nowrap" id="table_pelamar2"
                                                 style="width: 100%; font-size: small;">
-                                                <thead class="table-primary">
+                                                <thead class="table-light">
                                                     <tr>
                                                         <th>No.</th>
                                                         <th>Pelamar</th>
@@ -121,13 +111,14 @@
                                         <div class="table table-striped py-3">
                                             <table class="table" id="table_pelamar3"
                                                 style="width: 100%; font-size: small;">
-                                                <thead class="table-primary">
+                                                <thead class="table-light">
                                                     <tr>
                                                         <th>No.</th>
                                                         <th>Pelamar</th>
                                                         <th>Nomor Whatsapp</th>
                                                         <th>Alasan</th>
                                                         <th>Status</th>
+                                                        <th>Diubah pada</th>
                                                         <th>Ubah Status</th>
                                                     </tr>
                                                 </thead>
@@ -163,6 +154,17 @@
             serverSide: true,
             ajax: {
                 url: "{{ url('/pg/data-list-user_meta') }}" + '/' + id + '/' + holding,
+                type: 'GET',
+                error: function(xhr, error, thrown) {
+                    // console.log('Status:', xhr.status);
+                    // console.log('Response:', xhr.responseText);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseText,
+                    });
+                }
             },
             columns: [{
                     data: null,
@@ -185,12 +187,16 @@
                     name: 'status'
                 },
                 {
+                    data: 'created_at',
+                    name: 'created_at'
+                },
+                {
                     data: 'lihat_cv',
                     name: 'lihat_cv'
                 },
             ],
             order: [
-                [0, 'desc']
+                [0, 'asc']
             ]
         });
         $('#icon-tab-0').on('shown.bs.tab', function(e) {
@@ -204,6 +210,17 @@
             serverSide: true,
             ajax: {
                 url: "{{ url('/pg/data-list-user_kandidat') }}" + '/' + id + '/' + holding,
+                type: 'GET',
+                error: function(xhr, error, thrown) {
+                    // console.log('Status:', xhr.status);
+                    // console.log('Response:', xhr.responseText);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseText,
+                    });
+                }
             },
             columns: [{
                     data: null,
@@ -262,6 +279,17 @@
             serverSide: true,
             ajax: {
                 url: "{{ url('/pg/data-list-user_wait') }}" + '/' + id + '/' + holding,
+                type: 'GET',
+                error: function(xhr, error, thrown) {
+                    // console.log('Status:', xhr.status);
+                    // console.log('Response:', xhr.responseText);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseText,
+                    });
+                }
             },
             columns: [{
                     data: null,
@@ -302,6 +330,17 @@
             serverSide: true,
             ajax: {
                 url: "{{ url('/pg/data-list-user_reject') }}" + '/' + id + '/' + holding,
+                type: 'GET',
+                error: function(xhr, error, thrown) {
+                    // console.log('Status:', xhr.status);
+                    // console.log('Response:', xhr.responseText);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseText,
+                    });
+                }
             },
             columns: [{
                     data: null,
@@ -326,6 +365,10 @@
                 {
                     data: 'status',
                     name: 'status'
+                },
+                {
+                    data: 'updated_at',
+                    name: 'updated_at'
                 },
                 {
                     data: 'lihat_cv',

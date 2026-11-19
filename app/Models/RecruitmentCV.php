@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class RecruitmentCV extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $table = 'recruitment_cv';
     public $incrementing = false;
     public $timestamps = false;
@@ -76,15 +77,15 @@ class RecruitmentCV extends Model
     }
     public function kabupatenNOW(): BelongsTo
     {
-        return $this->belongsTo(Cities::class, 'kabupaten_now', 'code');
+        return $this->belongsTo(Cities::class,  'kabupaten_now', 'code');
     }
     public function kecamatanNOW(): BelongsTo
     {
-        return $this->belongsTo(District::class, 'kecamatan_now', 'code');
+        return $this->belongsTo(District::class,  'kecamatan_now', 'code');
     }
     public function desaNOW(): BelongsTo
     {
-        return $this->belongsTo(Village::class, 'desa_now', 'code');
+        return $this->belongsTo(Village::class,  'desa_now', 'code');
     }
 
     public function recruitmentPendidikan(): HasMany

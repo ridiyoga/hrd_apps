@@ -31,6 +31,10 @@ class Jabatan extends Model
     {
         return $this->belongsTo(LevelJabatan::class, 'level_id', 'id');
     }
+    public function Holding(): BelongsTo
+    {
+        return $this->belongsTo(Holding::class, 'holding', 'id');
+    }
     public function Bagian(): BelongsTo
     {
         return $this->belongsTo(Bagian::class, 'bagian_id', 'id');
@@ -51,12 +55,13 @@ class Jabatan extends Model
     {
         return $this->hasMany(Karyawan::class, 'jabatan2_id', 'id');
     }
-    public function User3(): HasMany
-    {
-        return $this->hasMany(Karyawan::class, 'jabatan3_id', 'id');
-    }
-    public function User4(): HasMany
-    {
-        return $this->hasMany(Karyawan::class, 'jabatan4_id', 'id');
-    }
+    // public function User3(): HasMany
+    // {
+    //     return $this->hasMany(Karyawan::class, 'jabatan3_id', 'id');
+    // }
+    // public function User4(): HasMany
+    // {
+    //     return $this->hasMany(Karyawan::class, 'jabatan4_id', 'id');
+    // }
+
 }

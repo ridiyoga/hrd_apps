@@ -1,0 +1,406 @@
+@extends('users.layouts.main')
+@section('title')
+    APPS | KARYAWAN - SP
+@endsection
+@section('css')
+    <style>
+        .profile-tabs {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-bottom: none;
+        }
+
+        .profile-tabs .nav-link {
+            border: none;
+            border-radius: 14px;
+            padding: 8px 12px;
+            background: #f3e8ff;
+            color: #6b21a8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .profile-tabs .nav-link.active {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(168, 85, 247, 0.4);
+        }
+
+        .profile-tabs .nav-link i {
+            font-size: 12px;
+        }
+
+        @media (max-width: 576px) {
+            .profile-card {
+                border-radius: 12px;
+            }
+
+            .profile-tabs span {
+                font-size: 10px;
+            }
+        }
+
+        .futuristic-header {
+            padding: 28px 20px 18px;
+        }
+
+        .futuristic-header h5 {
+            color: --primary();
+            font-weight: 600;
+        }
+
+        .futuristic-header small {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .futuristic-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+        }
+
+        .coworker-card {
+            background: linear-gradient(135deg, #f5edff, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card-history {
+            background: linear-gradient(135deg, #cffbd1, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(111, 66, 193, 0.18);
+        }
+
+        .avatar-wrapper img {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e6d9ff;
+        }
+
+
+
+        .icon-box {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            /* Kunci lebar minimal */
+            min-height: 36px;
+            /* Kunci tinggi minimal */
+            flex-shrink: 0;
+            /* WAJIB: Mencegah icon menjadi lonjong/gepeng */
+
+            border-radius: 50%;
+            background: rgba(111, 66, 193, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6f42c1;
+            font-size: 14px;
+
+            /* Tambahan agar lebih manis */
+            transition: all 0.3s ease;
+        }
+
+        .icon-box-history {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            /* Kunci lebar minimal */
+            min-height: 36px;
+            /* Kunci tinggi minimal */
+            flex-shrink: 0;
+            /* WAJIB: Mencegah icon menjadi lonjong/gepeng */
+
+            border-radius: 50%;
+            background: rgba(50, 153, 84, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3aac48;
+            font-size: 14px;
+
+            /* Tambahan agar lebih manis */
+            transition: all 0.3s ease;
+        }
+
+
+        .skeleton {
+            display: inline-block;
+            background: linear-gradient(90deg,
+                    #ede9fe 25%,
+                    #f5f3ff 37%,
+                    #ede9fe 63%);
+            background-size: 400% 100%;
+            animation: pulse 1.4s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        .skeleton-number {
+            display: inline-block;
+            /* ⬅️ WAJIB */
+            width: 2ch;
+            height: 30px;
+            /* ⬅️ samakan dengan h3 */
+            vertical-align: middle;
+            /* ⬅️ penting */
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: .5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+@endsection
+@section('content_top')
+    <div class="card">
+        {{-- Header --}}
+        <div class="futuristic-header text-center">
+            <div class="futuristic-icon">
+                <i class="fa-regular fa-folder-open"></i>
+            </div>
+            <h5 class="mt-3 mb-1">Informasi Approval</h5>
+            <small class="text-muted">Data Approval & Histori Approval</small>
+        </div>
+        <div class="card-body px-3 px-md-4">
+            <div class="alert_profile"></div>
+            <ul class="nav profile-tabs" id="profileTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#approval">
+                        <i class="fa-solid fa-file-lines"></i>
+                        <span>Approval</span>
+                    </button>
+                </li>
+
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#histori">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Histori</span>
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content mt-3">
+                <div class="tab-pane fade show active" id="approval" role="tabpanel" aria-labelledby="nav-approval-tab">
+                    <div class="list-approval">
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="histori" role="tabpanel" aria-labelledby="nav-history-tab">
+                    <div class="list-history">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+@section('content')
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+        <div class="offcanvas-body text-center small">
+            <h6 class="title">KONFIRMASI</h6>
+            <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
+            <form method="POST" action="{{ route('logout_user') }}">
+                @csrf
+                <a onclick="event.preventDefault(); this.closest('form').submit();"
+                    class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    &nbsp;Logout
+                </a>
+                <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                    aria-label="Close">Batal</a>
+            </form>
+        </div>
+    </div>
+@endsection
+@section('js')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript">
+        window.addEventListener("pageshow", function(event) {
+            if (event.persisted) {
+                // Reinitialize JS
+                Swal.close();
+            }
+        });
+        $(document).ready(function() {
+            var menu_active = '{{ $menu_active->menu_active }}';
+            load_data();
+
+            function showSkeleton(selector) {
+                const el = $(selector);
+                el.html(
+                    `<span class="skeleton skeleton-number" style="width:100%"></span>`
+                );
+            }
+
+            function hideSkeleton(selector, value) {
+                $(selector)
+                    .html(value);
+            }
+
+            function load_data() {
+                $.ajax({
+                    url: "{{ url('approval/get_list_approval_mapping_shift') }}" + "/" + menu_active,
+                    method: "GET",
+                    beforeSend: function() {
+                        showSkeleton('.list-approval');
+                        showSkeleton('.list-history');
+                    },
+                    success: function(data) {
+                        Swal.close();
+                        // console.log(data);
+                        $('.list-approval').empty();
+
+                        if (data.code == 200) {
+                            let html = '';
+                            if (data.data.length == 0) {
+                                html += `  <div class="text-center text-muted py-4">
+                                        <i class="fa-solid fa-file-lines fa-bounce fa-2x"></i>
+                                        <p class="mb-0">Belum Ada Data Approval</p>
+                                    </div>`;
+                            } else {
+                                data.data.forEach(element => {
+                                    const date = new Date(element.created_at);
+
+                                    const tanggal = date.toLocaleDateString('id-ID', {
+                                        day: '2-digit',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    });
+                                    html += `<a class="btn_klik" href="{{ url('/approval/approvalDetail') }}/${element.legal_number_mapping}"><div class="coworker-card d-flex align-items-center mb-3">
+                                     <div class="avatar-wrapper">
+                                     <i class="fa-solid fa-circle-dot"></i>
+                                        </div>
+                                        {{-- INFO --}}
+                                        <div class="flex-grow-1 ms-3 text-start">
+                                            <h6 class="mb-1 fw-semibold">${element.legal_number_mapping}</h6>
+
+                                            <div class="text-muted small">
+                                                ${element.mapping_group}
+                                                <span class="mx-1">•</span>
+                                                (${element.karyawan_input.name})
+                                                <div class="d-flex align-items-center">
+                                                <i class="fa fa-calendar me-1"></i><span style="font-size: 9pt;" class="ms-2 price-item">${tanggal}</span>
+                                               </div>
+
+                                            </div>
+                                        </div>
+                                        {{-- ICON --}}
+                                        <div class="icon-box">
+                                         <i class="fa-regular fa-file-lines"></i>
+                                        </div>
+                                    </div></a>`;
+                                });
+                            }
+
+                            hideSkeleton('.list-approval', html);
+                            let history = '';
+                            if (data.data_approved.length == 0) {
+                                history += `  <div class="text-center text-muted py-4">
+                                        <i class="fa-solid fa-file-lines fa-bounce fa-2x"></i>
+                                        <p class="mb-0">Belum Ada Data Histori</p>
+                                    </div>`;
+                            } else {
+                                data.data_approved.forEach(element => {
+                                    if (element.status_approved == 0) {
+                                        status = 'text-primary';
+                                    } else if (element.status_approved == 1) {
+                                        status = 'text-success';
+                                    }
+                                    const date = new Date(element.created_at);
+
+                                    const tanggal = date.toLocaleDateString('id-ID', {
+                                        day: '2-digit',
+                                        month: 'long',
+                                        year: 'numeric'
+                                    });
+                                    history += `<a class="btn_klik" href="{{ url('/approval/approvalDetail') }}/${element.legal_number_mapping}"><div class="coworker-card-history d-flex align-items-center mb-3">
+                                     <div class="avatar-wrapper">
+                                     <i class="fa-solid fa-circle-dot"></i>
+                                        </div>
+                                        {{-- INFO --}}
+                                        <div class="flex-grow-1 ms-3 text-start">
+                                            <h6 class="mb-1 fw-semibold">${element.legal_number_mapping}</h6>
+
+                                            <div class="text-muted small">
+                                                ${element.mapping_group}
+                                                <span class="mx-1">•</span>
+                                                (${element.karyawan_input.name})
+                                                <div class="d-flex align-items-center">
+                                                <i class="fa fa-calendar me-1"></i><span style="font-size: 9pt;" class="ms-2 price-item">${tanggal}</span>
+                                               </div>
+
+                                            </div>
+                                        </div>
+                                        {{-- ICON --}}
+                                        <div class="icon-box-history">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        </div>
+                                    </div></a>`;
+                                    // history += `<a class="btn_klik" href="{{ url('/approval/approvalDetail') }}/${element.legal_number_mapping}"><div class="swiper-slide"><div class="card job-post" style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1); margin-bottom: 4%;"><div class="card-body" style="padding: 6px;"><div class="media media-70"><i class="fa-regular fa-file-lines fa-5x ${status}"></i></div><div class="card-info"><h4 class="title" style="font-size: 13pt;">${element.legal_number_mapping}</h4><span"><b>${element.mapping_group}</b></span><span class="location"><b>(${element.karyawan_input.name})</b></span><div class="d-flex align-items-center"><i class="fa fa-calendar me-1"></i><span style="font-size: 9pt;" class="ms-2 price-item">${tanggal}</span></div></div></div></div></div></a>`;
+                                })
+                            }
+                            hideSkeleton('.list-history', history);
+                        } else {
+                            Swal.fire({
+                                title: 'error',
+                                text: data.message,
+                                icon: 'error',
+                                timer: 6500
+                            })
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.close();
+                        Swal.fire({
+                            title: 'error',
+                            text: xhr.responseJSON.message,
+                            icon: 'error',
+                            timer: 6500
+                        })
+                    }
+                })
+            }
+
+            $(document).on('click', '.btn_klik', function(e) {
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    onBeforeOpen: () => {
+                        // Swal.showLoading()
+                    },
+                });
+            });
+
+        });
+    </script>
+@endsection

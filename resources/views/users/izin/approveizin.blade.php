@@ -343,13 +343,13 @@
                                 // Swal.showLoading()
                             },
                         });
-                        console.log(data);
+                        // console.log(data);
                         var url = "{{ url('/home') }}"; //the url I want to redirect to
                         $(location).attr('href', url);
 
                     },
                     error: function(data) {
-                        console.log('error:', data)
+                        // console.log('error:', data)
                         Swal.fire({
                             allowOutsideClick: false,
                             background: 'transparent',
@@ -407,7 +407,7 @@
                             // Swal.showLoading()
                         },
                     });
-                    console.log(data);
+                    // console.log(data);
                     var url = "{{ url('/home') }}"; //the url I want to redirect to
                     $(location).attr('href', url);
 

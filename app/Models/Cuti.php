@@ -6,43 +6,52 @@ use App\Traits\UuidTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Cuti extends Model
 {
     use HasFactory, UuidTrait;
-    protected $guarded = ['id'];
+    // protected $guarded = ['id'];
     public $incrementing = false;
     protected $fillable = [
-        'user_id',
+        'id',
+        'karyawan_id',
+        'no_form_cuti',
+        'kategori_cuti_id',
+        'nama_karyawan',
+        'ttd_user',
         'kategori_cuti_id',
         'nama_cuti',
-        'tanggal',
+        'tanggal_pengajuan',
         'tanggal_mulai',
         'tanggal_selesai',
-        'total_cuti',
         'keterangan_cuti',
-        'foto_cuti',
         'status_cuti',
-        'user_id_backup',
-        'name_user_backup',
-        'ttd_user',
-        'waktu_ttd_user',
-        'approve_atasan',
-        'approve_atasan2',
+        'karyawan_pengganti_id',
+        'nama_karyawan_pengganti',
+        'status_approve_atasan1',
         'id_user_atasan',
-        'id_user_atasan2',
+        'nama_atasan',
         'ttd_atasan',
-        'ttd_atasan2',
         'waktu_approve',
+        'status_approve_atasan2',
+        'id_user_atasan2',
+        'nama_atasan2',
+        'ttd_atasan2',
+        'jumlah_hari',
         'waktu_approve2',
-        'catatan',
-        'catatan2',
-        'no_form_cuti',
+        'created_at',
+        'updated_at',
+        'kuota',
+        'terpakai',
+        'sisa',
+        'toleransi',
     ];
 
     public function User()
     {
-        return $this->belongsTo(Karyawan::class, 'user_id', 'id');
+        return $this->belongsTo(Karyawan::class, 'karyawan_id', 'id');
     }
     public function Divisi(): BelongsTo
     {
@@ -52,12 +61,33 @@ class Cuti extends Model
     {
         return $this->belongsTo(Bagian::class);
     }
+
     public function Departemen(): BelongsTo
     {
         return $this->belongsTo(Departemen::class);
     }
-    public function KategoriCuti()
+    public function KategoriCuti(): HasOne
     {
-        return $this->belongsTo(KategoriCuti::class);
+        return $this->HasOne(KategoriCuti::class, 'id', 'kategori_cuti_id');
+    }
+    public function Atasan1(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'id_user_atasan', 'id');
+    }
+    public function Atasan2(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'id_user_atasan2', 'id');
+    }
+    public function KaryawanPengganti(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'karyawan_pengganti_id', 'id');
+    }
+    public function CutiKuota(): HasOne
+    {
+        return $this->hasOne(KuotaCutiKaryawan::class, 'id', 'id_kuota_karyawan');
+    }
+    public function CutiDetail(): HasMany
+    {
+        return $this->hasMany(CutiDetail::class, 'id_cuti', 'id');
     }
 }

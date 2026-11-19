@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class KaryawanRiwayat extends Model
 {
     use HasFactory, UuidTrait;
+    protected $keyType = 'string';
     protected $table = 'karyawan_riwayat';
     public $incrementing = false;
     protected $primaryKey = 'id_riwayat';

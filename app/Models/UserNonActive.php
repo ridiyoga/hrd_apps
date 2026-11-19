@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UserNonActive extends Model
 {
     use HasFactory, UuidTrait;
+    protected $keyType = 'string';
     public $incrementing = false;
     protected $table = 'usernonactive';
     protected $fillable = [

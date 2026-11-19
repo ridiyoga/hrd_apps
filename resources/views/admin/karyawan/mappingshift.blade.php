@@ -1,120 +1,125 @@
 @extends('admin.layouts.dashboard')
 @section('css')
-<link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
-<link rel="stylesheet" type="text/css" href="{{ asset('assets/assets_users/css/daterangepicker.css') }}" />
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/assets_users/css/daterangepicker.css') }}" />
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-<style type="text/css">
-    .my-swal {
-        z-index: X;
-    }
-</style>
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+    <style type="text/css">
+        .my-swal {
+            z-index: X;
+        }
+    </style>
 @endsection
 @section('isi')
-@include('sweetalert::alert')
-<div class="container-xxl flex-grow-1 container-p-y">
-    <h4 class="py-3 mb-4"><span class="text-muted fw-light">KARYAWAN /</span> MAPPING SHIFT KARYAWAN</h4>
+    @include('sweetalert::alert')
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <h4 class="py-3 mb-4"><span class="text-muted fw-light">KARYAWAN /</span> MAPPING SHIFT KARYAWAN</h4>
 
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <a href="@if(Auth::user()->is_admin=='hrd'){{url('hrd/karyawan/mapping_shift/'.$holding->holding_code)}}@else{{url('karyawan/mapping_shift/'.$holding->holding_code)}}@endif" class="btn btn-sm btn-secondary">
-                        <i class="mdi mdi-arrow-left"></i>
-                    </a>
-                    <a href="@if(Auth::user()->is_admin=='hrd'){{url('hrd/karyawan/detail/'.$karyawan->id.'/'.$holding)}}@else{{url('karyawan/detail/'.$karyawan->id.'/'.$holding)}}@endif" class="btn btn-sm btn-primary">
-                        <i class="mdi mdi-account-arrow-left"></i>
-                        &nbsp;Profil
-                    </a>
-                </div>
-                </ul>
-                <!-- Account -->
-                <div class="card-body">
-                    <div class="d-flex align-items-start align-items-sm-center gap-4">
-                        @if($karyawan->foto_karyawan == null)
-                        <img src="{{asset('admin/assets/img/avatars/1.png')}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <a href="{{ url('karyawan/mapping_shift/' . $holding->holding_code) }}"
+                            class="btn btn-sm btn-secondary">
+                            <i class="mdi mdi-arrow-left"></i>
+                        </a>
+                        <a href="{{ url('karyawan/detail/' . $karyawan->id . '/' . $holding) }}" class="btn btn-sm btn-primary">
+                            <i class="mdi mdi-account-arrow-left"></i>
+                            &nbsp;Profil
+                        </a>
+                    </div>
+                    </ul>
+                    <!-- Account -->
+                    <div class="card-body">
+                        <div class="d-flex align-items-start align-items-sm-center gap-4">
+                            @if ($karyawan->foto_karyawan == null)
+                                <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="user-avatar"
+                                    class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                            @else
+                                <img src="https://hrd.sumberpangan.store:4430/storage/app/public/foto_karyawan/{{ $karyawan->foto_karyawan }}"
+                                    alt="user-avatar" class="d-block w-px-120 h-px-120 rounded"
+                                    id="template_foto_karyawan" />
+                            @endif
+                            @if ($karyawan->kategori == 'Karyawan Bulanan')
+                                <table>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <td>&nbsp;</td>
+                                        <td>:</td>
+                                        <td>{{ $karyawan->name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Divisi</th>
+                                        <td>&nbsp;</td>
+                                        <td>:</td>
+                                        <td>
+                                            @if (count($divisi_karyawan) > 1)
+                                                @foreach ($divisi_karyawan as $dv)
+                                                    {{ $no++ }}. {{ $dv->nama_divisi }} <br>
+                                                @break
+                                            @endforeach
+                                        @else
+                                            {{ $karyawan->Divisi->nama_divisi }} <br>
+                                        @endif
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Jabatan</th>
+                                    <td>&nbsp;</td>
+                                    <td>:</td>
+                                    <td>
+                                        @if (count($jabatan_karyawan) > 1)
+                                            @foreach ($jabatan_karyawan as $jb)
+                                                {{ $no1++ }}. {{ $jb->nama_jabatan }} <br>
+                                            @endforeach
+                                        @else
+                                            {{ $karyawan->Jabatan->nama_jabatan }} <br>
+                                        @endif
+                                    </td>
+                                <tr>
+                                    <th>Kontrak Kerja</th>
+                                    <td>&nbsp;</td>
+                                    <td>:</td>
+                                    <td>
+                                        {{ $karyawan->KontrakKerja->holding_name }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Penempatan Kerja</th>
+                                    <td>&nbsp;</td>
+                                    <td>:</td>
+                                    <td>
+                                        {{ $karyawan->PenempatanKerja->site_name }}
+                                    </td>
+                                </tr>
+                            </table>
                         @else
-                        <img src="https://hrd.sumberpangan.store:4430/storage/app/public/foto_karyawan/{{$karyawan->foto_karyawan}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
-                        @endif
-                        @if($karyawan->kategori=='Karyawan Bulanan')
-                        <table>
-                            <tr>
-                                <th>Nama</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>{{$karyawan->name}}</td>
-                            </tr>
-                            <tr>
-                                <th>Divisi</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>
-                                    @if(count($divisi_karyawan)>1)
-                                    @foreach($divisi_karyawan as $dv)
-                                    {{$no++;}}. {{$dv->nama_divisi}} <br>
-                                    @break
-                                    @endforeach
-                                    @else
-                                    {{$karyawan->Divisi->nama_divisi}} <br>
-                                    @endif
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Jabatan</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>
-                                    @if(count($jabatan_karyawan)>1)
-                                    @foreach($jabatan_karyawan as $jb)
-                                    {{$no1++;}}. {{$jb->nama_jabatan}} <br>
-                                    @endforeach
-                                    @else
-                                    {{$karyawan->Jabatan->nama_jabatan}} <br>
-                                    @endif
-                                </td>
-                            <tr>
-                                <th>Kontrak Kerja</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>
-                                    {{$karyawan->KontrakKerja->holding_name}}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Penempatan Kerja</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>
-                                    {{$karyawan->PenempatanKerja->site_name}}
-                                </td>
-                            </tr>
-                        </table>
-                        @else
-                        <table>
-                            <tr>
-                                <th>Nama</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>{{$karyawan->name}}</td>
-                            </tr>
-                            <tr>
-                                <th>Jabatan</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>
-                                    Karyawan Harian
-                                </td>
-                            <tr>
-                                <th>Penempatan Kerja</th>
-                                <td>&nbsp;</td>
-                                <td>:</td>
-                                <td>
-                                    {{$karyawan->PenempatanKerja->site_name}}
-                                </td>
-                            </tr>
-                        </table>
+                            <table>
+                                <tr>
+                                    <th>Nama</th>
+                                    <td>&nbsp;</td>
+                                    <td>:</td>
+                                    <td>{{ $karyawan->name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Jabatan</th>
+                                    <td>&nbsp;</td>
+                                    <td>:</td>
+                                    <td>
+                                        Karyawan Harian
+                                    </td>
+                                <tr>
+                                    <th>Penempatan Kerja</th>
+                                    <td>&nbsp;</td>
+                                    <td>:</td>
+                                    <td>
+                                        {{ $karyawan->PenempatanKerja->site_name }}
+                                    </td>
+                                </tr>
+                            </table>
                         @endif
                     </div>
                 </div>
@@ -129,7 +134,8 @@
                         <div class="col-md-2">
                         </div>
                         <div class="col-md-8">
-                            <div id="reportrange" style="background: #fff; cursor: pointer; padding: 5px 10px; width: 100%">
+                            <div id="reportrange"
+                                style="background: #fff; cursor: pointer; padding: 5px 10px; width: 100%">
                                 <button class="btn btn-outline-secondary waves-effect">
                                     FILTER DATE : &nbsp;
                                     <i class="mdi mdi-calendar-filter-outline"></i>&nbsp;
@@ -145,49 +151,61 @@
                     <!-- modal edit -->
                     <div class="modal fade" id="modal_edit_shift" data-bs-backdrop="static" tabindex="-1">
                         <div class="modal-dialog modal-dialog-scrollable ">
-                            <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('hrd/karyawan/proses-edit-shift/'.$holding) }}@else{{ url('karyawan/proses-edit-shift/'.$holding) }}@endif" class=" modal-content" enctype="multipart/form-data">
+                            <form method="post" action="{{ url('karyawan/proses-edit-shift/' . $holding) }}"
+                                class=" modal-content" enctype="multipart/form-data">
                                 @method('put')
                                 @csrf
                                 <div class="modal-header">
                                     <h4 class="modal-title" id="backDropModalTitle">Edit Shift</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="col-12">
                                         <input type="hidden" name="id_shift" id="id_shift" value="">
                                         <input type="hidden" name="user_id" id="user_id" value="">
                                         <div class="form-floating form-floating-outline">
-                                            <select class="form-control selectpicker @error('shift_id_update') is-invalid @enderror" id="shift_id_update" name="shift_id_update" data-live-search="true">
+                                            <select
+                                                class="form-control selectpicker @error('shift_id_update') is-invalid @enderror"
+                                                id="shift_id_update" name="shift_id_update" data-live-search="true">
                                                 @foreach ($shift as $s)
-                                                <option value="{{ $s->id }}">{{ $s->nama_shift . " (" . $s->jam_masuk . " - " . $s->jam_keluar . ") " }}</option>
+                                                    <option value="{{ $s->id }}">
+                                                        {{ $s->nama_shift . ' (' . $s->jam_masuk . ' - ' . $s->jam_keluar . ') ' }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                             <label for="shift_id_update">Shift</label>
                                         </div>
                                         @error('shift_id')
-                                        <span class="invalid-feedback" role="alert">
-                                            <strong>{{ $message }}</strong>
-                                        </span>
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
                                         @enderror
                                         <br>
                                         <div class="form-floating form-floating-outline">
-                                            <input type="date" class="form-control @error('tanggal_update') is-invalid @enderror" id="tanggal_update" name="tanggal_update" value="{{ old('tanggal_update') }}">
+                                            <input type="date"
+                                                class="form-control @error('tanggal_update') is-invalid @enderror"
+                                                id="tanggal_update" name="tanggal_update"
+                                                value="{{ old('tanggal_update') }}">
                                             <label for="tanggal_update">Tanggal</label>
                                         </div>
                                         @error('tanggal_update')
-                                        <span class="invalid-feedback" role="alert">
-                                            <strong>{{ $message }}</strong>
-                                        </span>
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
                                         @enderror
                                         <br>
                                         <div class="form-floating form-floating-outline">
-                                            <input type="text" class="form-control @error('keterangan_update') is-invalid @enderror" id="keterangan_update" name="keterangan_update" value="{{ old('keterangan_update') }}">
+                                            <input type="text"
+                                                class="form-control @error('keterangan_update') is-invalid @enderror"
+                                                id="keterangan_update" name="keterangan_update"
+                                                value="{{ old('keterangan_update') }}">
                                             <label for="keterangan_update">Keterangan</label>
                                         </div>
                                         @error('keterangan_update')
-                                        <span class="invalid-feedback" role="alert">
-                                            <strong>{{ $message }}</strong>
-                                        </span>
+                                            <span class="invalid-feedback" role="alert">
+                                                <strong>{{ $message }}</strong>
+                                            </span>
                                         @enderror
                                     </div>
                                 </div>
@@ -256,7 +274,8 @@
                 'Last 7 Days': [moment().subtract(6, 'days'), moment()],
                 'Last 30 Days': [moment().subtract(29, 'days'), moment()],
                 'This Month': [moment().startOf('month'), moment().endOf('month')],
-                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1,
+                    'month').endOf('month')]
             }
         }, cb);
 
@@ -265,15 +284,15 @@
     });
 </script>
 <script type="text/javascript">
-    let holding = '{{$holding->holding_code}}';
-    let id = '{{$karyawan->id}}';
+    let holding = '{{ $holding->holding_code }}';
+    let id = '{{ $karyawan->id }}';
     let auth = '{{ Auth::user()->is_admin }}';
     end_date = $('#end_date').val();
     start_date = $('#start_date').val();
 
     function load_data(start_date = '', end_date = '') {
         $('#table_mapping_shift').DataTable().destroy();
-        console.log(start_date, end_date);
+        // console.log(start_date, end_date);
         var table = $('#table_mapping_shift').DataTable({
             pageLength: 50,
             "scrollY": true,
@@ -281,7 +300,7 @@
             processing: true,
             serverSide: true,
             ajax: {
-                url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/karyawan/mapping_shift_detail_datatable') }}@else{{ url('karyawan/mapping_shift_detail_datatable') }}@endif" + '/' + id + '/' + holding,
+                url: "{{ url('karyawan/mapping_shift_detail_datatable') }}" + '/' + id + '/' + holding,
                 data: {
                     start_date: start_date,
                     end_date: end_date,
@@ -371,7 +390,7 @@
         }).then((result) => {
             if (result.value) {
                 $.ajax({
-                    url: "@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/karyawan/delete-shift') }}@else{{ url('karyawan/delete-shift') }}@endif" + '/' + id + '/' + holding,
+                    url: "{{ url('karyawan/delete-shift') }}" + '/' + id + '/' + holding,
                     type: "GET",
                     error: function() {
                         alert('Something is wrong');
@@ -398,5 +417,4 @@
 
     });
 </script>
-
 @endsection

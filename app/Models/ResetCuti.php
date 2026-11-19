@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class ResetCuti extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $guarded = ['id'];
     protected $table = 'reset_cutis';
     public $incrementing = false;

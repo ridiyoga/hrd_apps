@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class UjianEsaiJawab extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $table = 'ujian_esai_jawab';
     public $incrementing = false;
     public $timestamps = false;

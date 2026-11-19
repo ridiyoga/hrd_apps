@@ -1,347 +1,999 @@
 @extends('users.layouts.main')
-@section('title') APPS | KARYAWAN - SP @endsection
-@section('css')
-<style>
-    body {}
-
-    canvas {
-        position: absolute;
-    }
-</style>
+@section('title')
+    APPS | KARYAWAN - SP
 @endsection
-@section('content')
+@section('css')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <link rel="stylesheet" type="text/css" href="http://keith-wood.name/css/jquery.signature.css">
+    <style>
+        /* =====================
+           ABSENSI LIST
+            ===================== */
+        .absensi-list {
+            border-radius: 18px;
+            background: #fff;
+        }
 
-<!-- Features -->
-<div id="alert_karyawan_tidaksesuai" class="alert alert-danger light alert-lg alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    <strong>&nbsp;Face tidak Sesuai.</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-<div id="alert_karyawan_absen_sukses" class="alert alert-success light alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polyline points="9 11 12 14 22 4"></polyline>
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-    </svg>
-    <strong id="content_alert">Success!</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-<div id="alert_karyawan_unknown" class="alert alert-danger light alert-lg alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    <strong>&nbsp;Face Tidak Diketahui.</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-@if(Session::has('karyawan_tidaksesuai'))
-<div id="alert_karyawan_tidaksesuai" class="alert alert-danger light alert-lg alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    <strong>&nbsp;Face tidak Sesuai.</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-@elseif(Session::has('karyawan_kosong'))
-<div id="alert_karyawan_unknown" class="alert alert-danger light alert-lg alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    <strong>&nbsp;Face Tidak Diketahui.</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-@elseif(Session::has('jam_kerja_kurang'))
-<div class="alert alert-danger light alert-lg alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    <strong>&nbsp;Jam Kerja Anda Kurang dari 6 Jam.</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-<div class="alert alert-warning light alert-lg alert-dismissible fade show">
-    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" version="1.1" id="Layer_1" width="20" height="20" viewBox="0 0 256 240" enable-background="new 0 0 256 240" xml:space="preserve">
-        <path d="M108.327,28.998c11.331,0,20.516,9.185,20.516,20.516s-9.185,20.516-20.516,20.516S87.81,60.845,87.81,49.514  S96.996,28.998,108.327,28.998z M33.069,153.324l-0.189-0.189l0,0c-0.851-0.567-1.607-1.04-2.269-1.796l2.269,26L4.327,217.804  c-4.065,5.862-2.647,13.804,3.025,17.869c5.862,4.065,13.804,2.647,17.869-3.025l30.822-44.436c1.607-2.269,2.647-5.295,2.269-8.32  l-1.04-12.574L33.069,153.324z M117.876,237.942h122.341l-22.88-71.381c0,0-12.953,3.215-38.574,30.443  c-0.567,0.567-1.229,1.229-1.796,1.796l-61.832-35.738c1.04-1.985,1.229-4.255,0.851-6.713L94.05,75.041  c-1.796-7.942-8.887-13.993-17.207-13.993H35.905c-3.025,0-6.051,1.607-7.753,4.255L7.731,100.757  c-2.647,4.255-1.04,9.738,3.215,12.196l22.88,13.142l-3.025,5.105c-3.687,6.051-1.607,13.804,4.633,17.207L86.77,178v46.894  c0,7.091,5.673,12.764,12.764,12.764s12.764-5.673,12.764-12.764v-53.512l56.821,32.902c-11.724,6.713-25.149,7.942-34.698,13.614  C122.697,224.895,117.876,237.942,117.876,237.942z M38.174,118.626l-15.033-8.698l0,0l17.869-30.822h20.044L38.174,118.626z   M71.171,137.724l14.182-24.771l10.589,38.952L71.171,137.724z M203.459,2c-27.879,0-50.541,22.621-50.541,50.459  c0,27.879,22.662,50.541,50.541,50.541S254,80.338,254,52.459C253.918,24.621,231.257,2,203.459,2z M203.459,93.014  c-22.377,0-40.555-18.178-40.555-40.555s18.178-40.555,40.555-40.555s40.555,18.178,40.555,40.555  C243.77,74.836,225.591,93.014,203.459,93.014z M228.648,42.596c-0.937-1.549-2.894-2.609-5.136-1.467l-17.893,7.989V27.963  c0-1.141-0.408-2.16-1.141-2.935l-0.041-0.041c-0.734-0.652-1.59-0.937-2.609-0.937c-1.956,0-3.994,1.467-3.994,3.913v27.675  c0,1.508,0.856,2.935,2.201,3.668c0.693,0.326,1.304,0.489,1.875,0.489c0.611,0,1.304-0.204,1.956-0.489l23.11-11.046  c1.019-0.53,1.753-1.386,2.079-2.405C229.3,44.797,229.178,43.615,228.648,42.596L228.648,42.596z" />
-    </svg>
-    <strong>&nbsp;Jam Kerja Kurang dari 6 jam Dianggap Tidak Masuk.</strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
-@elseif(Session::has('cameraoff'))
-<div class="alert alert-danger light alert-lg alert-dismissible fade show">
-    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-        <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-        <line x1="15" y1="9" x2="9" y2="15"></line>
-        <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>
-    <strong>&nbsp;Camera Error. Harap Ulangi </strong>
-    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-        <i class="fa-solid fa-xmark"></i>
-    </button>
-</div>
+        .absensi-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
 
-@endif
-<div class="">
-    <div class="row m-b20 g-3">
-        <div class="col-12">
-            <div class="card card-bx card-content bg-primary">
-                <div class="card-body">
-                    <div class="info">
-                        <!-- <div class="col-12">
-                            <div class="row">
-                                <div class="col-6">
-                                    <a href="{{url('home/my-location')}}" id="btn_klik" type="button" class="btn btn-sm btn-secondary" style="height:10px;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#FFFFFF" version="1.1" id="Capa_1" width="18" height="18" class="svg-main-icon" viewBox="0 0 395.71 395.71" xml:space="preserve">
-                                            <g>
-                                                <path d="M197.849,0C122.131,0,60.531,61.609,60.531,137.329c0,72.887,124.591,243.177,129.896,250.388l4.951,6.738   c0.579,0.792,1.501,1.255,2.471,1.255c0.985,0,1.901-0.463,2.486-1.255l4.948-6.738c5.308-7.211,129.896-177.501,129.896-250.388   C335.179,61.609,273.569,0,197.849,0z M197.849,88.138c27.13,0,49.191,22.062,49.191,49.191c0,27.115-22.062,49.191-49.191,49.191   c-27.114,0-49.191-22.076-49.191-49.191C148.658,110.2,170.734,88.138,197.849,88.138z" />
-                                            </g>
-                                        </svg>
-                                        &nbsp;Lokasi&nbsp;Saya
-                                    </a>
-                                </div>
-                                <div class="col-6">
-                                    <a id="btn_klik" href="{{url('/absen/data-absensi')}}" class="btn btn-sm btn-secondary" style="height:10px;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                            <path d="M12 10C16.4183 10 20 8.20914 20 6C20 3.79086 16.4183 2 12 2C7.58172 2 4 3.79086 4 6C4 8.20914 7.58172 10 12 10Z" fill="#1C274C" />
-                                            <path opacity="0.5" d="M4 12V18C4 20.2091 7.58172 22 12 22C16.4183 22 20 20.2091 20 18V12C20 14.2091 16.4183 16 12 16C7.58172 16 4 14.2091 4 12Z" fill="#1C274C" />
-                                            <path opacity="0.7" d="M4 6V12C4 14.2091 7.58172 16 12 16C16.4183 16 20 14.2091 20 12V6C20 8.20914 16.4183 10 12 10C7.58172 10 4 8.20914 4 6Z" fill="#1C274C" />
-                                        </svg>
-                                        &nbsp;Data&nbsp;Absensi
-                                    </a>
-                                </div>
-                            </div>
-                        </div> -->
-                        <br><br>
-                        <div class="row">
-                            @if($shift_karyawan == NULL)
-                            <div class="card col-lg-12">
-                                <div class="mt-5">
-                                    <div class="mb-5">
-                                        <center>
-                                            <h2>Hubungi Admin Untuk Mapping Shift Anda</h2>
-                                        </center>
-                                    </div>
-                                </div>
-                            </div>
-                            @elseif($shift_karyawan->status_absen == "LIBUR")
-                            <div class="card col-lg-12">
-                                <div class="mt-5">
-                                    <div class="mb-5">
-                                        <center>
-                                            <h2>Hari Ini Anda Libur</h2>
-                                        </center>
-                                    </div>
-                                </div>
-                            </div>
-                            @elseif($shift_karyawan->status_absen == "CUTI")
-                            <div class="card col-lg-12">
-                                <div class="mt-5">
-                                    <div class="mb-5">
-                                        <center>
-                                            <h2>Hari Ini Anda Cuti</h2>
-                                        </center>
-                                    </div>
-                                </div>
-                            </div>
-                            @else
-                            @if($shift_karyawan->jam_absen == NULL && $shift_karyawan->jam_pulang== NULL)
-                            <form id="form" action="absenMasuk" method="post">
-                                <!-- @method('put')-->
-                                @csrf
-                                <div class="text-center">
-                                    <h2 style="color: white">Absen Masuk: </h2>
-                                    <canvas id="canvas"></canvas>
-                                    <video id="video" class="webcam" width="300" height="500" autoplay muted>
+        .absensi-item:active {
+            background-color: #d9cdfb;
+        }
 
-                                    </video>
-                                    <!-- <div class="webcam" id="results"></div> -->
-                                    <input type="hidden" name="jam_absen" value="{{ date('H:i:s') }}">
-                                    <input type="hidden" name="foto_jam_absen" class="image-tag">
-                                    <input type="hidden" id="shift_karyawan" name="shift_karyawan" value="{{$shift_karyawan->id}}">
-                                    <input type="hidden" name="lat_absen" id="lat">
-                                    <input type="hidden" name="long_absen" id="long">
-                                    <input type="hidden" name="name" id="name">
-                                    <input type="hidden" name="karyawan_id" id="karyawan_id">
-                                    <input type="hidden" name="telat">
-                                    <input type="hidden" name="jarak_masuk">
-                                    <input type="hidden" name="status_absen">
-                                    <input type="hidden" name="keterangan_absensi">
-                                    <button id="btn_submit" hidden style="background-color: white; display: none;" type="submit" class="btn btn-lokasisaya" value="Ambil Foto">Masuk</button>
-                                </div>
-                            </form>
-                            @elseif($shift_karyawan->jam_absen != NULL && $shift_karyawan->jam_pulang == NULL)
-                            <form id="form" method="post" action="absenPulang">
-                                <!-- @method('put') -->
-                                @csrf
-                                <div class="text-center">
-                                    <h2 style="color: white">Absen Pulang: </h2>
-                                    <canvas id="canvas"></canvas>
-                                    <video id="video" class="webcam" width="300" height="500" autoplay muted></video>
-                                    <!-- <div class="webcam" id="results"></div> -->
-                                    <input type="hidden" name="jam_pulang" value="{{ date('H:i') }}">
-                                    <input type="hidden" name="foto_jam_pulang" class="image-tag">
-                                    <input type="hidden" name="lat_pulang" id="lat2" value="">
-                                    <input type="hidden" name="long_pulang" id="long2" value="">
-                                    <input type="hidden" id="shift_karyawan" name="shift_karyawan" value="{{$shift_karyawan->id}}">
-                                    <input type="hidden" name="name" id="name">
-                                    <input type="hidden" name="karyawan_id" id="karyawan_id">
-                                    <input type="hidden" name="pulang_cepat">
-                                    <input type="hidden" name="jarak_pulang">
-                                    <input type="hidden" name="keterangan_absensi">
-                                    <input type="hidden" name="jam_masuk" value="{{$shift_karyawan->jam_absen}}">
+        .absensi-item:last-child {
+            border-bottom: none;
+        }
 
-                                    <button id="btn_submit" type="submit" hidden class="btn btn-lokasisaya" style="background-color: white; display: none;" value="Ambil Foto" onClick="take_snapshot()">Pulang</button>
+        /* Date box */
+        .date-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
 
-                                </div>
-                            </form>
+        .date-box .day {
+            font-size: 16px;
+            font-weight: 700;
+        }
 
-                            @else
-                            <div class="card col-lg-12">
-                                <div class="mt-5">
-                                    <div class="mb-5 text-center">
-                                        <h2>Anda Sudah Selesai Absen</h2>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-                            @endif
-                        </div>
-                        <!--  -->
-                        <!--  -->
-                    </div>
-                </div>
+        .date-box .month {
+            font-size: 10px;
+        }
+
+        /* INFO */
+        .absensi-info {
+            flex: 1;
+        }
+
+        #reportrange {
+            border-radius: 14px;
+            height: 35px;
+            background: linear-gradient(135deg, #eee9f9, #ffffff);
+            border: 1px dashed #d1d5db;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+
+        }
+
+        /* Memaksa kalender muncul di paling depan */
+        .daterangepicker {
+            z-index: 9999 !important;
+            /* Angka tinggi agar di atas elemen apapun */
+            border: none !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            border-radius: 12px !important;
+            padding: 8px !important;
+            margin-top: 5px !important;
+        }
+
+        /* Menghilangkan panah kecil di atas kalender agar lebih clean */
+        .daterangepicker:before,
+        .daterangepicker:after {
+            display: none !important;
+        }
+
+        .daterangepicker .ranges li.active {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+        }
+
+        .daterangepicker td.active,
+        .daterangepicker td.active:hover {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .daterangepicker td.in-range {
+            background-color: #dcd9fa;
+            border-color: transparent;
+            color: #000;
+            border-radius: 0;
+        }
+
+        /* Responsif Mobile */
+        @media (max-width: 768px) {
+            .daterangepicker {
+                width: 90% !important;
+                left: 5% !important;
+                right: 5% !important;
+                position: fixed !important;
+                /* Membuatnya 'floating' di tengah layar mobile */
+                top: 20% !important;
+            }
+
+            .daterangepicker .drp-calendar {
+                max-width: 100% !important;
+            }
+        }
+
+        .absensi-info .time {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .absensi-info .divider {
+            margin: 0 6px;
+            color: #9ca3af;
+        }
+
+        /* Status badge */
+        .status {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .status.TIDAKHADIR {
+            background: #fff7ed;
+            color: #ea1b0c;
+        }
+
+        .status.BELUMDIJADWALKAN {
+            background: #fff7ed;
+            color: #ea1b0c;
+        }
+
+        .status.TEPATWAKTU {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .status.TELAT {
+            background: #fff7ed;
+            color: #ea580c;
+        }
+
+        .status.IZIN {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .status.DATANGLEBIHAWAL {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .status {
+            background: #eef2ff;
+            color: #4f46e5;
+        }
+
+        .status.CUTI {
+            background: #fdf4ff;
+            color: #a21caf;
+        }
+
+        .profile-tabs {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-bottom: none;
+        }
+
+        .profile-tabs .nav-link {
+            border: none;
+            border-radius: 14px;
+            padding: 8px 11px;
+            background: #f3e8ff;
+            color: #6b21a8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .profile-tabs .nav-link.active {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(168, 85, 247, 0.4);
+        }
+
+        .profile-tabs .nav-link i {
+            font-size: 13px;
+        }
+
+        .profile-tabs .nav-link span {
+            font-size: 12px;
+        }
+
+        .kbw-signature {
+            width: fit-content;
+            height: 100%;
+        }
+
+        #sig canvas {
+            margin-top: 5px;
+            width: 100%;
+            height: auto;
+        }
+
+        .futuristic-header {
+            padding: 28px 20px 18px;
+        }
+
+        .futuristic-header h5 {
+            color: --primary();
+            font-weight: 600;
+        }
+
+        .futuristic-header small {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+
+        .futuristic-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg,
+                    #ede9fe 25%,
+                    /* purple-100 */
+                    #f5f3ff 37%,
+                    /* purple-50  */
+                    #ede9fe 63%);
+            /* Warna dasar abu-abu terang */
+            overflow: hidden;
+            position: relative;
+            border-radius: 4px;
+        }
+
+        /* Membuat elemen semu untuk efek kilauan */
+        .skeleton::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(90deg,
+                    #ede9fe 25%,
+                    /* purple-100 */
+                    #f5f3ff 37%,
+                    /* purple-50  */
+                    #ede9fe 63%);
+            animation: shimmerSmooth 1.5s linear infinite;
+        }
+
+        /* Mendefinisikan animasi kilauan yang bergerak ke kanan */
+        @keyframes shimmerSmooth {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .attendance-page .floating-wrapper > .container,
+        .attendance-page .dashboard-area > .container {
+            width: calc(100% - 2rem);
+            max-width: 1480px;
+        }
+
+        .attendance-page .fixed-content {
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .attendance-panel {
+            overflow: hidden;
+            border: 0;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(31, 41, 55, 0.08);
+        }
+
+        .attendance-panel .futuristic-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 22px 24px;
+            text-align: left !important;
+            background: linear-gradient(135deg, #faf8ff, #fff);
+        }
+
+        .attendance-panel .futuristic-icon {
+            flex: 0 0 56px;
+            width: 56px;
+            height: 56px;
+            margin: 0;
+            font-size: 23px;
+        }
+
+        .attendance-panel .futuristic-header h5 {
+            margin: 0 0 4px !important;
+            color: #312e81;
+            font-weight: 700;
+        }
+
+        .attendance-panel .futuristic-header small {
+            color: #6b7280;
+        }
+
+        .attendance-panel .card-body {
+            padding: 20px 24px 24px;
+        }
+
+        .attendance-panel #reportrange {
+            min-height: 48px;
+            height: auto;
+            border-style: solid;
+            border-color: #e5e7eb;
+            background: #fff;
+        }
+
+        .attendance-panel .content-absensi {
+            overflow: hidden;
+            border: 1px solid #eef0f4;
+            border-radius: 16px;
+            background: #fff;
+        }
+
+        .attendance-panel .absensi-item {
+            min-width: 0;
+            padding: 16px 18px;
+            border-bottom: 2px solid #d6dbe5;
+        }
+
+        .attendance-panel .absensi-item:last-child {
+            border-bottom: 0;
+        }
+
+        .attendance-panel .absensi-info {
+            min-width: 0;
+        }
+
+        .attendance-panel .attendance-times {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eef0f4;
+        }
+
+        .attendance-panel .attendance-time {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .attendance-panel .attendance-time-label {
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .attendance-panel .attendance-time-value {
+            overflow-wrap: anywhere;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .attendance-panel .status {
+            flex: 0 0 auto;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .attendance-page .floating-wrapper > .container,
+            .attendance-page .dashboard-area > .container {
+                width: 100%;
+                padding-right: 12px;
+                padding-left: 12px;
+            }
+
+            .attendance-panel {
+                border-radius: 16px;
+            }
+
+            .attendance-panel .futuristic-header {
+                padding: 18px 16px;
+            }
+
+            .attendance-panel .card-body {
+                padding: 14px;
+            }
+
+            .attendance-panel .absensi-item {
+                flex-wrap: wrap;
+                gap: 10px 12px;
+                padding: 14px;
+            }
+
+            .attendance-panel .date-box {
+                flex: 0 0 44px;
+            }
+
+            .attendance-panel .absensi-info {
+                flex: 1 1 calc(100% - 68px);
+            }
+
+            .attendance-panel .status {
+                margin-left: 56px;
+            }
+        }
+    </style>
+@endsection
+@section('body_class', 'attendance-page')
+@section('content_top')
+    <div class="card attendance-panel">
+        <div class="futuristic-header text-center">
+            <div class="futuristic-icon">
+                <i class="fa-solid fa-check-to-slot"></i>
+            </div>
+            <div>
+                <h5 class="mt-3 mb-1">PRESENSI</h5>
+                <small>Informasi Data Presensi</small>
             </div>
         </div>
-    </div>
-</div>
-@if($faceid==NULL)
-<div class="offcanvas offcanvas-bottom pwa-offcanvas">
-    <div class="container">
-        <div class="offcanvas-body small text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 48 48" fill="none">
-                <rect width="48" height="48" fill="white" fill-opacity="0.01" />
-                <path d="M34 3.99976H44V13.9998M44 33.9998V43.9998H34M14 43.9998H4V33.9998M4 13.9998V3.99976H14" stroke="#000000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M24 39.9998C31.732 39.9998 38 32.8363 38 23.9998C38 15.1632 31.732 7.99976 24 7.99976C16.268 7.99976 10 15.1632 10 23.9998C10 32.8363 16.268 39.9998 24 39.9998Z" stroke="#000000" stroke-width="4" />
-                <path d="M6 24.0081L42 23.9998" stroke="#000000" stroke-width="4" stroke-linecap="round" />
-                <path d="M20.0697 32.1057C21.3375 33.0429 22.6476 33.5115 24 33.5115C25.3523 33.5115 26.6983 33.0429 28.0381 32.1057" stroke="#000000" stroke-width="4" stroke-linecap="round" />
-            </svg>
-            <h5 class="title">FACE ID BELUM TERDAFTAR</h5>
-            <p class="text">SILAHKAN DAFTAR DAHULU</p>
-            <a href="{{route('create_face_id')}}" style="margin-top: -5%;" class="btn btn-sm btn-primary">DAFTAR FACE</a>
+
+        <div class="card-body">
+            <div class="alert_approval"></div>
+            @if (session('approve_sukses'))
+                <div class="alert alert-success alert-dismissible fade show alert_session_approval">
+                    {{ session('approve_sukses') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            @if (session('approve_gagal'))
+                <div class="alert alert-danger alert-dismissible fade show alert_session_approval">
+                    {{ session('approve_gagal') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            <div class="mb-3">
+                <div id="reportrange"
+                    class="rounded-pill px-3 py-2 py-md-2 px-md-4 d-flex justify-content-between align-items-center w-100">
+                    <div class="d-flex align-items-center text-truncate">
+                        <i class="fa-solid fa-calendar text-primary fs-5 me-2"></i>
+                        <span id="currentMonth" class="fw-medium text-truncate" style="font-size: 0.9rem;"></span>
+                    </div>
+
+                    <i class="bi bi-chevron-down ms-2 text-muted" style="font-size: 0.8rem;"></i>
+
+                    <input type="hidden" id="start_date" name="start_date" value="">
+                    <input type="hidden" id="end_date" name="end_date" value="">
+                </div>
+            </div>
+            <div class="content-absensi"></div>
         </div>
     </div>
-</div>
-<div class="offcanvas-backdrop pwa-backdrop"></div>
-@endif
+@endsection
+@section('content')
+    <div class="offcanvas offcanvas-bottom rounded-top-5" tabindex="-1" id="detailAbsensi"
+        style="height: auto; min-height: 40vh;">
+        <div class="offcanvas-header pb-0 justify-content-center">
+            <div style="width: 40px; height: 5px; background: #e2e8f0; border-radius: 10px;"></div>
+        </div>
+        <div class="offcanvas-body pt-4" id="detailContent">
+        </div>
+    </div>
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+        <div class="offcanvas-body text-center small">
+            <h6 class="title">KONFIRMASI</h6>
+            <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
+            <form method="POST" action="{{ route('logout_user') }}">
+                @csrf
+                <a onclick="event.preventDefault(); this.closest('form').submit();"
+                    class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    &nbsp;Logout
+                </a>
+                <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                    aria-label="Close">Batal</a>
+            </form>
+        </div>
+    </div>
 @endsection
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
-<script type="text/javascript" src="{{ asset('webcamjs/webcam.min.js') }}"></script>
-<script language="JavaScript">
-    Webcam.set({
-        width: 300,
-        height: 500,
-        image_format: 'jpeg',
-        jpeg_quality: 50
-    });
-    Webcam.attach('.webcam');
-</script>
-<script defer src="{{ asset('assets/assets_users/js/face-api.js/face-api.min.js') }}"></script>
-<script defer src="{{ asset('assets/assets_users/js/absensi.js')}}" onload="onLoadData('{{ $face }}', '{{ $karyawan }}', '{{ $angka }}')"></script>
-<script defer src="{{ asset('assets/assets_users/js/submitFormAbsensi.js')}}" onload="onLoadDataAbsensi('{{ $absensi }}','{{$jumlah_absensi}}')"></script>
-
-<script>
-    getLocation();
-
-    function getLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(showPosition);
-        } else {
-            x.innerHTML = "Geolocation is not supported by this browser.";
-        }
-    }
-
-    function showPosition(position) {
-        //   x.innerHTML = "Latitude: " + position.coords.latitude +
-        //   "<br>Longitude: " + position.coords.longitude;
-        $('#lat').val(position.coords.latitude);
-        $('#lat2').val(position.coords.latitude);
-        $('#long').val(position.coords.longitude);
-        $('#long2').val(position.coords.longitude);
-        $('#lat_location').val(position.coords.latitude);
-        $('#long_location').val(position.coords.longitude);
-        $('#btn_submit').show();
-    }
-</script>
-<script>
-    // console.log('ok');
-    setTimeout(function() {
-        // console.log('ok1');
-        $("#alert_karyawan_tidaksesuai").remove();
-    }, 4000); // 7 secs
-    $(document).on('click', '#btn_klik', function(e) {
-        Swal.fire({
-            allowOutsideClick: false,
-            background: 'transparent',
-            html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-            showCancelButton: false,
-            showConfirmButton: false,
-            onBeforeOpen: () => {
-                // Swal.showLoading()
-            },
-        });
-    });
-    window.onbeforeunload = function() {
-        Swal.fire({
-            allowOutsideClick: false,
-            background: 'transparent',
-            html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-            showCancelButton: false,
-            showConfirmButton: false,
-            onBeforeOpen: () => {
-                // Swal.showLoading()
-            },
-            onAfterClose() {
-                Swal.close()
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="http://keith-wood.name/js/jquery.signature.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript">
+        window.addEventListener("pageshow", function(event) {
+            if (event.persisted) {
+                // Reinitialize JS
+                Swal.close();
             }
         });
-    };
-    $(document).on('click', '#btn_submit', function(e) {
-        Swal.fire({
-            allowOutsideClick: false,
-            background: 'transparent',
-            html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-            showCancelButton: false,
-            showConfirmButton: false,
-            onBeforeOpen: () => {
-                // Swal.showLoading()
-            },
-            onAfterClose() {
-                Swal.close()
+        $(document).ready(function() {
+            let menu_active = '{{ $menu_id }}';
+            var session_sukses = "{{ session('approve_sukses') }}";
+            var session_gagal = "{{ session('approve_gagal') }}";
+            // SELECT 2 
+            if (session_sukses) {
+                setTimeout(function() {
+                    $('.alert_session_approval').fadeOut('slow');
+                }, 6000);
+            } else if (session_gagal) {
+                setTimeout(function() {
+                    $('.alert_session_approval').fadeOut('slow');
+                }, 6000);
             }
+
+            // DATE RANGE PICKER
+            let cutiPicker;
+            var user_karyawan_id = '{{ $user_karyawan->id }}';
+            var start = moment().subtract(-1, 'days');
+            cutiPicker = $('#daterangepicker_cuti').daterangepicker({
+                drops: 'down',
+                minDate: start,
+                startDate: start,
+                endDate: start,
+                autoApply: true,
+            }, function(start, end, label) {
+                // console.log("A new date selection was made: " + start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD'));
+            });
+
+            $(document).on('click', '#btn_klik', function(e) {
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    onBeforeOpen: () => {
+                        // Swal.showLoading()
+                    },
+                });
+            });
+            window.onbeforeunload = function() {
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    onBeforeOpen: () => {
+                        // Swal.showLoading()
+                    },
+                });
+            };
+            var today = moment().format('YYYY-MM-DD');
+            var month = moment().format('MM');
+            var day = moment().format('D');
+            var year = moment().format('YYYY');
+
+            // console.log(month);
+            $('.month').val(month);
+            const monthNames = [
+                "Januari",
+                "Februari",
+                "Maret",
+                "April",
+                "Mei",
+                "Juni",
+                "Juli",
+                "Agustus",
+                "September",
+                "Oktober",
+                "November",
+                "Desember"
+            ];
+
+
+            function showSkeleton(selector) {
+                $(selector).each(function() {
+                    const el = $(this);
+
+                    if (!el.data('original-content')) {
+                        el.data('original-content', el.html());
+                    }
+
+                    const child = el.children().first();
+                    const actualWidth = child.length ? child.width() : el.width();
+
+                    const finalWidth = actualWidth > 0 ? actualWidth : 100; // Fallback jika 0
+
+                    // PERUBAHAN: Ubah display menjadi "block" dan tambahkan margin-bottom
+                    el.html(
+                        `<span class="skeleton" style="width: ${finalWidth}px; height: 1em; display: block; margin-bottom: 8px; border-radius: 4px;"></span>`
+                    );
+                });
+            }
+
+            function formatDay(date) {
+                const d = new Date(date);
+                return d.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                });
+            }
+
+            function hideSkeleton(selector, value) {
+                $(selector)
+                    .html(value);
+            }
+            let currentDate = new Date();
+
+
+            function renderMonth() {
+                const today = new Date(currentDate);
+                const year = today.getFullYear();
+                const month = today.getMonth(); // 0-11
+                const day = today.getDate();
+
+                let startDate, endDate;
+
+                if (day <= 20) {
+                    // Periode: 21 bulan lalu - 20 bulan ini
+                    startDate = new Date(year, month - 1, 21);
+                    endDate = new Date(year, month, 20);
+                } else {
+                    // Periode: 21 bulan ini - 20 bulan depan
+                    startDate = new Date(year, month, 21);
+                    endDate = new Date(year, month + 1, 20);
+                }
+
+                // Format untuk ditampilkan
+                const formatDisplay = (date) => {
+                    return `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+                };
+
+                document.getElementById('currentMonth').innerText =
+                    `${formatDisplay(startDate)} - ${formatDisplay(endDate)}`;
+
+                // Format untuk dikirim ke backend
+                const formatSend = (date) => {
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                };
+
+
+                $('#reportrange').daterangepicker({
+                    startDate: moment(startDate),
+                    endDate: moment(endDate),
+                    opens: 'center', // Penting: Pop-up akan mencoba berada di tengah
+                    drops: 'down', // Selalu drop ke bawah
+                    autoApply: true, // Opsional: Otomatis teraplikasi tanpa klik tombol "Terapkan" (Sangat smooth untuk HP)
+                    ranges: {
+                        'Hari Ini': [moment(), moment()],
+                        'Kemarin': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                        '7 Hari Terakhir': [moment().subtract(6, 'days'), moment()],
+                        'Bulan Ini': [moment().startOf('month'), moment().endOf('month')]
+                    },
+                    locale: {
+                        format: 'DD/MM/YYYY',
+                        applyLabel: 'Pilih',
+                        cancelLabel: 'Batal',
+                        customRangeLabel: 'Tentukan Sendiri'
+                    }
+                }, cb);
+
+                // ... (bagian AJAX tetap sama) ...
+                load_data_absensi(formatSend(startDate), formatSend(endDate));
+            }
+
+            function cb(start, end) {
+                $('#reportrange #currentMonth').html(start.format('D MMMM YYYY') + ' - ' + end.format(
+                    'D MMMM YYYY'));
+                lstart = start.format('YYYY-MM-DD');
+                lend = end.format('YYYY-MM-DD');
+                $('#start_date').val(lstart);
+                $('#end_date').val(lend);
+                load_data_absensi(lstart, lend);
+            }
+            renderMonth();
+
+            function load_data_absensi(startDate, endDate) {
+                var karyawan = '';
+                let data_approve = '';
+                $.ajax({
+                    url: "{{ url('/absen/get_dataAbsensi') }}" + '/' + menu_active,
+                    type: "GET",
+                    data: {
+                        start_date: startDate,
+                        end_date: endDate
+                    },
+                    beforeSend: function() {
+                        $('.content-absensi').empty();
+                        karyawan += ` <div class="absensi-item">
+                    <div class="tanggal-box">
+                        <span class="day"></span>
+                        <span class="month"></span>
+                    </div>
+                    <div class="absensi-info">
+                        <div class="attendance-times">
+                            <div class="attendance-time">
+                                <span class="attendance-time-label">Masuk</span>
+                                <span class="attendance-time-value skeleton"></span>
+                            </div>
+                            <div class="attendance-time">
+                                <span class="attendance-time-label">Pulang</span>
+                                <span class="attendance-time-value skeleton"></span>
+                            </div>
+                        </div>
+                        <small class="text-muted"></small>
+                    </div>
+                </div>
+                <div class="absensi-item">
+                    <div class="tanggal-box">
+                        <span class="day"></span>
+                        <span class="month"></span>
+                    </div>
+                    <div class="absensi-info">
+                        <div class="attendance-times">
+                            <div class="attendance-time">
+                                <span class="attendance-time-label">Masuk</span>
+                                <span class="attendance-time-value skeleton"></span>
+                            </div>
+                            <div class="attendance-time">
+                                <span class="attendance-time-label">Pulang</span>
+                                <span class="attendance-time-value skeleton"></span>
+                            </div>
+                        </div>
+                        <small class="text-muted"></small>
+                    </div>
+                </div>
+                <div class="absensi-item">
+                    <div class="tanggal-box">
+                        <span class="day"></span>
+                        <span class="month"></span>
+                    </div>
+                    <div class="absensi-info">
+                        <div class="attendance-times">
+                            <div class="attendance-time">
+                                <span class="attendance-time-label">Masuk</span>
+                                <span class="attendance-time-value skeleton"></span>
+                            </div>
+                            <div class="attendance-time">
+                                <span class="attendance-time-label">Pulang</span>
+                                <span class="attendance-time-value skeleton"></span>
+                            </div>
+                        </div>
+                        <small class="text-muted"></small>
+                    </div>
+                </div>`;
+                        $('.content-absensi').html(karyawan);
+                        showSkeleton('.absensi-item .tanggal-box .day');
+                        showSkeleton('.absensi-item .tanggal-box .month');
+                        showSkeleton('.absensi-info');
+                        // $('.content-absensi').empty();
+                    },
+                    error: function(data) {
+                        // console.log(data);
+                        $('.alert_approval').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            data.responseJSON.message + '</div>').fadeIn(100);
+                        setTimeout(function() {
+                            $('.alert_approval').fadeOut('slow');
+                        }, 6000);
+                        data_approve +=
+                            `<div class="text-center mt-3 mb-3"><small class="text-muted">${data.responseJSON.message}</small></div>`;
+                        hideSkeleton('.content-absensi', data_approve);
+                    },
+                    success: function(res) {
+                        // console.log(res.data_absensi);
+                        // continue;
+                        if (res.code == 200) {
+                            $('.content-absensi').empty();
+                            karyawan = '';
+                            res.data_absensi.forEach(function(item) {
+                                const detail_masuk = JSON.stringify(item.detail_masuk);
+                                const detail_pulang = JSON.stringify(item.detail_pulang);
+                                // console.log(detail_masuk, detail_pulang);
+                                karyawan += `
+                            <div class="absensi-item" data-detailmasuk='${detail_masuk}' data-detailpulang='${detail_pulang}' data-tanggal="${item.tanggal}" data-masuk="${item.masuk}" data-pulang="${item.pulang}" data-shift="${item.shift}" data-status="${item.status}" data-type="${item.type}">
+                                <div class="date-box">
+                                    <span class="day">${formatDay(item.tanggal)}</span>
+                                    <span class="month">${formatMonth(item.tanggal)}</span>
+                                </div>
+                                <div class="absensi-info">
+                                    <div class="attendance-times">
+                                        <div class="attendance-time">
+                                            <span class="attendance-time-label">Masuk</span>
+                                            <span class="attendance-time-value">${item.masuk || '-'}</span>
+                                        </div>
+                                        <div class="attendance-time">
+                                            <span class="attendance-time-label">Pulang</span>
+                                            <span class="attendance-time-value">${item.pulang || '-'}</span>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">${item.shift}</small>
+                                </div>
+                                <div class="status ${item.status.replace(/\s+/g, '')}">${item.status}</div>
+                            </div>`;
+                            });
+                            $('.content-absensi').html(karyawan);
+                        } else if (res.code == 500) {
+                            $('.content-absensi').empty();
+                            $('#count_absen_hadir').html('<span class="text-danger">Error!</span>');
+                            $('#count_absen_izin').html('<span class="text-danger">Error!</span>');
+                            $('#count_absen_cuti').html('<span class="text-danger">Error!</span>');
+                            $('#count_absen_telat').html('<span class="text-danger">Error!</span>');
+                            $('#absen_masuk').html('<span class="text-danger">Error!</span>');
+                            $('#absen_pulang').html('<span class="text-danger">Error!</span>');
+                            $('#jam_kerja').html('<span class="text-danger">Error!</span>');
+                            $('#penempatan').html('<span class="text-danger">Error!</span>');
+                            $('.alert_quick_panel').stop(true, true).hide().html(
+                                '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                                res.error + '</div>').fadeIn(100);
+                            setTimeout(function() {
+                                $('.alert_quick_panel').fadeOut('slow');
+                            }, 100000);
+                        }
+                    },
+                })
+            }
+
+            function formatMonth(date) {
+                const d = new Date(date);
+                return d.toLocaleDateString('id-ID', {
+                    month: 'short'
+                });
+            }
+
+            function formatLabel(date) {
+                const d = new Date(date);
+
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+
+                return `${day}-${month}-${year}`;
+            }
+
+            function formatLabel2(date) {
+                const d = new Date(date);
+
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                const hour = String(d.getHours()).padStart(2, '0');
+                const minute = String(d.getMinutes()).padStart(2, '0');
+
+                return `${day}-${month}-${year} ${hour}:${minute}`;
+            }
+            $(document).on('click', '.absensi-item', function() {
+                // 1. Ambil data dari atribut data-
+                const data = {
+                    detail_masuk: $(this).data('detailmasuk'),
+                    detail_pulang: $(this).data('detailpulang'),
+                    tanggal: $(this).data('tanggal'),
+                    masuk: $(this).data('masuk'),
+                    pulang: $(this).data('pulang'),
+                    shift: $(this).data('shift'),
+                    status: $(this).data('status'),
+                    type: $(this).data('type')
+                };
+                let raw_detailmasuk = $(this).data('detailmasuk');
+                let raw_detailpulang = $(this).data('detailpulang');
+                let allValues = Object.values(raw_detailmasuk);
+                let allValues_pulang = Object.values(raw_detailpulang);
+                let uniqueValues = [...new Set(allValues)];
+                let uniqueValues_pulang = [...new Set(allValues_pulang)];
+
+                // console.log(raw_detailmasuk, raw_detailpulang);
+
+                // 3. Render ke Offcanvas
+                let htmlDetail = uniqueValues.map(val => `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2 text-primary"></i>
+                    <span class="text-success small">${val}</span>
+                </div>
+            `).join('');
+                let htmlDetail_pulang = uniqueValues_pulang.map(val => `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2 text-primary"></i>
+                    <span class="text-success small">${val}</span>
+                </div>
+            `).join('');
+                // console.log(data.type);
+                // 2. Isi konten Offcanvas secara dinamis
+                if (data.type == 'is_calendar') {
+                    const content = `
+                <div class="text-center mb-3">
+                    <h6 class="tex-primary mb-1">${moment(data.tanggal).format('dddd, D MMMM YYYY')}</h6>
+                    <span class="status rounded-pill p-2 px-3 ${data.status.replace(/\s+/g, '')}">${data.status}</span>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-in-right"></i> Jam Masuk</small>
+                            <span class="fw-bold fs-5 text-dark">${data.masuk ? data.masuk : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail}</small>
+                            </div>
+                            </div>
+                            <div class="col-6">
+                            <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-left"></i> Jam Pulang</small>
+                            <span class="fw-bold fs-5 text-dark">${data.pulang ? data.pulang : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail_pulang}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 row rounded-4 d-flex text-center mb-2">
+                   <button class="btn btn-sm light btn-danger py-3 fw-bold">
+                   <i class="fa-solid fa-download me-2"></i>
+                   Unduh Pemberitahuan
+                   </button>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-primary w-100 rounded-pill py-3 fw-bold" data-bs-dismiss="offcanvas">
+                    Tutup
+                </button>`;
+                    $('#detailContent').html(content);
+                } else {
+                    const content = `
+                <div class="text-center mb-3">
+                    <h6 class="tex-primary mb-1">${moment(data.tanggal).format('dddd, D MMMM YYYY')}</h6>
+                    <span class="status rounded-pill p-2 px-3 ${data.status.replace(/\s+/g, '')}">${data.status}</span>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-in-right"></i> Jam Masuk</small>
+                            <span class="fw-bold fs-5 text-dark">${data.masuk ? data.masuk : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail}</small>
+                            </div>
+                            </div>
+                            <div class="col-6">
+                            <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-left"></i> Jam Pulang</small>
+                            <span class="fw-bold fs-5 text-dark">${data.pulang ? data.pulang : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail_pulang}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-4 bg-light d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-person-badge me-2 text-primary"></i>
+                        <span class="text-muted">Shift Kerja</span>
+                    </div>
+                    <span class="fw-bold">${data.shift ? data.shift : '-'}</span>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-primary w-100 rounded-pill py-3 fw-bold" data-bs-dismiss="offcanvas">
+                    Tutup
+                </button>`;
+                    $('#detailContent').html(content);
+                }
+
+                // 3. Masukkan ke container detail dan munculkan
+
+                // Trigger Bootstrap Offcanvas
+                var myOffcanvas = document.getElementById('detailAbsensi');
+                var bsOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(myOffcanvas);
+                bsOffcanvas.show();
+            });
         });
-    });
-</script>
+    </script>
 @endsection

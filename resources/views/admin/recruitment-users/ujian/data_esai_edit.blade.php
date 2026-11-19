@@ -23,6 +23,7 @@
                         <div class="card-header">
                             <div class="d-flex align-items-center justify-content-between">
                                 <h5 class="card-title m-0 me-2">DATA UJIAN ESAI</h5>
+                                <input type="hidden" name="menu_id" id="menu_id_add">
                             </div>
                         </div>
                         <div class="card-body">
@@ -115,8 +116,9 @@
                                         <label class="custom-control-label" for="customCheck1">Direktur</label>
                                     </div>
                                     <div class="custom-control custom-checkbox py-2">
-                                        <input type="checkbox" class="custom-control-input" id="customCheck1" name="satu"
-                                            value="1" {{ old('satu', $ujian->satu) == '1' ? 'checked' : '' }}>
+                                        <input type="checkbox" class="custom-control-input" id="customCheck1"
+                                            name="satu" value="1"
+                                            {{ old('satu', $ujian->satu) == '1' ? 'checked' : '' }}>
                                         <label class="custom-control-label" for="customCheck1">Head</label>
                                     </div>
                                     <div class="custom-control custom-checkbox py-2">
@@ -219,6 +221,10 @@
 
     <script>
         $(document).ready(function() {
+            var menu_id = $('#asoy').val();
+            // console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
             function uploadImage(e, o) {
                 var a = new FormData;
                 a.append("image", e), $.ajax({

@@ -2,21 +2,49 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Inventaris extends Model
 {
-    use HasFactory;
-    protected $guarded = ['id_inventaris'];
     public $incrementing = false;
+    protected $guarded = ['id'];
+    protected $keyType = 'string';
+    protected $table = 'inventaris';
     protected $fillable = [
-        'holding_inventaris',
-        'kode_inventaris',
+        'id',
         'nama_inventaris',
-        'type_inventaris',
-        'serial_number_inventaris',
-        'foto_inventaris',
-        'kategori_inventaris'
+
+        // 'kode',
+        'serial_number',
+        'id_aset',
+
+        'id_kategori',
+        'nama_kategori',
+
+        'id_site',
+        'nama_site',
+
+        'id_holding',
+        'nama_holding',
+
+        'id_gedung',
+        'nama_gedung',
+
+        'id_ruangan',
+        'nama_ruangan',
+
+        'status',
+        'kondisi',
+        'nama_kondisi',
+
+        'foto',
+        'keterangan',
+
+        'id_karyawan',
+        'nama_karyawan',
+        'nik_karyawan',
+
+        'created_at',
+        'updated_at'
     ];
 }

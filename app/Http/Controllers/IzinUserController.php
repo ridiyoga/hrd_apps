@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\SemuaIzin;
 use App\Models\Cuti;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,1189 +17,145 @@ use App\Models\Jabatan;
 use App\Models\Izin;
 use App\Models\Departemen;
 use App\Models\Divisi;
+use App\Models\Holding;
+use App\Models\IzinTerlambat;
 use App\Models\Karyawan;
+use App\Models\KaryawanJabatan;
 use App\Models\KategoriIzin;
 use App\Models\LevelJabatan;
 use App\Models\Lokasi;
+use App\Models\Menu;
+use App\Models\QuickPanel;
+use App\Models\RoleMenu;
+use App\Models\RoleUsers;
+use App\Models\Shift;
 use DateTime;
 use Illuminate\Support\Facades\App;
 use Maatwebsite\Excel\Excel;
 use Ramsey\Uuid\Uuid;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+
 
 class IzinUserController extends Controller
 {
-    public function index(Request $request)
+    public function index($id)
     {
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        $kontrak = $user_karyawan->kontrak_kerja;
-        $site_job = $user_karyawan->site_job;
-        $lokasi_site_job = Lokasi::where('lokasi_kantor', $site_job)->first();
-        // dd($user_karyawan);
-        if ($kontrak == '') {
-            $request->session()->flash('kontrakkerjaNULL');
-            return redirect('/home');
-        }
-        if ($user_karyawan->kategori == 'Karyawan Bulanan') {
-            $user = Karyawan::Join('jabatans', 'jabatans.id', '=', 'karyawans.jabatan_id')
-                ->join('level_jabatans', 'jabatans.level_id', '=', 'level_jabatans.id')
-                ->join('departemens', 'departemens.id', '=', 'karyawans.dept_id')
-                ->join('divisis', 'divisis.id', '=', 'karyawans.divisi_id')
-                ->where('karyawans.id', $user_karyawan->id)->first();
-            // dd($user);
-            if ($user == NULL) {
-                $request->session()->flash('jabatanNULL');
-                return redirect('/home');
-            } else {
-                $IdLevelAtasan = Jabatan::where('id', $user->atasan_id)->first();
-                // dd($IdLevelAtasan);
-                if ($IdLevelAtasan == NULL) {
-                    $getUserAtasan = NULL;
-                    $get_user_backup = Karyawan::where('dept_id', $user_karyawan->dept_id)
-                        ->where('id', '!=', $user_karyawan->id)
-                        ->where('dept_id', $user_karyawan->dept_id)
-                        ->get();
-                } else {
-                    // dd($lokasi_site_job->kategori_kantor);
-
-                    if ($lokasi_site_job->kategori_kantor == 'sps') {
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            ->whereIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                            ->first();
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            if ($IdLevelAtasan->atasan_id == NULL) {
-                                $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.id', $IdLevelAtasan->id)
-                                    ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                // dd($get_atasan_site);
-                                if ($get_atasan_site->holding == 'sps') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    // dd($get_atasan_more);
-                                } else if ($get_atasan_site->holding == 'sip') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sps');
-                                        })
-                                        // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                        ->orderBy('jabatans.holding', 'ASC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                } else {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sps')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                }
-                                // dd($get_atasan_more);
-                                if ($get_atasan_more == NULL) {
-                                    $getUserAtasan  = NULL;
-                                } else {
-                                    $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                        ->whereIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                        ->first();
-                                    if ($atasan == NULL) {
-                                        $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                            ->whereIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                            ->first();
-                                        if ($atasan2 == NULL) {
-                                            $getUserAtasan  = NULL;
-                                        } else {
-                                            $getUserAtasan  = $atasan2;
-                                        }
-                                    } else {
-                                        $getUserAtasan  = $atasan;
-                                    }
-                                }
-                            } else {
-                                $atasan2 = Karyawan::where('jabatan_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan1_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan2_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan3_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan4_id', $IdLevelAtasan->atasan_id)
-                                    ->whereIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                    ->first();
-                                if ($atasan2 == NULL || $atasan2 == '') {
-                                    $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.id', $IdLevelAtasan->id)
-                                        ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    if ($get_atasan_site->holding == 'sps') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                        // dd($get_atasan_more);
-                                    } else if ($get_atasan_site->holding == 'sip') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sps');
-                                            })
-                                            // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                            ->orderBy('jabatans.holding', 'ASC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    } else {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sps')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    }
-                                    if ($get_atasan_more == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                            ->whereIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                            ->first();
-                                        // dd($atasan);
-                                        if ($atasan == NULL) {
-                                            $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                                ->whereIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                                ->first();
-                                            if ($atasan2 == NULL) {
-                                                $getUserAtasan  = NULL;
-                                            } else {
-                                                $getUserAtasan  = $atasan2;
-                                            }
-                                        } else {
-                                            $getUserAtasan  = $atasan;
-                                        }
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan2;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    } else if ($lokasi_site_job->kategori_kantor == 'sp') {
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                            ->first();
-                        // dd($get_nama_jabatan);
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            if ($IdLevelAtasan->atasan_id == NULL) {
-                                $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.id', $IdLevelAtasan->id)
-                                    ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                if ($get_atasan_site->holding == 'sps') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    // dd($get_atasan_more);
-                                } else if ($get_atasan_site->holding == 'sip') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sps');
-                                        })
-                                        // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                        ->orderBy('jabatans.holding', 'ASC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                } else {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sps')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                }
-                                // dd($get_atasan_more);
-                                $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                    ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                    ->first();
-                                if ($atasan == NULL) {
-                                    $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                        ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                        ->first();
-                                    if ($atasan2 == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $getUserAtasan  = $atasan2;
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan;
-                                }
-                            } else {
-                                $atasan2 = Karyawan::where('jabatan_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan1_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan2_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan3_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan4_id', $IdLevelAtasan->atasan_id)
-                                    ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                    ->first();
-                                if ($atasan2 == NULL || $atasan2 == '') {
-                                    $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.id', $IdLevelAtasan->id)
-                                        ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    if ($get_atasan_site->holding == 'sps') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                        // dd($get_atasan_more);
-                                    } else if ($get_atasan_site->holding == 'sip') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sps');
-                                            })
-                                            // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                            ->orderBy('jabatans.holding', 'ASC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    } else {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sps')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    }
-                                    // dd($get_atasan_more);
-                                    if ($get_atasan_more == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                            ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                            ->first();
-                                        if ($atasan == NULL) {
-                                            $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                                ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', $site_job])
-                                                ->first();
-                                            if ($atasan2 == NULL) {
-                                                $getUserAtasan  = NULL;
-                                            } else {
-                                                $getUserAtasan  = $atasan2;
-                                            }
-                                        } else {
-                                            $getUserAtasan  = $atasan;
-                                        }
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan2;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    } else if ($lokasi_site_job->kategori_kantor == 'sip') {
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            ->whereIn('site_job', ['ALL SITES (SP, SPS, SIP)', $site_job])
-                            ->first();
-                        // dd($get_nama_jabatan);
-
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            if ($IdLevelAtasan->atasan_id == NULL) {
-                                $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.id', $IdLevelAtasan->id)
-                                    ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                if ($get_atasan_site->holding == 'sps') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    // dd($get_atasan_more);
-                                } else if ($get_atasan_site->holding == 'sip') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sps');
-                                        })
-                                        // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                        ->orderBy('jabatans.holding', 'ASC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                } else {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sps')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                }
-                                // dd($get_atasan_more);
-                                if ($get_atasan_more == NULL) {
-                                    $getUserAtasan  = NULL;
-                                } else {
-                                    $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                        ->whereIn('site_job', ['ALL SITES (SP, SPS, SIP)', $site_job])
-                                        ->first();
-                                    if ($atasan == NULL) {
-                                        $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                            ->whereIn('site_job', ['ALL SITES (SP, SPS, SIP)', $site_job])
-                                            ->first();
-                                        if ($atasan2 == NULL) {
-                                            $getUserAtasan  = NULL;
-                                        } else {
-                                            $getUserAtasan  = $atasan2;
-                                        }
-                                    } else {
-                                        $getUserAtasan  = $atasan;
-                                    }
-                                }
-                            } else {
-                                $atasan2 = Karyawan::where('jabatan_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan1_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan2_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan3_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan4_id', $IdLevelAtasan->atasan_id)
-                                    ->whereIn('site_job', ['ALL SITES (SP, SPS, SIP)', $site_job])
-                                    ->first();
-                                if ($atasan2 == NULL || $atasan2 == '') {
-                                    $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.id', $IdLevelAtasan->id)
-                                        ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    if ($get_atasan_site->holding == 'sps') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                        // dd($get_atasan_more);
-                                    } else if ($get_atasan_site->holding == 'sip') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sps');
-                                            })
-                                            // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                            ->orderBy('jabatans.holding', 'ASC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    } else {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sps')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    }
-                                    // dd($get_atasan_more);
-                                    if ($get_atasan_more == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                            ->whereIn('site_job', ['ALL SITES (SP, SPS, SIP)', $site_job])
-                                            ->first();
-                                        if ($atasan == NULL) {
-                                            $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                                ->whereIn('site_job', ['ALL SITES (SP, SPS, SIP)', $site_job])
-                                                ->first();
-                                            if ($atasan2 == NULL) {
-                                                $getUserAtasan  = NULL;
-                                            } else {
-                                                $getUserAtasan  = $atasan2;
-                                            }
-                                        } else {
-                                            $getUserAtasan  = $atasan;
-                                        }
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan2;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    } else if ($lokasi_site_job->kategori_kantor == 'all sps') {
-
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            ->whereNotIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SIP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                            ->first();
-                        // dd($IdLevelAtasan->atasan_id);
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                ->where('jabatans.id', $IdLevelAtasan->id)
-                                ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                ->first();
-                            if ($get_atasan_site->holding == 'sps') {
-                                $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                    ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                    ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                    ->where(function ($query) {
-                                        $query->where('jabatans.holding', 'sp')
-                                            ->orWhere('jabatans.holding', 'sip');
-                                    })
-                                    ->orderBy('jabatans.holding', 'DESC')
-                                    ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                // dd($get_atasan_more);
-                            } else if ($get_atasan_site->holding == 'sip') {
-                                $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                    ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                    ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                    ->where(function ($query) {
-                                        $query->where('jabatans.holding', 'sp')
-                                            ->orWhere('jabatans.holding', 'sps');
-                                    })
-                                    // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                    ->orderBy('jabatans.holding', 'ASC')
-                                    ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                            } else {
-                                $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                    ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                    ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                    ->where(function ($query) {
-                                        $query->where('jabatans.holding', 'sps')
-                                            ->orWhere('jabatans.holding', 'sip');
-                                    })
-                                    ->orderBy('jabatans.holding', 'DESC')
-                                    ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                            }
-                            // dd($get_atasan_more);
-                            if ($get_atasan_more == NULL) {
-                                $getUserAtasan  = NULL;
-                            } else {
-                                $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                    ->whereNotIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SIP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                                    ->first();
-                                if ($atasan == NULL) {
-                                    $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                        ->whereNotIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SIP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                                        ->first();
-                                    if ($atasan2 == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $getUserAtasan  = $atasan2;
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    } else if ($lokasi_site_job->kategori_kantor == 'all sp') {
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN'])
-                            ->first();
-                        // dd($get_nama_jabatan);
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            if ($IdLevelAtasan->atasan_id == NULL) {
-                                // dd('p');
-                                $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.id', $IdLevelAtasan->id)
-                                    ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                if ($get_atasan_site->holding == 'sps') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    // dd($get_atasan_more);
-                                } else if ($get_atasan_site->holding == 'sip') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sps');
-                                        })
-                                        // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                        ->orderBy('jabatans.holding', 'ASC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                } else {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sps')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                }
-                                // dd($get_atasan_more);
-                                if ($get_atasan_more == NULL) {
-                                    $getUserAtasan  = NULL;
-                                } else {
-                                    $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                        ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SIP)', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                                        ->first();
-                                    if ($atasan == NULL) {
-                                        $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                            ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SIP)', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                                            ->first();
-                                        if ($atasan2 == NULL) {
-                                            $getUserAtasan  = NULL;
-                                        } else {
-                                            $getUserAtasan  = $atasan2;
-                                        }
-                                    } else {
-                                        $getUserAtasan  = $atasan;
-                                    }
-                                }
-                            } else {
-                                $atasan2 = Karyawan::where('jabatan_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan1_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan2_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan3_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan4_id', $IdLevelAtasan->atasan_id)
-                                    ->whereIn('site_job', ['ALL SITES (SP)', 'ALL SITES (SP, SPS, SIP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN'])
-                                    ->first();
-                                // dd($atasan2);
-                                if ($atasan2 == NULL || $atasan2 == '') {
-                                    $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.id', $IdLevelAtasan->id)
-                                        ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    // dd($get_atasan_site);
-                                    if ($get_atasan_site->holding == 'sps') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                        // dd($get_atasan_more);
-                                    } else if ($get_atasan_site->holding == 'sip') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sps');
-                                            })
-                                            // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                            ->orderBy('jabatans.holding', 'ASC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    } else {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sps')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    }
-                                    if ($get_atasan_more == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                            ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SIP)', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                                            ->first();
-                                        if ($atasan == NULL) {
-                                            $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                                ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SIP)', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG', 'CV. SURYA INTI PANGAN - MAKASAR'])
-                                                ->first();
-                                            if ($atasan2 == NULL) {
-                                                $getUserAtasan  = NULL;
-                                            } else {
-                                                $getUserAtasan  = $atasan2;
-                                            }
-                                        } else {
-                                            $getUserAtasan  = $atasan;
-                                        }
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan2;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    } else if ($lokasi_site_job->kategori_kantor == 'all sip') {
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG'])
-                            ->first();
-                        // dd($get_nama_jabatan);
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            if ($IdLevelAtasan->atasan_id == NULL) {
-                                $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.id', $IdLevelAtasan->id)
-                                    ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                if ($get_atasan_site->holding == 'sps') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    // dd($get_atasan_more);
-                                } else if ($get_atasan_site->holding == 'sip') {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sp')
-                                                ->orWhere('jabatans.holding', 'sps');
-                                        })
-                                        // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                        ->orderBy('jabatans.holding', 'ASC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                } else {
-                                    $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                        ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                        ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                        ->where(function ($query) {
-                                            $query->where('jabatans.holding', 'sps')
-                                                ->orWhere('jabatans.holding', 'sip');
-                                        })
-                                        ->orderBy('jabatans.holding', 'DESC')
-                                        ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                }
-                                if ($get_atasan_more == NULL) {
-                                    $getUserAtasan  = NULL;
-                                } else {
-                                    $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                        ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG'])
-                                        ->first();
-                                    if ($atasan == NULL) {
-                                        $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                            ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG'])
-                                            ->first();
-                                        if ($atasan2 == NULL) {
-                                            $getUserAtasan  = NULL;
-                                        } else {
-                                            $getUserAtasan  = $atasan2;
-                                        }
-                                    } else {
-                                        $getUserAtasan  = $atasan;
-                                    }
-                                }
-                            } else {
-                                $atasan2 = Karyawan::where('jabatan_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan1_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan2_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan3_id', $IdLevelAtasan->atasan_id)
-                                    ->orWhere('jabatan4_id', $IdLevelAtasan->atasan_id)
-                                    ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG'])
-                                    ->first();
-                                // dd($atasan2);
-                                if ($atasan2 == NULL || $atasan2 == '') {
-                                    $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                        ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                        ->where('jabatans.id', $IdLevelAtasan->id)
-                                        ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                        ->first();
-                                    if ($get_atasan_site->holding == 'sps') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                        // dd($get_atasan_more);
-                                    } else if ($get_atasan_site->holding == 'sip') {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sp')
-                                                    ->orWhere('jabatans.holding', 'sps');
-                                            })
-                                            // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                            ->orderBy('jabatans.holding', 'ASC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    } else {
-                                        $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                            ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                            ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                            ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                            ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                            ->where(function ($query) {
-                                                $query->where('jabatans.holding', 'sps')
-                                                    ->orWhere('jabatans.holding', 'sip');
-                                            })
-                                            ->orderBy('jabatans.holding', 'DESC')
-                                            ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                            ->first();
-                                    }
-                                    // dd($get_atasan_more);
-                                    if ($get_atasan_more == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                            ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                            ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG'])
-                                            ->first();
-                                        if ($atasan == NULL) {
-                                            $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                                ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                                ->whereNotIn('site_job', ['ALL SITES (SPS)', 'ALL SITES (SP)', 'CV. SUMBER PANGAN - KEDIRI', 'CV. SUMBER PANGAN - TUBAN', 'PT. SURYA PANGAN SEMESTA - KEDIRI', 'PT. SURYA PANGAN SEMESTA - NGAWI', 'PT. SURYA PANGAN SEMESTA - SUBANG'])
-                                                ->first();
-                                            if ($atasan2 == NULL) {
-                                                $getUserAtasan  = NULL;
-                                            } else {
-                                                $getUserAtasan  = $atasan2;
-                                            }
-                                        } else {
-                                            $getUserAtasan  = $atasan;
-                                        }
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan2;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    } else if ($lokasi_site_job->kategori_kantor == 'all') {
-                        $get_nama_jabatan = Karyawan::where('jabatan_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan1_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan2_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan3_id', $IdLevelAtasan->id)
-                            ->orWhere('jabatan4_id', $IdLevelAtasan->id)
-                            // ->orWhere('d.nama_jabatan', $get_name_jabatan->nama_jabatan)
-                            ->first();
-                        // dd($get_nama_jabatan);
-                        if ($get_nama_jabatan == NULL || $get_nama_jabatan == '') {
-                            $get_atasan_site = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                ->where('jabatans.id', $IdLevelAtasan->id)
-                                ->select('jabatans.id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                ->first();
-                            // dd($get_atasan_site);
-                            if ($get_atasan_site->holding == 'sps') {
-                                $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                    ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                    ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                    ->where(function ($query) {
-                                        $query->where('jabatans.holding', 'sp')
-                                            ->orWhere('jabatans.holding', 'sip');
-                                    })
-                                    ->orderBy('jabatans.holding', 'DESC')
-                                    ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                                // dd($get_atasan_more);
-                            } else if ($get_atasan_site->holding == 'sip') {
-                                $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                    ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                    ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                    ->where(function ($query) {
-                                        $query->where('jabatans.holding', 'sp')
-                                            ->orWhere('jabatans.holding', 'sps');
-                                    })
-                                    // ->whereIn('jabatans.holding', ['sp', 'sps'])
-                                    ->orderBy('jabatans.holding', 'ASC')
-                                    ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                            } else {
-                                $get_atasan_more = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                                    ->where('jabatans.nama_jabatan', $get_atasan_site->nama_jabatan)
-                                    ->where('divisis.nama_divisi', $get_atasan_site->nama_divisi)
-                                    ->where('bagians.nama_bagian', $get_atasan_site->nama_bagian)
-                                    ->where(function ($query) {
-                                        $query->where('jabatans.holding', 'sps')
-                                            ->orWhere('jabatans.holding', 'sip');
-                                    })
-                                    ->orderBy('jabatans.holding', 'DESC')
-                                    ->select('jabatans.id', 'jabatans.atasan_id', 'divisis.nama_divisi', 'jabatans.nama_jabatan', 'bagians.nama_bagian', 'jabatans.holding')
-                                    ->first();
-                            }
-                            // dd($get_atasan_more);
-                            if ($get_atasan_more == NULL) {
-                                $getUserAtasan  = NULL;
-                            } else {
-                                $atasan = Karyawan::where('jabatan_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan1_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan2_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan3_id', $get_atasan_more->id)
-                                    ->orWhere('jabatan4_id', $get_atasan_more->id)
-                                    // ->orWhere('d.nama_jabatan', $get_name_jabatan->nama_jabatan)
-                                    ->first();
-                                // dd($atasan);
-                                if ($atasan == NULL) {
-                                    $atasan2 = Karyawan::where('jabatan_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan1_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan2_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan3_id', $get_atasan_more->atasan_id)
-                                        ->orWhere('jabatan4_id', $get_atasan_more->atasan_id)
-                                        // ->orWhere('d.nama_jabatan', $get_name_jabatan->nama_jabatan)
-                                        ->first();
-                                    // dd($atasan2);
-                                    if ($atasan2 == NULL) {
-                                        $getUserAtasan  = NULL;
-                                    } else {
-                                        $getUserAtasan  = $atasan2;
-                                    }
-                                } else {
-                                    $getUserAtasan  = $atasan;
-                                }
-                            }
-                        } else {
-                            $getUserAtasan  = $get_nama_jabatan;
-                        }
-                    }
-                    $get_user_backup = Karyawan::where('dept_id', $user_karyawan->dept_id)
-                        ->where('id', '!=', $user_karyawan->id)
-                        ->where('dept_id', $user_karyawan->dept_id)
-                        ->get();
-                }
-            }
-        } else if ($user_karyawan->kategori == 'Karyawan Harian') {
-            $user = Karyawan::where('id', $user_karyawan->id)->first();
-            $atasan = Karyawan::Join('mapping_shifts', function ($join) {
-                $join->on('mapping_shifts.koordinator_id', '=', 'karyawans.id');
-            })
-                ->select('karyawans.*', 'mapping_shifts.koordinator_id')
-                ->first();
-            $get_user_backup = NULL;
-            $getUserAtasan = $atasan;
-        }
-        // dd($getUserAtasan);
-        $jam_kerja = MappingShift::with('Shift')->where('user_id', $user_karyawan->id)->where('tanggal_masuk', date('Y-m-d'))->first();
-
-        $record_data    = Izin::where('user_id', $user_karyawan->id)->orderBy('created_at', 'DESC')->get();
-        $kategori_izin = KategoriIzin::orderBy('id', 'ASC')->whereNotIn('nama_izin', ['Pulang Cepat', 'Datang Terlambat'])->get();
-        if ($jam_kerja == '' || $jam_kerja == NULL) {
-            $req_jm_klr = NULL;
+        // dd($me);
+        // abort(404);
+        session(['url.intended' => url()->previous()]);
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
         } else {
-            $jam_masuk = \Carbon\Carbon::parse($jam_kerja->Shift->jam_masuk)->addMinute(5)->isoFormat('HH:mm');
-            // dd($jam_masuk);
-            if ($jam_kerja->jam_absen <= $jam_masuk) {
-                $req_jm_klr = new DateTime(date('Y-m-d') . $jam_kerja->Shift->jam_masuk);
-            } else {
-                $req_jm_klr = new DateTime(date('Y-m-d') . $jam_kerja->jam_absen);
-            }
+            $roleId = $get_role;
         }
-        if ($req_jm_klr == '' || $req_jm_klr == NULL) {
-            $jam_min_plg_cpt = NULL;
+        if ($roleId == null) {
+            $all_menu_main = collect();
+            $all_menus = collect();
+            $all_menu_bar = collect();
         } else {
-            $jam_min_plg_cpt = \Carbon\Carbon::parse($req_jm_klr)->addHour(6)->isoFormat('H:mm');
+
+            $all_menu_main  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 1);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+            $all_menus  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 0);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+
+            $all_menu_bar  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 2);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
         }
-        // dd($req_jm_klr);
-        $thnskrg = date('Y');
+        $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+
         return view('users.izin.index', [
-            'title'             => 'Tambah Permintaan Cuti Karyawan',
-            'data_user'         => $user,
-            'user_karyawan'     => $user_karyawan,
-            'data_izin_user'    => Cuti::where('user_id', $user_karyawan->id)->orderBy('id', 'desc')->get(),
-            'getUserAtasan'     => $getUserAtasan,
-            'user'              => $user,
-            'record_data'       => $record_data,
-            'kategori_izin'       => $kategori_izin,
-            'jam_kerja'       => $jam_kerja,
-            'get_user_backup'       => $get_user_backup,
-            'jam_min_plg_cpt'       => $jam_min_plg_cpt,
-            'thnskrg'       => $thnskrg,
+            'user_karyawan' => $user_karyawan,
+            'all_menu_main' => $all_menu_main,
+            'all_menus' => $all_menus,
+            'all_menu_bar' => $all_menu_bar,
+            'id' => $id,
+            'menu_id' => $id,
         ]);
     }
-    public function izinEdit($id)
+
+    public function terlambat($id)
     {
-        // dd($id);
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        if ($user_karyawan->kategori == 'Karyawan Bulanan') {
-            $user = Karyawan::Join('jabatans', 'jabatans.id', '=', 'karyawans.jabatan_id')
-                ->join('level_jabatans', 'jabatans.level_id', '=', 'level_jabatans.id')
-                ->join('departemens', 'departemens.id', '=', 'karyawans.dept_id')
-                ->join('divisis', 'divisis.id', '=', 'karyawans.divisi_id')
-                ->where('karyawans.id', $user_karyawan->id)->first();
-        } else if ($user_karyawan->kategori == 'Karyawan Harian') {
-            $user = Karyawan::where('karyawans.id', $user_karyawan->id)->first();
+        // dd($me);
+        // abort(404);
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
         }
-        $get_izin_id = Izin::where('id', $id)->first();
-        $get_user_backup = Karyawan::where('dept_id', $user_karyawan->dept_id)
-            ->where('id', '!=', $user_karyawan->id)
-            ->where('dept_id', $user_karyawan->dept_id)
-            ->get();
-        $kategori_izin = KategoriIzin::orderBy('id', 'ASC')->get();
-        $jam_kerja = MappingShift::with('Shift')->where('user_id', $user_karyawan->id)->where('tanggal_masuk', date('Y-m-d'))->first();
+        if ($roleId == null) {
+            $all_menu_main = collect();
+            $all_menus = collect();
+            $all_menu_bar = collect();
+        } else {
+
+            $all_menu_main  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 1);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+            $all_menus  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 0);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+
+            $all_menu_bar  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 2);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+        }
+        $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+
+        $jam_kerja = MappingShift::with('Shift')
+            ->where('karyawan_id', $user_karyawan->id)
+            ->whereDate('tanggal_masuk', now())
+            ->whereNotNull('is_active')
+            ->first();
         // dd($jam_kerja);
         if ($jam_kerja == '' || $jam_kerja == NULL) {
             $req_jm_klr = NULL;
@@ -1211,1073 +168,1054 @@ class IzinUserController extends Controller
                 $req_jm_klr = new DateTime(date('Y-m-d') . $jam_kerja->jam_absen);
             }
         }
+        // dd($jam_kerja);
+
         $jam_min_plg_cpt = \Carbon\Carbon::parse($req_jm_klr)->addHour(6)->isoFormat('H:mm');
-        return view(
-            'users.izin.edit',
-            [
-                'user' => $user,
-                'user_karyawan' => $user_karyawan,
-                'get_izin' => $get_izin_id,
-                'kategori_izin' => $kategori_izin,
-                'jam_kerja' => $jam_kerja,
-                'get_user_backup' => $get_user_backup,
-                'jam_min_plg_cpt' => $jam_min_plg_cpt,
-            ]
-        );
-    }
-    public function izinEditProses(Request $request)
-    {
-        // dd($request->all());
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        if ($request->signature !== null) {
-            $count_tbl_izin = Izin::where('izin', $request->izin)->where('tanggal', $request->tanggal)->whereNotNull('no_form_izin')->count();
-            // dd($count_tbl_izin);
-            $get_izin = Izin::where('id', $request->id)->first();
-            if ($request->izin == $get_izin->izin) {
-                $add = 0;
-            } else {
-                $add = 1;
-            }
-
-            // dd($count_tbl_izin);
-            $countstr = strlen($count_tbl_izin + 1);
-            if ($countstr == '1') {
-                $no = '000' . $count_tbl_izin + 1;
-            } else if ($countstr == '2') {
-                $no = '00' . $count_tbl_izin + 1;
-            } else if ($countstr == '3') {
-                $no = '0' . $count_tbl_izin + 1;
-            } else {
-                $no = $count_tbl_izin + 1;
-            }
-            if ($request->izin == 'Pulang Cepat') {
-                $pulang_cepat = $request->jam_pulang_cepat;
-                $terlambat = NULL;
-                $id_backup = NULL;
-                $name_backup = NULL;
-                $img_name = NULL;
-                $jam_keluar = NULL;
-                $jam_kembali = NULL;
-                $catatan_backup = NULL;
-                $jam_masuk = NULL;
-                $tanggal = $request->tanggal;
-                $tanggal_selesai = $request->tanggal;
-                $no_form = $user_karyawan->kontrak_kerja . '/IP/' . date('Y/m/d') . '/' . $no;
-            } else if ($request->izin == 'Keluar Kantor') {
-                $jam_keluar = $request->jam_keluar;
-                $jam_kembali = $request->jam_kembali;
-                $pulang_cepat = NULL;
-                $jam_masuk = NULL;
-                $img_name = NULL;
-                $id_backup = NULL;
-                $name_backup = NULL;
-                $catatan_backup = NULL;
-                $tanggal = $request->tanggal;
-                $tanggal_selesai = $request->tanggal;
-                $terlambat = NULL;
-                $no_form = $user_karyawan->kontrak_kerja . '/MK/' . date('Y/m/d') . '/' . $no;
-            } else if ($request->izin == 'Tidak Masuk (Mendadak)') {
-                $jumlah_hari = explode(' ', $request->tanggal);
-                $startDate = trim($jumlah_hari[0]);
-                $endDate = trim($jumlah_hari[2]);
-                $date1          = new DateTime($startDate);
-                $date2          = new DateTime($endDate);
-                $interval       = $date1->diff($date2);
-                $data_interval  = $interval->days;
-                $tanggal = date('Y-m-d', strtotime($startDate));
-                $tanggal_selesai = date('Y-m-d', strtotime($endDate));
-                // dd($data_interval);
-                $jam_keluar = NULL;
-                $jam_kembali = NULL;
-                $pulang_cepat = NULL;
-                $terlambat = NULL;
-                $jam_masuk = NULL;
-                $img_name = NULL;
-                $id_backup = $request->user_backup;
-                $name_backup = Karyawan::where('id', $request->user_backup)->value('name');
-                $catatan_backup = $request->catatan_backup;
-                $no_form = $user_karyawan->kontrak_kerja . '/FPI/' . date('Y/m/d') . '/' . $no;
-            } else if ($request->izin == 'Sakit') {
-                if ($request->foto_izin_lama == 'TIDAK ADA' || $request->foto_izin_lama == NULL) {
-                    if ($request['file_sakit']) {
-                        // dd('ok');
-                        $extension     = $request->file('file_sakit')->extension();
-                        // dd($extension);
-                        $img_name         = date('y-m-d') . '-' . Uuid::uuid4() . '.' . $extension;
-                        $path           = Storage::putFileAs('foto_izin/', $request->file('file_sakit'), $img_name);
-                    } else {
-                        $img_name = 'TIDAK ADA';
-                    }
-                } else {
-                    $delete           = Storage::delete('foto_izin/', $request->file('file_sakit'));
-                }
-                // $jam_pulang_cepat = $request->pulang_cepat;
-                $jumlah_hari = explode(' ', $request->tanggal);
-                $startDate = trim($jumlah_hari[0]);
-                $endDate = trim($jumlah_hari[2]);
-                $date1          = new DateTime($startDate);
-                $date2          = new DateTime($endDate);
-                $interval       = $date1->diff($date2);
-                $data_interval  = $interval->days;
-                $tanggal = date('Y-m-d', strtotime($startDate));
-                $tanggal_selesai = date('Y-m-d', strtotime($endDate));
-                // dd($tanggal_selesai);
-                // $jam_pulang_cepat = $request->pulang_cepat;
-                $terlambat = NULL;
-                $jam_masuk = NULL;
-                $pulang_cepat = NULL;
-                $jam_keluar = NULL;
-                $jam_kembali = NULL;
-                $no_form = NULL;
-                $id_backup = NULL;
-                $name_backup = NULL;
-                $catatan_backup = NULL;
-            } else if ($request->izin == 'Datang Terlambat') {
-                // dd($request->all());
-                $pulang_cepat = NULL;
-                $jam_keluar = NULL;
-                $jam_kembali = NULL;
-                $id_backup = NULL;
-                $name_backup = NULL;
-                $catatan_backup = NULL;
-                $terlambat = $request->terlambat;
-                $jam_masuk = $request->jam_masuk;
-                $img_name = NULL;
-                $tanggal = $request->tanggal;
-                $tanggal_selesai = $request->tanggal;
-                $no_form = $user_karyawan->kontrak_kerja . '/FKDT/' . date('Y/m/d') . '/' . $no;
-            } else {
-                $catatan_backup = NULL;
-                $id_backup = NULL;
-                $name_backup = NULL;
-                $img_name = NULL;
-                $pulang_cepat = NULL;
-                $terlambat  = NULL;
-                $jam_masuk = NULL;
-            }
-            $folderPath     = public_path('signature/izin/');
-            $image_parts    = explode(";base64,", $request->signature);
-            $image_type_aux = explode("image/", $image_parts[0]);
-            $image_type     = $image_type_aux[1];
-            $image_base64   = base64_decode($image_parts[1]);
-            $uniqid         = date('y-m-d') . '-' . uniqid();
-            $file           = $folderPath . $uniqid . '.' . $image_type;
-            file_put_contents($file, $image_base64);
-            $data                   = Izin::where('id', $request['id'])->first();
-            $data->user_id          = $request->id_user;
-            $data->departements_id  = Departemen::where('id', $request["departements"])->value('id');
-            $data->jabatan_id       = Jabatan::where('id', $request["jabatan"])->value('id');
-            $data->divisi_id        = Divisi::where('id', $request["divisi"])->value('id');
-            $data->telp             = $request->telp;
-            $data->email            = $request->email;
-            $data->fullname         = $request->fullname;
-            $data->izin             = $request->izin;
-            $data->terlambat        = $terlambat;
-            $data->tanggal          = $tanggal;
-            $data->tanggal_selesai  = $tanggal_selesai;
-            $data->catatan_backup  = $catatan_backup;
-            $data->jam_masuk_kerja  = $jam_masuk;
-            $data->pulang_cepat     = $pulang_cepat;
-            $data->user_id_backup   = $id_backup;
-            $data->user_name_backup = $name_backup;
-            $data->jam_keluar       = $jam_keluar;
-            $data->jam              = $request->jam;
-            $data->jam_kembali     = $jam_kembali;
-            $data->keterangan_izin  = $request->keterangan_izin;
-            $data->no_form_izin  = $no_form;
-            $data->approve_atasan   = $request->approve_atasan;
-            $data->id_approve_atasan = $request->id_user_atasan;
-            $data->ttd_pengajuan    = $uniqid;
-            $data->waktu_ttd_pengajuan  = date('Y-m-d H:i:s');
-            if ($request->level_jabatan == '1') {
-                $data->status_izin      = 2;
-            } else {
-                $data->status_izin      = 1;
-            }
-            $data->update();
-
-            ActivityLog::create([
-                'user_id' => Auth::user()->id,
-                'object_id' => $data->id,
-                'kategory_activity' => 'IZIN',
-                'activity' => 'Izin ' . $data->izin,
-                'description' => 'Pengajuan Izin' . $data->izin . ' No Form: ' . $data->no_form_izin . ' Tanggal ' . $data->tanggal . ' - ' . $data->tanggal_selesai . ' Keterangan  ' . $data->keterangan_izin,
-                'read_status' => 0
-
-            ]);
-            $request->session()->flash('izineditsuccess');
-            return redirect('/izin/dashboard');
+        if ($user_karyawan->shift == 'NON SHIFT') {
+            $masuk =  Shift::where('nama_shift', 'NON SHIFT')->first();
+            $min_masuk = $masuk?->jam_masuk
+                ? \Carbon\Carbon::parse($masuk->jam_masuk)->addMinutes(5)->format('H:i')
+                : null;
+            $terlambat =  $masuk->jam_masuk
+                ? \Carbon\Carbon::parse($masuk->jam_masuk)
+                ->addHours(3)
+                ->addMinutes(6)
+                ->format('H:i')
+                : null;
         } else {
-            Alert::info('info', 'Tanda Tangan Harus Terisi');
-            return redirect()->back()->with('info', 'Tanda Tangan Harus Terisi');
+            $min_masuk = $jam_kerja?->Shift?->jam_masuk
+                ? \Carbon\Carbon::parse($jam_kerja->Shift->jam_masuk)->addMinutes(5)->format('H:i')
+                : null;
+            $terlambat = $jam_kerja?->Shift?->jam_masuk
+                // dd($terlambat);
+                ? \Carbon\Carbon::parse($jam_kerja->Shift->jam_masuk)
+                ->addHours(3)
+                ->addMinutes(6)
+                ->format('H:i')
+                : null;
         }
-    }
-
-    public function izinAbsen(Request $request)
-    {
-        // dd($request->all());
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        $jam_kerja = MappingShift::with('Shift')->where('user_id', $user_karyawan->id)->where('tanggal_masuk', date('Y-m-d'))->first();
-        if ($jam_kerja == '' || $jam_kerja == NULL) {
-            $request->session()->flash('mapping_kosong');
-            return redirect('/izin/dashboard');
-        } else {
-            if ($request->id_user_atasan == NULL || $request->id_user_atasan == '') {
-                $request->session()->flash('atasankosong');
-                return redirect('/izin/dashboard');
-            } else {
-                // No form
-
-                if ($request->izin == 'Datang Terlambat') {
-                    // dd('ok');
-                    if ($jam_kerja->jam_pulang != '') {
-                        $request->session()->flash('absen_pulang_terisi');
-                        return redirect('/izin/dashboard');
-                    } else {
-                        $jam_terlambat = $request->terlambat;
-                        $jam_masuk_kerja = $request->jam_masuk;
-                        $jam_pulang_cepat = NULL;
-                        $img_name = NULL;
-                        $jam_keluar = NULL;
-                        $jam_kembali = NULL;
-                        $id_backup = NULL;
-                        $name_backup = NULL;
-                        $catatan_backup = NULL;
-                        $tanggal = $request->tanggal;
-                        $tanggal_selesai = NULL;
-                        $no_form = NULL;
-                    }
-                } else if ($request->izin == 'Pulang Cepat') {
-                    // $req_plg_cpt = new DateTime(date('Y-m-d') . $request->jam_pulang_cepat);
-                    // $req_jm_klr = new DateTime(date('Y-m-d') . $jam_kerja->Shift->jam_keluar);
-                    // $jam_plg_cpt = $req_plg_cpt->diff($req_jm_klr);
-                    // if ($jam_plg_cpt->h == 3 && $jam_plg_cpt->i > 0) {
-                    // }
-                    if ($jam_kerja->jam_absen == '' && $jam_kerja->jam_pulang == '') {
-                        $request->session()->flash('absen_masuk_kosong');
-                        return redirect('/izin/dashboard');
-                    } else if ($jam_kerja->jam_pulang != '') {
-                        $request->session()->flash('absen_pulang_terisi');
-                        return redirect('/izin/dashboard');
-                    } else {
-                        // dd($request->all());
-                        $id_backup = NULL;
-                        $name_backup = NULL;
-                        $jam_pulang_cepat = $request->jam_pulang_cepat;
-                        $jam_terlambat = NULL;
-                        $jam_masuk_kerja = NULL;
-                        $img_name = NULL;
-                        $jam_keluar = NULL;
-                        $jam_kembali = NULL;
-                        $catatan_backup = NULL;
-                        $tanggal = date('Y-m-d');
-                        $tanggal_selesai = NULL;
-                        $no_form = NULL;
-                    }
-                } else if ($request->izin == 'Keluar Kantor') {
-                    if ($jam_kerja->jam_pulang != '') {
-                        $request->session()->flash('absen_pulang_terisi');
-                        return redirect('/izin/dashboard');
-                    } else {
-                        $jam_keluar = $request->jam_keluar;
-                        $jam_kembali = $request->jam_kembali;
-                        $jam_pulang_cepat = NULL;
-                        $jam_terlambat = NULL;
-                        $jam_masuk_kerja = NULL;
-                        $img_name = NULL;
-                        $id_backup = NULL;
-                        $name_backup = NULL;
-                        $catatan_backup = NULL;
-                        $tanggal = date('Y-m-d');
-                        $tanggal_selesai = date('Y-m-d');
-                    }
-                    $cek_duplicate = Izin::whereBetween('tanggal', [$tanggal, $tanggal_selesai])->where('user_id', $request->id_user)->where('izin', $request->izin)->count();
-                    // dd($cek_duplicate);
-                    if ($cek_duplicate > 0) {
-                        $request->session()->flash('dataizin_duplicate');
-                        return redirect('/izin/dashboard');
-                    }
-                } else if ($request->izin == 'Tidak Masuk (Mendadak)') {
-                    $jumlah_hari = explode(' ', $request->tanggal);
-                    $startDate = trim($jumlah_hari[0]);
-                    $endDate = trim($jumlah_hari[2]);
-                    $date1          = new DateTime($startDate);
-                    $date2          = new DateTime($endDate);
-                    $interval       = $date1->diff($date2);
-                    $data_interval  = $interval->days;
-                    $tanggal = date('Y-m-d', strtotime($startDate));
-                    $tanggal_selesai = date('Y-m-d', strtotime($endDate));
-                    // dd($data_interval);
-                    $cek_duplicate = Izin::whereBetween('tanggal', [$tanggal, $tanggal_selesai])->where('user_id', $request->id_user)->where('izin', $request->izin)->count();
-                    // dd($cek_duplicate);
-                    if ($cek_duplicate > 0) {
-                        $request->session()->flash('dataizin_duplicate');
-                        return redirect('/izin/dashboard');
-                    }
-                    $jam_keluar = $request->jam_keluar;
-                    $jam_kembali = $request->jam_kembali;
-                    $jam_pulang_cepat = NULL;
-                    $jam_terlambat = NULL;
-                    $jam_masuk_kerja = NULL;
-                    $img_name = NULL;
-                    $id_backup = $request->user_backup;
-                    $name_backup = Karyawan::where('id', $request->user_backup)->value('name');
-                    $catatan_backup = $request->catatan_backup;
-                    $no_form = NULL;
-                } else if ($request->izin == 'Sakit') {
-                    if ($request['file_sakit']) {
-                        // dd($request->all());
-                        // dd('ok');
-                        $extension     = $request->file('file_sakit')->extension();
-                        // dd($extension);
-                        $img_name         = date('y-m-d') . '-' . Uuid::uuid4() . '.' . $extension;
-                        $path           = Storage::putFileAs('foto_izin/', $request->file('file_sakit'), $img_name);
-                    } else {
-                        // dd($request->all());
-                        $img_name = 'TIDAK ADA';
-                    }
-                    $jumlah_hari = explode(' ', $request->tanggal);
-                    $startDate = trim($jumlah_hari[0]);
-                    $endDate = trim($jumlah_hari[2]);
-                    $date1          = new DateTime($startDate);
-                    $date2          = new DateTime($endDate);
-                    $interval       = $date1->diff($date2);
-                    $data_interval  = $interval->days;
-                    $tanggal = date('Y-m-d', strtotime($startDate));
-                    $tanggal_selesai = date('Y-m-d', strtotime($endDate));
-                    // $jam_pulang_cepat = $request->pulang_cepat;
-                    $cek_duplicate = Izin::whereBetween('tanggal', [$request->tanggal, $tanggal_selesai])->where('user_id', $request->id_user)->where('izin', $request->izin)->count();
-                    // dd($cek_duplicate);
-                    if ($cek_duplicate > 0) {
-                        $request->session()->flash('dataizin_duplicate');
-                        return redirect('/izin/dashboard');
-                    }
-                    $jam_terlambat = NULL;
-                    $jam_masuk_kerja = NULL;
-                    $jam_pulang_cepat = NULL;
-                    $jam_keluar = NULL;
-                    $jam_kembali = NULL;
-                    $no_form = NULL;
-                    $id_backup = NULL;
-                    $name_backup = NULL;
-                    $catatan_backup = NULL;
-                } else {
-                    $id_backup = NULL;
-                    $catatan_backup = NULL;
-                    $name_backup = NULL;
-                    $jam_keluar = NULL;
-                    $jam_kembali = NULL;
-                    $jam_masuk_kerja = NULL;
-                    $jam_terlambat = NULL;
-                    $jam_pulang_cepat = NULL;
-                    $img_name = NULL;
-                    $tanggal = $request->tanggal;
-                    $tanggal_selesai = NULL;
-                }
-                $data                   = new Izin();
-                $data->user_id          = $request->id_user;
-                $data->departements_id  = Departemen::where('id', $request["departements"])->value('id');
-                $data->jabatan_id       = Jabatan::where('id', $request["jabatan"])->value('id');
-                $data->divisi_id        = Divisi::where('id', $request["divisi"])->value('id');
-                $data->telp             = $request->telp;
-                $data->terlambat        = $jam_terlambat;
-                $data->jam_masuk_kerja  = $jam_masuk_kerja;
-                $data->pulang_cepat     = $jam_pulang_cepat;
-                $data->email            = $request->email;
-                $data->fullname         = $request->fullname;
-                $data->izin             = $request->izin;
-                $data->user_id_backup   = $id_backup;
-                $data->user_name_backup = $name_backup;
-                $data->catatan_backup = $catatan_backup;
-                $data->foto_izin        = $img_name;
-                $data->jam_keluar        = $jam_keluar;
-                $data->jam_kembali        = $jam_kembali;
-                $data->tanggal          = $tanggal;
-                $data->tanggal_selesai   = $tanggal_selesai;
-                $data->jam              = $request->jam;
-                $data->keterangan_izin  = $request->keterangan_izin;
-                $data->approve_atasan   = $request->approve_atasan;
-                $data->id_approve_atasan = $request->id_user_atasan;
-                $data->status_izin      = 0;
-                $data->no_form_izin      = $no_form;
-                $data->ttd_atasan      = NULL;
-                $data->waktu_approve      = NULL;
-                $data->save();
-
-                $request->session()->flash('izinsuccess');
-                return redirect('/izin/dashboard');
-            }
-        }
-    }
-
-    public function izinApprove($id)
-    {
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        $user   = Karyawan::Join('jabatans', 'jabatans.id', '=', 'karyawans.jabatan_id')
-            ->join('departemens', 'departemens.id', '=', 'karyawans.dept_id')
-            ->join('divisis', 'divisis.id', '=', 'karyawans.divisi_id')
-            ->where('karyawans.id', $user_karyawan->id)->first();
-        $data   = Izin::where('id', $id)->first();
-        $jam_kerja = MappingShift::with('Shift')->where('user_id', $data->user_id)->where('tanggal_masuk', date('Y-m-d'))->first();
-        return view('users.izin.approveizin', [
-            'user'  => $user,
-            'user_karyawan'  => $user_karyawan,
-            'jam_kerja'  => $jam_kerja,
-            'data'  => $data
+        return view('users.izin.terlambat', [
+            'user_karyawan' => $user_karyawan,
+            'all_menu_main' => $all_menu_main,
+            'all_menus' => $all_menus,
+            'all_menu_bar' => $all_menu_bar,
+            'id' => $id,
+            'jam_min_plg_cpt' => $jam_min_plg_cpt,
+            'terlambat' => $terlambat,
+            'menu_id' => $id,
+            'min_masuk' => $min_masuk,
         ]);
     }
+    public function get_jam_terlambat($tanggal)
+    {
+        // dd($tanggal);
+        try {
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            if ($user_karyawan->shift == 'NON SHIFT') {
+                $shift = Shift::where('nama_shift', 'NON SHIFT')->first();
+                $data_izin = \Carbon\Carbon::parse($shift->jam_terlambat)
+                    ->addHours(3)
+                    ->addMinutes(1)
+                    ->format('H:i');
+                $jam_min_masuk = \Carbon\Carbon::parse($shift->jam_min_masuk)
+                    ->format('H:i');
+                // dd($data_izin);
+            } else {
+                // $shift = Shift
+                $mapping_shift = MappingShift::where('karyawan_id', $user_karyawan->id)
+                    ->where('tanggal_masuk', $tanggal)
+                    ->whereNotNull('is_active')
+                    ->first();
+                // dd($mapping_shift);
+                $shift = Shift::where('id', $mapping_shift->shift_id)->first();
+                if (!empty($shift->jam_terlambat)) {
+                    $data_izin = \Carbon\Carbon::parse($shift->jam_terlambat)
+                        ->addHours(3)
+                        ->addMinutes(1)
+                        ->format('H:i');
+                    $jam_min_masuk = \Carbon\Carbon::parse($shift->jam_min_masuk)
+                        ->format('H:i');
+                }
+            }
+            // dd($data_izin);
+            return response()->json([
+                'code' => 200,
+                'data' => [
+                    'jam_masuk' => $data_izin ?? null,
+                    'jam_min_masuk' => $jam_min_masuk ?? null,
+                ]
 
-    public function izinApproveProses(Request $request)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function proses_pengajuan_terlambat(Request $request, $id)
     {
         // dd($request->all());
+        try {
+            $rules = [
+                'id_karyawan' => 'required',
+                'jam_masuk' => 'required',
+                'jam_terlambat' => 'required',
+                'tanggal_terlambat' => 'required',
+                'keterangan_terlambat' => 'required',
+                'atasan_1' => 'required',
+                'atasan_2' => 'required',
+                'signature' => 'required',
 
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        if ($request->izin == 'Sakit') {
-            if ($request->signature != null) {
-                $folderPath     = public_path('signature/izin/');
-                $image_parts    = explode(";base64,", $request->signature);
-                $image_type_aux = explode("image/", $image_parts[0]);
-                $image_type     = $image_type_aux[1];
-                $image_base64   = base64_decode($image_parts[1]);
-                $uniqid         = date('y-m-d') . '-' . uniqid();
-                $file           = $folderPath . $uniqid . '.' . $image_type;
-                file_put_contents($file, $image_base64);
-                // dd($request->all());
-                $date1          = new DateTime($request->tanggal);
-                $date2          = new DateTime($request->tanggal_selesai);
-                $interval       = $date1->diff($date2);
-                $data_interval  = $interval->days;
-                $plus_1 = $data_interval + 1;
-                $potong_cuti1hari = ($plus_1);
-                $potong_cuti2hari = ($plus_1 * 2);
-                $get_kuota_cuti = Karyawan::where('id', $request->id_user)->first();
-                if ($request->foto_izin == NULL) {
-                    if ($get_kuota_cuti->kuota_cuti_tahunan > $potong_cuti2hari) {
-                        if ($request->approve == 'not_approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = 'NOT APPROVE';
-                            $data->catatan      = $request->catatan;
-                            $data->ttd_atasan   = $uniqid;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT NOT APPROVED, POTONG SALDO CUTI 2';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'FALSE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_not_approve');
-                            return response()->json($alert);
-                        } else if ($request->approve == 'approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = $request->status_izin;
-                            $data->ttd_atasan   = $uniqid;
-                            $data->catatan      = $request->catatan;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $user_pengajuan = Karyawan::where('id', $request->id_user)->first();
-                            $user_pengajuan->kuota_cuti_tahunan = ($get_kuota_cuti->kuota_cuti_tahunan - $potong_cuti2hari);
-                            $user_pengajuan->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT APPROVED, POTONG SALDO CUTI 2';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'TRUE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_success');
-                            return response()->json($alert);
-                        }
-                    } else {
-                        if ($request->approve == 'not_approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = 'NOT APPROVE';
-                            $data->ttd_atasan   = $uniqid;
-                            $data->catatan      = $request->catatan;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT NOT APPROVED, POTONG GAJI KETERANGAN TANPA SKD';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'FALSE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_not_approve');
-                            return response()->json($alert);
-                        } else if ($request->approve == 'approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = $request->status_izin;
-                            $data->catatan      = $request->catatan;
-                            $data->ttd_atasan   = $uniqid;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT APPROVED, POTONG GAJI KETERANGAN TANPA SKD';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'TRUE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_success');
-                            return response()->json($alert);
-                        }
-                    }
-                } else {
-                    if ($get_kuota_cuti->kuota_cuti_tahunan > $potong_cuti1hari) {
-                        if ($request->approve == 'not_approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = 'NOT APPROVE';
-                            $data->catatan      = $request->catatan;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT NOT APPROVED, POTONG SALDO CUTI 1';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'FALSE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-
-                            $alert = $request->session()->flash('approveizin_not_approve');
-                            return response()->json($alert);
-                        } else if ($request->approve == 'approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = $request->status_izin;
-                            $data->ttd_atasan   = $uniqid;
-                            $data->catatan      = $request->catatan;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $user_pengajuan = Karyawan::where('id', $request->id_user)->first();
-                            $user_pengajuan->kuota_cuti = ($get_kuota_cuti->kuota_cuti - $potong_cuti1hari);
-                            $user_pengajuan->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT APPROVED, POTONG SALDO CUTI 1';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'TRUE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_success');
-                            return response()->json($alert);
-                        }
-                    } else {
-                        if ($request->approve == 'not_approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = 'NOT APPROVE';
-                            $data->catatan      = $request->catatan;
-                            $data->ttd_atasan   = $uniqid;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT NOT APPROVED';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'FALSE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_not_approve');
-                            return response()->json($alert);
-                        } else if ($request->approve == 'approve') {
-                            $data = Izin::where('id', $request->id)->first();
-                            $data->status_izin  = $request->status_izin;
-                            $data->catatan      = $request->catatan;
-                            $data->ttd_atasan   = $uniqid;
-                            $data->waktu_approve = date('Y-m-d H:i:s');
-                            $data->update();
-
-                            $begin = new \DateTime($data->tanggal);
-                            $end = new \DateTime($data->tanggal_selesai);
-                            $end = $end->modify('+1 day');
-
-                            $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                            $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                            foreach ($daterange as $date) {
-                                $tanggal = $date->format("Y-m-d");
-                                $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                                $update_mapping->keterangan_absensi = 'IZIN SAKIT';
-                                $update_mapping->keterangan_absensi_pulang = 'IZIN SAKIT';
-                                $update_mapping->kelengkapan_absensi = 'IZIN SAKIT APPROVED';
-                                $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                                $update_mapping->keterangan_izin = 'TRUE';
-                                $update_mapping->izin_id = $request->id;
-                                $update_mapping->update();
-                            }
-                            $alert = $request->session()->flash('approveizin_success');
-                            return response()->json($alert);
-                        }
-                        // dd('ok1');
-                    }
-                }
-            } else {
-                Alert::info('info', 'Tanda Tangan Harus Terisi');
-                return redirect()->back()->with('info', 'Tanda Tangan Harus Terisi');
+            ];
+            $messages = [
+                'id_karyawan.required' => 'Karyawan wajib diisi',
+                'jam_masuk.required' => 'Jam masuk wajib diisi',
+                'jam_terlambat.required' => 'Jam Terlambat wajib diisi',
+                'tanggal_terlambat.required' => 'Tanggal Terlambat wajib diisi',
+                'signature.required' => 'Tanda Tangan wajib diisi',
+                'keterangan_terlambat.required' => 'Alasan terlambat wajib diisi',
+            ];
+            $validator = Validator::make($request->all(), $rules, $messages);
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 400,
+                    'errors' => $validator->errors(),
+                ]);
             }
-        } else if ($request->izin == 'Tidak Masuk (Mendadak)') {
-            if ($request->signature != null) {
-                $folderPath     = public_path('signature/izin/');
-                $image_parts    = explode(";base64,", $request->signature);
-                $image_type_aux = explode("image/", $image_parts[0]);
-                $image_type     = $image_type_aux[1];
-                $image_base64   = base64_decode($image_parts[1]);
-                $uniqid         = date('y-m-d') . '-' . uniqid();
-                $file           = $folderPath . $uniqid . '.' . $image_type;
-                file_put_contents($file, $image_base64);
-                $date1          = new DateTime($request->tanggal);
-                $date2          = new DateTime($request->tanggal_selesai);
-                $interval       = $date1->diff($date2);
-                $data_interval  = $interval->days;
-                $plus_1 = $data_interval + 1;
-                $potong_cuti1hari = ($plus_1);
-                $potong_cuti2hari = ($plus_1 * 2);
-                $get_kuota_cuti = Karyawan::where('id', $request->id_user)->first();
-                if ($get_kuota_cuti->kuota_cuti_tahunan > $plus_1) {
-                    if ($request->approve == 'not_approve') {
-                        $data = Izin::where('id', $request->id)->first();
-                        $data->status_izin  = 'NOT APPROVE';
-                        $data->ttd_atasan   = $uniqid;
-                        $data->catatan      = $request->catatan;
-                        $data->waktu_approve = date('Y-m-d H:i:s');
-                        $data->update();
-
-                        $user_pengajuan = Karyawan::where('id', $request->id_user)->first();
-                        $user_pengajuan->kuota_cuti_tahunan = ($get_kuota_cuti->kuota_cuti_tahunan - $potong_cuti2hari);
-                        $user_pengajuan->update();
-
-                        $begin = new \DateTime($data->tanggal);
-                        $end = new \DateTime($data->tanggal_selesai);
-                        $end = $end->modify('+1 day');
-
-                        $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                        $daterange = new \DatePeriod($begin, $interval, $end);
+            $terlambat = \Carbon\Carbon::parse(
+                $request->tanggal_terlambat . ' ' . $request->jam_terlambat
+            );
+            $jam_min_masuk = \Carbon\Carbon::parse(
+                $request->tanggal_terlambat . ' ' . $request->jam_min_masuk
+            );
 
 
-                        foreach ($daterange as $date) {
-                            $tanggal = $date->format("Y-m-d");
-                            $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                            $update_mapping->keterangan_absensi = 'IZIN TIDAK MASUK';
-                            $update_mapping->keterangan_absensi_pulang = 'IZIN TIDAK MASUK';
-                            $update_mapping->kelengkapan_absensi = 'IZIN TIDAK MASUK NOT APPROVED, POTONG SALDO CUTI 2';
-                            $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                            $update_mapping->keterangan_izin = 'FALSE';
-                            $update_mapping->izin_id = $request->id;
-                            $update_mapping->update();
-                        }
-                        $alert = $request->session()->flash('approveizin_not_approve');
-                        return response()->json($alert);
-                    } else if ($request->approve == 'approve') {
-                        $data = Izin::where('id', $request->id)->first();
-                        $data->status_izin  = $request->status_izin;
-                        $data->ttd_atasan   = $uniqid;
-                        $data->catatan      = $request->catatan;
-                        $data->waktu_approve = date('Y-m-d H:i:s');
-                        $data->update();
+            // dd($jam_masuk, $jam_min_masuk);
+            // dd($request->jam_masuk, $request->jam_min_masuk);
+            if ($request->jam_masuk < $request->jam_min_masuk) {
 
-                        $user_pengajuan = Karyawan::where('id', $request->id_user)->first();
-                        $user_pengajuan->kuota_cuti_tahunan = ($get_kuota_cuti->kuota_cuti_tahunan - $potong_cuti1hari);
-                        $user_pengajuan->update();
-
-                        $begin = new \DateTime($data->tanggal);
-                        $end = new \DateTime($data->tanggal_selesai);
-                        $end = $end->modify('+1 day');
-
-                        $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                        $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                        foreach ($daterange as $date) {
-                            $tanggal = $date->format("Y-m-d");
-                            $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                            $update_mapping->keterangan_absensi = 'IZIN TIDAK MASUK';
-                            $update_mapping->keterangan_absensi_pulang = 'IZIN TIDAK MASUK';
-                            $update_mapping->kelengkapan_absensi = 'IZIN TIDAK MASUK APPROVED, POTONG SALDO CUTI 1';
-                            $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                            $update_mapping->keterangan_izin = 'TRUE';
-                            $update_mapping->izin_id = $request->id;
-                            $update_mapping->update();
-                        }
-                        $alert = $request->session()->flash('approveizin_success');
-                        return response()->json($alert);
-                    }
-                } else {
-                    if ($request->approve == 'not_approve') {
-                        $data = Izin::where('id', $request->id)->first();
-                        $data->status_izin  = 'NOT APPROVE';
-                        $data->ttd_atasan   = $uniqid;
-                        $data->catatan      = $request->catatan;
-                        $data->waktu_approve = date('Y-m-d H:i:s');
-                        $data->update();
-
-                        $user_pengajuan = Karyawan::where('id', $request->id_user)->first();
-                        $user_pengajuan->kuota_cuti_tahunan = ($get_kuota_cuti->kuota_cuti_tahunan - $potong_cuti2hari);
-                        $user_pengajuan->update();
-                        $update_izin = Izin::where('id', $request->id)->where('user_id', $request->id_user)->where('izin', 'Tidak Masuk (Mendadak)')->where('status_izin', '1')->get();
-                        // dd($update_izin);
-                        $begin = new \DateTime($data->tanggal);
-                        $end = new \DateTime($data->tanggal_selesai);
-                        $end = $end->modify('+1 day');
-
-                        $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                        $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                        foreach ($daterange as $date) {
-                            $tanggal = $date->format("Y-m-d");
-                            $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                            $update_mapping->keterangan_absensi = 'IZIN TIDAK MASUK';
-                            $update_mapping->keterangan_absensi_pulang = 'IZIN TIDAK MASUK';
-                            $update_mapping->kelengkapan_absensi = 'IZIN TIDAK MASUK APPROVED, POTONG GAJI KUOTA CUTI TIDAK CUKUP';
-                            $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                            $update_mapping->keterangan_izin = 'FALSE';
-                            $update_mapping->izin_id = $request->id;
-                            $update_mapping->update();
-                        }
-                        $alert = $request->session()->flash('approveizin_not_approve');
-                        return response()->json($alert);
-                    } else if ($request->approve == 'approve') {
-                        $data = Izin::where('id', $request->id)->first();
-                        $data->status_izin  = $request->status_izin;
-                        $data->ttd_atasan   = $uniqid;
-                        $data->catatan      = $request->catatan;
-                        $data->waktu_approve = date('Y-m-d H:i:s');
-                        $data->update();
-
-                        $begin = new \DateTime($data->tanggal);
-                        $end = new \DateTime($data->tanggal_selesai);
-                        $end = $end->modify('+1 day');
-
-                        $interval = new \DateInterval('P1D'); //referensi : https://en.wikipedia.org/wiki/ISO_8601#Durations
-                        $daterange = new \DatePeriod($begin, $interval, $end);
-
-
-                        foreach ($daterange as $date) {
-                            $tanggal = $date->format("Y-m-d");
-                            $update_mapping = MappingShift::where('user_id', $request->id_user)->whereDate('tanggal_masuk', $tanggal)->first();
-                            $update_mapping->keterangan_absensi = 'IZIN TIDAK MASUK';
-                            $update_mapping->keterangan_absensi_pulang = 'IZIN TIDAK MASUK';
-                            $update_mapping->kelengkapan_absensi = 'IZIN TIDAK MASUK APPROVED, POTONG GAJI KUOTA CUTI TIDAK CUKUP';
-                            $update_mapping->status_absen = 'TIDAK HADIR KERJA';
-                            $update_mapping->keterangan_izin = 'TRUE';
-                            $update_mapping->izin_id = $request->id;
-                            $update_mapping->update();
-                        }
-                        $alert = $request->session()->flash('approveizin_success');
-                        return response()->json($alert);
-                    }
-                    // dd('ok1');
-                }
+                $jam_masuk = \Carbon\Carbon::parse(
+                    $request->tanggal_terlambat . ' ' . $request->jam_masuk
+                )->addDay();
+                // dd($jam_masuk);
             } else {
-                Alert::info('info', 'Tanda Tangan Harus Terisi');
-                return redirect()->back()->with('info', 'Tanda Tangan Harus Terisi');
+                $jam_masuk = \Carbon\Carbon::parse(
+                    $request->tanggal_terlambat . ' ' . $request->jam_masuk
+                );
             }
-        } else if ($request->izin == 'Pulang Cepat') {
-            if ($request->signature != null) {
-                $folderPath     = public_path('signature/izin/');
-                $image_parts    = explode(";base64,", $request->signature);
-                $image_type_aux = explode("image/", $image_parts[0]);
-                $image_type     = $image_type_aux[1];
-                $image_base64   = base64_decode($image_parts[1]);
-                $uniqid         = date('y-m-d') . '-' . uniqid();
-                $file           = $folderPath . $uniqid . '.' . $image_type;
-                file_put_contents($file, $image_base64);
-                // dd('ok');
-                if ($request->approve == 'not_approve') {
-                    $data = Izin::where('id', $request->id)->first();
-                    $data->status_izin  = 'NOT APPROVE';
-                    $data->ttd_atasan   = $uniqid;
-                    $data->catatan      = $request->catatan;
-                    $data->waktu_approve = date('Y-m-d H:i:s');
-                    $data->update();
-
-                    $update_mapping                             = MappingShift::where('tanggal_masuk', $request->tanggal)->where('user_id', $request->id_user)->first();
-                    $update_mapping->keterangan_izin            = 'FALSE';
-                    $update_mapping->izin_id                    = $data->id;
-                    $update_mapping->update();
-                    $alert = $request->session()->flash('approveizin_not_approve');
-                    return response()->json($alert);
-                } else if ($request->approve == 'approve') {
-                    // dd($request->tanggal);
-                    // dd($mapping);
-                    $data = Izin::where('id', $request->id)->first();
-                    $data->status_izin  = $request->status_izin;
-                    $data->catatan      = $request->catatan;
-                    $data->ttd_atasan   = $uniqid;
-                    $data->waktu_approve = date('Y-m-d H:i:s');
-                    $data->update();
-
-                    $update_mapping                             = MappingShift::where('tanggal_masuk', $request->tanggal)->where('user_id', $request->id_user)->first();
-                    $update_mapping->keterangan_izin            = 'TRUE';
-                    $update_mapping->izin_id                    = $data->id;
-                    $update_mapping->update();
-
-                    $alert = $request->session()->flash('approveizin_success');
-                    return response()->json($alert);
-                }
+            if ($request->jam_terlambat < $request->jam_min_masuk) {
+                $jam_terlambat = \Carbon\Carbon::parse($terlambat)
+                    ->addDay();
             } else {
-                Alert::info('info', 'Tanda Tangan Harus Terisi');
-                return redirect()->back()->with('info', 'Tanda Tangan Harus Terisi');
+                $jam_terlambat = \Carbon\Carbon::parse($terlambat);
             }
-        } else if ($request->izin == 'Datang Terlambat') {
-            if ($request->signature != null) {
-                $folderPath     = public_path('signature/izin/');
-                $image_parts    = explode(";base64,", $request->signature);
-                $image_type_aux = explode("image/", $image_parts[0]);
-                $image_type     = $image_type_aux[1];
-                $image_base64   = base64_decode($image_parts[1]);
-                $uniqid         = date('y-m-d') . '-' . uniqid();
-                $file           = $folderPath . $uniqid . '.' . $image_type;
-                file_put_contents($file, $image_base64);
-                // dd('ok');
-                if ($request->approve == 'not_approve') {
-                    $data = Izin::where('id', $request->id)->first();
-                    $data->status_izin  = 'NOT APPROVE';
-                    $data->ttd_atasan      = $uniqid;
-                    $data->catatan      = $request->catatan;
-                    $data->waktu_approve = date('Y-m-d H:i:s');
-                    $data->update();
+            // dd($jam_terlambat, $jam_masuk);
+            if ($jam_terlambat->lessThan($jam_masuk)) {
+                $kode = Uuid::uuid4();
+                $image = $request->signature;
+                $image = str_replace('data:image/png;base64,', '', $image);
+                $image = str_replace(' ', '+', $image);
 
-                    $update_mapping                             = MappingShift::where('user_id', $data->user_id)->where('tanggal_masuk', $data->tanggal)->first();
-                    $update_mapping->keterangan_izin            = 'FALSE';
-                    $update_mapping->izin_id                    = $data->id;
-                    $update_mapping->update();
-                    $alert = $request->session()->flash('approveizin_not_approve');
-                    return response()->json($alert);
-                } else if ($request->approve == 'approve') {
-                    $data = Izin::where('id', $request->id)->first();
-                    $data->status_izin  = $request->status_izin;
-                    $data->ttd_atasan      = $uniqid;
-                    $data->catatan      = $request->catatan;
-                    $data->waktu_approve = date('Y-m-d H:i:s');
-                    $data->update();
+                // nama file
+                $fileName = 'signature_' . time() . '.png';
+                // dd($fileName);
+                // simpan ke storage
+                Storage::disk('public')->put(
+                    'signatures/' . $fileName,
+                    base64_decode($image)
+                );
 
-                    $update_mapping                             = MappingShift::where('user_id', $request->id_user)->where('tanggal_masuk', $request->tanggal)->first();
-                    $update_mapping->keterangan_izin            = 'TRUE';
-                    $update_mapping->izin_id                    = $data->id;
-                    $update_mapping->update();
-                    // dd($mapping);
-                    $alert = $request->session()->flash('approveizin_success');
-                    return response()->json($alert);
+                $pengaju = Karyawan::where('id', $request->id_karyawan)->first();
+                $atasan1 = Karyawan::where('id', $request->atasan_1)->first();
+                $atasan2 = Karyawan::where('id', $request->atasan_2)->first();
+
+
+
+                $add_izin = new IzinTerlambat();
+                $add_izin->id = $kode;
+                $add_izin->karyawan_id = $request->id_karyawan;
+                $add_izin->karyawan_nik = $pengaju->nomor_identitas_karyawan;
+                $add_izin->nama_karyawan = $request->name;
+                $add_izin->ttd_user = $fileName;
+
+                $add_izin->tanggal_terlambat = $request->tanggal_terlambat;
+                $add_izin->jam_terlambat = $jam_terlambat;
+                $add_izin->jam_min_masuk = $jam_min_masuk;
+                $add_izin->jam_masuk = $jam_masuk;
+
+                $add_izin->keterangan_terlambat = $request->keterangan_terlambat;
+                $add_izin->status_terlambat = 0;
+
+                $add_izin->id_user_atasan = $request->atasan_1;
+                $add_izin->nama_atasan = $atasan1->name;
+
+                $add_izin->id_user_atasan2 = $request->atasan_2;
+                $add_izin->nama_atasan2 = $atasan2->name;
+
+                $add_izin->created_at = date('Y-m-d H:i:s');
+                $add_izin->save();
+
+                // SAVE QUICK PANEL
+                $quick = new QuickPanel();
+                $quick->id_quick = Uuid::uuid4();
+                $quick->user_id_from = $request->id_karyawan;
+                $quick->user_id_to = $request->atasan_1;
+                $quick->title_quick = 'Pengajuan Izin Terlambat';
+                $quick->message_quick = 'Ada Pengajuan Izin Terlambat Baru Dari ' . $request->name;
+                $quick->status = 0;
+                $quick->quick_type = 'izin_terlambat';
+                $quick->menu_id = Auth::user()->menu_active;
+                $quick->content_id = $add_izin->id;
+                $quick->created_at = date('Y-m-d H:i:s');
+                $quick->updated_at = date('Y-m-d H:i:s');
+                $quick->save();
+                // dd($quick->save());
+
+                $holdings = Holding::where('id', $pengaju->kontrak_kerja)->first();
+                $nama_menu = Menu::where('id', $id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $kode,
+                    'holding_id' => $holdings->id ?? '-',
+                    'holding_category' => $holdings->holding_category ?? '-',
+                    'table' => 'izin_terlambat',
+                    'activity' => 'add',
+                    'description' => 'Mengajukan izin keterlambatan pukul ' . $request->jam_terlambat,
+                    'keterangan' => 'Success',
+                    'karir' => '2'
+                ]);
+                $email_atasan = $atasan1?->email_kantor ?: $atasan1?->email;
+                // dd($email_atasan);
+                $email              = $email_atasan;
+                $nama_penerim       = $atasan1->name;
+                $nama               = $request->name;
+                $tanggal      = Carbon::parse($add_izin->tanggal_terlambat)->format('d-m-Y');
+                $judul              = 'Pengajuan Izin Terlambat';
+                $perihal            = 'Melalui email ini, kami menginformasikan bahwa ada pengajuan izin terlambat dari :';
+
+                $waktu              = 'Pada Tanggal ' . $tanggal . '';
+
+                $penutup            = 'Pengajuan ini dapat disetujui atau ditolak melalui button di bawah ini';
+                $link               = url('/izin/approve_terlambat_detail/' . $kode);
+                Cache::put("Wawancara:$email", true, now()->addHours(2));
+                if ($email) {
+                    Mail::mailer('hrd')->to($email)->queue(new SemuaIzin(
+                        $judul,
+                        $nama_penerim,
+                        $perihal,
+                        $nama,
+                        $waktu,
+                        $penutup,
+                        $link,
+                    ));
                 }
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Pengajuan izin berhasil disimpan.',
+                ]);
             } else {
-                Alert::info('info', 'Tanda Tangan Harus Terisi');
-                return redirect()->back()->with('info', 'Tanda Tangan Harus Terisi');
+                return response()->json([
+                    'code' => 510,
+                    'message' => 'Jam izin melebihi batas keterlambatan',
+                ]);
             }
-        } else if ($request->izin == 'Keluar Kantor') {
-            // dd($request->signature);
-            // dd('ok');
-            if ($request->signature != null) {
-                $folderPath     = public_path('signature/izin/');
-                $image_parts    = explode(";base64,", $request->signature);
-                $image_type_aux = explode("image/", $image_parts[0]);
-                $image_type     = $image_type_aux[1];
-                $image_base64   = base64_decode($image_parts[1]);
-                $uniqid         = date('y-m-d') . '-' . uniqid();
-                $file           = $folderPath . $uniqid . '.' . $image_type;
-                file_put_contents($file, $image_base64);
-                // dd('ok');
-                if ($request->approve == 'not_approve') {
-                    $data = Izin::where('id', $request->id)->first();
-                    $data->status_izin  = 'NOT APPROVE';
-                    $data->ttd_atasan  = $uniqid;
-                    $data->catatan      = $request->catatan;
-                    $data->waktu_approve = date('Y-m-d H:i:s');
-                    $data->update();
-
-                    $update_mapping                             = MappingShift::where('tanggal_masuk', $request->tanggal)->where('user_id', $request->id_user)->first();
-                    $update_mapping->keterangan_izin            = 'FALSE';
-                    $update_mapping->izin_id                    = $data->id;
-                    $update_mapping->update();
-                    $alert = $request->session()->flash('approveizin_not_approve');
-                    return response()->json($alert);
-                } else if ($request->approve == 'approve') {
-                    // dd($request->tanggal);
-                    // dd($mapping);
-                    $data = Izin::where('id', $request->id)->first();
-                    $data->status_izin  = $request->status_izin;
-                    $data->ttd_atasan  = $uniqid;
-                    $data->catatan      = $request->catatan;
-                    $data->waktu_approve = date('Y-m-d H:i:s');
-                    $data->update();
-
-                    $update_mapping                             = MappingShift::where('tanggal_masuk', $request->tanggal)->where('user_id', $request->id_user)->first();
-                    $update_mapping->keterangan_izin            = 'TRUE';
-                    $update_mapping->update();
-
-                    $alert = $request->session()->flash('approveizin_success');
-                    return response()->json($alert);
-                }
-            } else {
-                Alert::info('info', 'Tanda Tangan Harus Terisi');
-                return redirect()->back()->with('info', 'Tanda Tangan Harus Terisi');
-            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
     }
-    public function delete_izin(Request $request, $id)
+    public function get_terlambat(Request $request)
     {
-        // dd($id);
-        $query = Izin::where('id', $id)->delete();
-        $request->session()->flash('hapus_izin_sukses');
-        return redirect('izin/dashboard');
-    }
-    public function cetak_form_izin_user($id)
-    {
-        // dd($id);
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-        $jabatan = Jabatan::join('karyawans', function ($join) {
-            $join->on('jabatans.id', '=', 'karyawans.jabatan_id');
-            $join->orOn('jabatans.id', '=', 'karyawans.jabatan1_id');
-            $join->orOn('jabatans.id', '=', 'karyawans.jabatan2_id');
-            $join->orOn('jabatans.id', '=', 'karyawans.jabatan3_id');
-            $join->orOn('jabatans.id', '=', 'karyawans.jabatan4_id');
-        })->where('karyawans.id', $user_karyawan->id)->get();
-        $divisi = Divisi::join('karyawans', function ($join) {
-            $join->on('divisis.id', '=', 'karyawans.divisi_id');
-            $join->orOn('divisis.id', '=', 'karyawans.divisi1_id');
-            $join->orOn('divisis.id', '=', 'karyawans.divisi2_id');
-            $join->orOn('divisis.id', '=', 'karyawans.divisi3_id');
-            $join->orOn('divisis.id', '=', 'karyawans.divisi4_id');
-        })->where('karyawans.id', $user_karyawan->id)->get();
-        $izin = Izin::where('id', $id)->first();
-        $date1          = new DateTime($izin->tanggal);
-        $date2          = new DateTime($izin->tanggal_selesai);
-        $interval       = $date1->diff($date2);
-        $data_interval  = $interval->days;
-        // dd($data_interval);
-        $departemen = Departemen::where('id', $user_karyawan->dept_id)->first();
-        $user_backup = Karyawan::where('id', $izin->user_id_backup)->first();
-        // dd(Izin::with('User')->where('izins.id', $id)->where('izins.status_izin', '2')->first());
-        $jam_kerja = MappingShift::with('Shift')->where('user_id', $izin->user_id)->where('tanggal_masuk', date('Y-m-d'))->first();
-        $data = [
-            'data_izin' => Izin::with('User')->where('izins.id', $id)->where('izins.status_izin', '2')->first(),
-            'jabatan' => $jabatan,
-            'divisi' => $divisi,
-            'departemen' => $departemen,
-            'jam_kerja' => $jam_kerja,
-            'user_backup' => $user_backup,
-            'data_interval' => $data_interval,
-        ];
-        if ($izin->izin == 'Datang Terlambat') {
-            // dd($data);
-            $pdf = PDF::loadView('users/izin/form_izin_terlambat', $data)->setPaper('A5', 'landscape')->setOptions(['isRemoteEnabled' => true]);
-            return $pdf->download('FORM_KETERANGAN_DATANG_TERLAMBAT_' . $user_karyawan->name . '_' . date('Y-m-d H:i:s') . '.pdf');
-        } else if ($izin->izin == 'Tidak Masuk (Mendadak)') {
-            $pdf = PDF::loadView('users/izin/form_izin_tidak_masuk', $data);
-            return $pdf->download('FORM_PENGAJUAN_IZIN_TIDAK_MASUK_' . $user_karyawan->name . '_' . date('Y-m-d H:i:s') . '.pdf');
-        } else if ($izin->izin == 'Pulang Cepat') {
-            $pdf = PDF::loadView('users/izin/form_izin_pulang_cepat', $data)->setPaper('A5', 'landscape');
-            return $pdf->download('FORM_PENGAJUAN_IZIN_PULANG_CEPAT_' . $user_karyawan->name . '_' . date('Y-m-d H:i:s') . '.pdf');
-        } else if ($izin->izin == 'Keluar Kantor') {
-            $pdf = PDF::loadView('users/izin/form_izin_keluar', $data)->setPaper('A5', 'landscape');
-            return $pdf->download('FORM_PENGAJUAN_IZIN_KELUAR_KANTOR_' . $user_karyawan->name . '_' . date('Y-m-d H:i:s') . '.pdf');
+        // dd($request->all());
+        try {
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            // dd($user_karyawan);
+            $data_izin = IzinTerlambat::where('karyawan_id', $user_karyawan->id)
+                ->where('status_terlambat', 0)
+                ->get();
+            // dd($data_izin);
+            return response()->json([
+                'code' => 200,
+                'data' => $data_izin
+
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
     }
-    public function get_filter_month(Request $request)
+    public function detail_terlambat($id, $id_terlambat)
     {
-        $blnskrg = date('m');
-        $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
-
-        if ($request->filter_month == '') {
-            $data    = Izin::where('user_id', $user_karyawan->id)->whereMonth('tanggal', $blnskrg)->orderBy('created_at', 'DESC')->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
         } else {
-            $data    = Izin::where('user_id', $user_karyawan->id)->whereMonth('tanggal', $request->filter_month)->orderBy('created_at', 'DESC')->get();
+            $roleId = $get_role;
         }
-        // dd($data);
-        return response()->json($data);
+        if ($roleId == null) {
+            $all_menu_main = collect();
+            $all_menus = collect();
+            $all_menu_bar = collect();
+        } else {
+
+            $all_menu_main  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 1);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+            $all_menus  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 0);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+
+            $all_menu_bar  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 2);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+        }
+        $data = IzinTerlambat::where('id', $id_terlambat)->first();
+        $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+
+        return view('users.izin.terlambat_detail', [
+            'user_karyawan' => $user_karyawan,
+            'all_menu_main' => $all_menu_main,
+            'all_menus' => $all_menus,
+            'all_menu_bar' => $all_menu_bar,
+            'id' => $id_terlambat,
+            'data' => $data,
+            'menu_id' => $id,
+        ]);
+    }
+    public function proses_hapus_terlambat($id, Request $request)
+    {
+        // dd($request->all());
+        $query = IzinTerlambat::where('id', $request->id_terlambat_hapus)->first();
+        $id_terlambat = Karyawan::where('id', $query->karyawan_id)->first();
+        $holdings = Holding::where('id', $id_terlambat->kontrak_kerja)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => 'hapus terlambat',
+            'id_table' => $request->id_terlambat_hapus,
+            'holding_id' => $holdings->id ?? '-',
+            'holding_category' => $holdings->holding_category ?? '-',
+            'table' => 'izin_terlambat',
+            'activity' => 'add',
+            'description' => 'Menghapus pengajuan terlambat ' .  $query->jam_terlambat,
+            'keterangan' => 'Success',
+            'karir' => '2'
+        ]);
+        if ($query == null) {
+            $request->session()->flash('hapus_terlambat_gagal', 'Data terlambat Tidak Ditemukan');
+        } elseif ($query->status_terlambat != 0) {
+            $request->session()->flash('hapus_terlambat_gagal', 'keterlambatan sudah disetujui');
+        } else {
+            $path = 'signatures/' . $query->ttd_user;
+            // dd($path);
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+
+            QuickPanel::where('content_id', $request->id_terlambat_hapus)->delete();
+
+            $query->delete();
+            $request->session()->flash('hapus_terlambat_sukses', 'Form Keterlambatan Berhasil Dihapus');
+        }
+        return redirect('izin/terlambat/' . $id);
+    }
+    public function terlambat_approval($menu_id)
+    {
+        // dd($menu_id);
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $all_menu_main = collect();
+            $all_menus = collect();
+            $all_menu_bar = collect();
+        } else {
+
+            $all_menu_main  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 1);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+            $all_menus  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 0);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+
+            $all_menu_bar  = RoleMenu::with(['Menu' => function ($query) {
+                $query->where('kategori', 'mobile');
+            }])
+                ->whereHas('Menu', function ($query) {
+                    $query->where('kategori', 'mobile');
+                    $query->where('main', 2);
+                    $query->orderBy('sort_order', 'ASC');
+                })
+                ->whereIn('role_id', $get_role)
+                ->get();
+        }
+        // dd($all_menu_bar);
+        $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+
+        User::where('id', Auth::user()->id)->update(['menu_active' => $menu_id]);
+        return view('users.izin.terlambat_approval', [
+            'user_karyawan' => $user_karyawan,
+            'all_menu_main' => $all_menu_main,
+            'all_menus' => $all_menus,
+            'all_menu_bar' => $all_menu_bar,
+            'menu_id' => $menu_id
+        ]);
+    }
+    public function get_terlambat_approval(Request $request)
+    {
+        // dd($request->all());
+        try {
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            // dd($user_karyawan);
+            $data_terlambat = IzinTerlambat::where(function ($query) use ($user_karyawan) {
+                $query->where(function ($q) use ($user_karyawan) {
+                    $q->where('id_user_atasan', $user_karyawan->id)
+                        ->where('status_terlambat', 0);
+                })
+                    ->orWhere(function ($q) use ($user_karyawan) {
+                        $q->where('id_user_atasan2', $user_karyawan->id)
+                            ->where('status_terlambat', 1);
+                    });
+            })->get();
+            // dd($data_terlambat);
+            return response()->json([
+                'code' => 200,
+                'data' => $data_terlambat
+
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function approve_terlambat_detail($id, Request $request)
+    {
+        session(['url.intended' => url()->previous()]);
+        if (!Auth::check()) {
+            return redirect('/');
+        }
+        // dd($id);
+        try {
+            // dd('ss');
+            if (!Auth::check()) {
+                $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+                return redirect()->route('login');
+            }
+            $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+            if (count($get_role) == 0) {
+                $roleId = null;
+            } else {
+                $roleId = $get_role;
+            }
+            if ($roleId == null) {
+                $all_menus = collect();
+                $all_menu_bar = collect();
+                $all_menu_main = collect();
+            } else {
+                $all_menu_main  = RoleMenu::with(['Menu' => function ($query) {
+                    $query->where('kategori', 'mobile');
+                }])
+                    ->whereHas('Menu', function ($query) {
+                        $query->where('kategori', 'mobile');
+                        $query->where('main', 1);
+                        $query->orderBy('sort_order', 'ASC');
+                    })
+                    ->whereIn('role_id', $get_role)
+                    ->get();
+                $all_menus  = RoleMenu::with(['Menu' => function ($query) {
+                    $query->where('kategori', 'mobile');
+                }])
+                    ->whereHas('Menu', function ($query) {
+                        $query->where('kategori', 'mobile');
+                        $query->where('main', 0);
+                        $query->orderBy('sort_order', 'ASC');
+                    })
+                    ->whereIn('role_id', $get_role)
+                    ->get();
+
+                $all_menu_bar  = RoleMenu::with(['Menu' => function ($query) {
+                    $query->where('kategori', 'mobile');
+                }])
+                    ->whereHas('Menu', function ($query) {
+                        $query->where('kategori', 'mobile');
+                        $query->where('main', 2);
+                        $query->orderBy('sort_order', 'ASC');
+                    })
+                    ->whereIn('role_id', $get_role)
+                    ->get();
+            }
+            $data_terlambat = IzinTerlambat::where('id', $id)->first();
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            $user_pengaju = Karyawan::where('id', $data_terlambat->karyawan_id)->first();
+            // dd($user_pengaju);
+            if ($user_pengaju->shift == 'NON SHIFT') {
+
+
+                $shift =  Shift::where('nama_shift', 'NON SHIFT')->first();
+            } else {
+                // dd('hehe');
+                $mapping_shift = MappingShift::where('karyawan_id', $user_pengaju->id)
+                    ->where('tanggal_masuk', $data_terlambat->tanggal_terlambat)->whereNotNull('is_active')->first();
+                $shift =  Shift::where('id', $mapping_shift->shift_id)->first();
+                // dd($mapping_shift);
+            }
+            $start = $data_terlambat->jam_min_masuk;
+            // ->subMinutes(50);
+            $end = $data_terlambat->jam_masuk;
+            if (!empty($start) && !empty($end)) {
+                // dd($start, $end);
+                // dd($end);
+                $finger = $data_terlambat->User->Absensi->whereBetween('LogTime', [$start, $end])->first();
+                // dd($finger);
+            } else {
+                $finger = null;
+            }
+            // $presensi = $user_karyawan->Absensi->where('LogTime',)
+            $menu_id = Auth::user()->menu_active;
+            return view('users.izin.terlambat_approval_detail', [
+                'id' => $id,
+                'all_menu_main' => $all_menu_main,
+                'data' => $data_terlambat,
+                'all_menus' => $all_menus,
+                'all_menu_bar' => $all_menu_bar,
+                'user_karyawan' => $user_karyawan,
+                'finger' => $finger,
+                'menu_id' => $menu_id
+            ]);
+        } catch (\Exception $e) {
+            $request->session()->flash('error', $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile());
+            return redirect()->back()->with('error', $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile());
+        }
+    }
+    public function get_terlambat_Detail($id)
+    {
+        try {
+            $data_terlambat = IzinTerlambat::where('id', $id)->first();
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+
+            return response()->json([
+                'code' => 200,
+                'data' => $data_terlambat,
+                'user' => $user_karyawan,
+
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function tolak_pengajuan_terlambat(Request $request)
+    {
+        // dd($request->all());
+        $rules = [
+            'signature' => 'required',
+
+        ];
+        $messages = [
+            'signature.required' => 'Tanda tangan wajib diisi',
+        ];
+        $validator = Validator::make($request->all(), $rules, $messages);
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'errors' => $validator->errors(),
+            ]);
+        }
+        // dd($request->all());
+        try {
+            $data_terlambat = IzinTerlambat::where('id', $request->id_terlambat)->first();
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            $pengaju = Karyawan::where('id', $data_terlambat->karyawan_id)->first();
+
+            // nama file
+            $image = $request->signature;
+            $image = str_replace('data:image/png;base64,', '', $image);
+            $image = str_replace(' ', '+', $image);
+
+            $fileName = 'signature_' . time() . '.png';
+            // dd($fileName);
+            // simpan ke storage
+            Storage::disk('public')->put(
+                'signatures/' . $fileName,
+                base64_decode($image)
+            );
+            if ($data_terlambat->id_user_atasan == $user_karyawan->id) {
+                $data_terlambat->update([
+                    'status_approve_atasan1' => 1,
+                    'status_terlambat' => 5,
+                    'ttd_atasan' => $fileName,
+                ]);
+            } else {
+                $data_terlambat->update([
+                    'status_approve_atasan2' => 1,
+                    'status_terlambat' => 5,
+                    'ttd_atasan2' => $fileName,
+                ]);
+            }
+            QuickPanel::where('content_id', $request->id_terlambat)->update([
+                'status' => 1,
+            ]);
+            $holdings = Holding::where('id', $user_karyawan->kontrak_kerja)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => null,
+                'menu_name' => 'approval terlambat',
+                'id_table' => $data_terlambat->id,
+                'holding_id' => $holdings->id ?? '-',
+                'holding_category' => $holdings->holding_category ?? '-',
+                'table' => 'izin_terlambat',
+                'activity' => 'add',
+                'description' => 'Menolak pengajuan terlambat ' .  $data_terlambat->nama_karyawan,
+                'keterangan' => 'Success',
+                'karir' => '2'
+            ]);
+            $email              = $pengaju?->email;
+            $nama_penerim       = $data_terlambat->nama_karyawan;
+            $nama               = $user_karyawan->name;
+            $tanggal            = Carbon::parse($data_terlambat->tanggal_terlambat)->format('d-m-Y');
+            $judul              = 'Penolakan Izin Terlambat';
+            $perihal            = 'Melalui email ini, kami menginformasikan bahwa pengajuan izin terlambat anda ditolak oleh :';
+
+            $waktu              = 'Yang sedianya akan dilakukan pada ' . $tanggal . '';
+
+            $penutup            = 'Segera berkoordinasi dengan atasan anda untuk penjelasan yang lebih lanjut.';
+            $link               = 'https://hrd.sumberpangan.store/';
+            Cache::put("Wawancara:$email", true, now()->addHours(2));
+            if ($email) {
+                Mail::mailer('hrd')->to($email)->queue(new SemuaIzin(
+                    $judul,
+                    $nama_penerim,
+                    $perihal,
+                    $nama,
+                    $waktu,
+                    $penutup,
+                    $link,
+                ));
+            }
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'Pengajuan izin berhasil ditolak.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function get_terlambat_riwayat(Request $request)
+    {
+        $start = Carbon::parse($request->awal)->startOfDay();
+        $end = Carbon::parse($request->akhir)->endOfDay();
+        // dd($start, $end);
+        try {
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            // dd($user_karyawan);
+            $data_terlambat = IzinTerlambat::where('karyawan_id', $user_karyawan->id)
+                ->where('status_terlambat', '!=', 0)
+                ->whereBetween('created_at', array($start, $end))->get();
+            // dd($data_terlambat);
+            return response()->json([
+                'code' => 200,
+                'data' => $data_terlambat
+
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function get_terlambat_riwayat_approval(Request $request)
+    {
+        $start = Carbon::parse($request->awal)->startOfDay();
+        $end = Carbon::parse($request->akhir)->endOfDay();
+        // dd($start, $end);
+        try {
+            $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+            // dd($user_karyawan);
+            $data_terlambat = IzinTerlambat::where(function ($query) use ($user_karyawan) {
+                $query->where(function ($q) use ($user_karyawan) {
+                    $q->where('id_user_atasan', $user_karyawan->id)
+                        ->where('status_terlambat', '!=', 0)
+                        ->where('status_approve_atasan1', '!=', 0);
+                })
+                    ->orWhere(function ($q) use ($user_karyawan) {
+                        $q->where('id_user_atasan2', $user_karyawan->id)
+                            ->where('status_terlambat', '!=', 0)
+                            ->where('status_approve_atasan2', '!=', 0);
+                    });
+            })->whereBetween('created_at', array($start, $end))->get();
+            // dd($data_terlambat);
+            return response()->json([
+                'code' => 200,
+                'data' => $data_terlambat
+
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function approve_pengajuan_terlambat(Request $request)
+    {
+        $rules = [
+            'signature' => 'required',
+            'jam_finger' => 'required',
+
+        ];
+        $messages = [
+            'signature.required' => 'Tanda tangan wajib diisi',
+            'jam_finger.required' => 'Jam Presensi Pegawai belum terekam (tunggu setiap 15 Menit)',
+        ];
+        $validator = Validator::make($request->all(), $rules, $messages);
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'errors' => $validator->errors(),
+            ]);
+        }
+        // dd($request->all());
+        try {
+            $jam_finger = \Carbon\Carbon::parse($request->jam_finger);
+            $jam_masuk = \Carbon\Carbon::parse($request->jam_masuk);
+            if ($jam_finger->lessThan($jam_masuk)) {
+                // dd($jamFinger, $jam_masuk);
+                $data_terlambat = IzinTerlambat::where('id', $request->id_terlambat)->first();
+                $user_karyawan = Karyawan::where('nomor_identitas_karyawan', Auth::user()->karyawan_id)->first();
+                $user_karyawan_pengajuan = Karyawan::where('id', $data_terlambat->karyawan_id)->first();
+                // nama file
+                $image = $request->signature;
+                $image = str_replace('data:image/png;base64,', '', $image);
+                $image = str_replace(' ', '+', $image);
+
+                $fileName = 'signature_' . time() . '.png';
+                // dd($fileName);
+                // simpan ke storage
+                Storage::disk('public')->put(
+                    'signatures/' . $fileName,
+                    base64_decode($image)
+                );
+                // if ($jamFinger->lessThan($jamMinMasuk)) {
+                //     $created = \Carbon\Carbon::parse($data_terlambat->created_at)
+                //         ->subDay(1)
+                //         ->addMinute(1);
+                // } else {
+                //     $created = \Carbon\Carbon::parse($data_terlambat->created_at)
+                //         ->addMinute(1);
+                // }
+
+                // $count_terlambat = IzinTerlambat::whereIn('status_terlambat', [5, 2])->whereDate('created_at', $data_terlambat->created_at)->where('id', '!=', $data_terlambat->id)->get()->count();
+                // // dd($count_terlambat);
+                // if ($count_terlambat == 0) {
+                //     $last_count = 1;
+                // } else {
+                //     $last_count = $count_terlambat + 1;
+                // }
+                // if (strlen($last_count) == 1) {
+                //     $last_count = '000' . $last_count;
+                // } else if (strlen($last_count) == 2) {
+                //     $last_count = '00' . $last_count;
+                // } else {
+                //     $last_count = '0' . $last_count;
+                // }
+
+                // $tgl_pengajuan = Carbon::parse($data_terlambat->created_at)->format('Ymd');
+
+                // $no_form = $user_karyawan_pengajuan->KontrakKerja->holding_category . '/FIT' . '/' . $tgl_pengajuan . '/' . $last_count;
+
+                // dd($no_form);
+
+                $holdings = Holding::where('id', $user_karyawan->kontrak_kerja)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                if ($data_terlambat->id_user_atasan2 == $data_terlambat->id_user_atasan) {
+                    $data_terlambat->update([
+                        'status_approve_atasan1' => 1,
+                        'status_approve_atasan2' => 1,
+                        'status_terlambat' => 2,
+                        'waktu_approve' => date('Y-m-d H:i:s'),
+                        'waktu_approve2' => date('Y-m-d H:i:s'),
+                        // 'no_form_terlambat' => $no_form,
+                        'ttd_atasan' => $fileName,
+                        'ttd_atasan2' => $fileName,
+                        'jam_finger' => $request->jam_finger,
+                        // 'created_at' => $created,
+                    ]);
+
+                    QuickPanel::where('content_id', $request->id_terlambat)->update([
+                        'read_at' => date('Y-m-d H:i:s'),
+                        'status' => 1,
+                        'updated_at' => date('Y-m-d H:i:s'),
+                    ]);
+                    ActivityLog::create([
+                        'user_id' => $request->user()->id,
+                        'user_name' => $user_name->username,
+                        'menu_id' => null,
+                        'menu_name' => 'approval terlambat',
+                        'id_table' => $data_terlambat->id,
+                        'holding_id' => $holdings->id ?? '-',
+                        'holding_category' => $holdings->holding_category ?? '-',
+                        'table' => 'izin_terlambat',
+                        'activity' => 'add',
+                        'description' => 'Menyatujui pengajuan terlambat sebagai atasan 1 ' .  $data_terlambat->nama_karyawan,
+                        'keterangan' => 'Success',
+                        'karir' => '2'
+                    ]);
+                    $email              = 'jmhrd.gasumberpangan@gmail.com';
+                    $nama_penerim       = 'HRD Sumber Pangan';
+                    $nama               = $data_terlambat->nama_karyawan;
+                    $tanggal_terlambat      = Carbon::parse($data_terlambat->tanggal_terlambat)->format('d-m-Y');
+                    $judul              = 'Pengajuan Izin Terlambat';
+                    $perihal            = 'Melalui email ini, kami menginformasikan bahwa ada pengajuan izin terlambat dari :';
+
+                    $waktu              = 'Yang akan dilakukan pada ' . $tanggal_terlambat . '';
+
+                    $penutup            = 'Pengajuan ini dapat disetujui atau ditolak melalui button di bawah ini';
+                    $link               = url('/terlambat_karyawan/' . $data_terlambat->id);
+                    Cache::put("Wawancara:$email", true, now()->addHours(2));
+                    if ($email) {
+                        Mail::mailer('hrd')->to($email)->queue(new SemuaIzin(
+                            $judul,
+                            $nama_penerim,
+                            $perihal,
+                            $nama,
+                            $waktu,
+                            $penutup,
+                            $link,
+                        ));
+                    }
+                } else {
+                    if ($data_terlambat->id_user_atasan == $user_karyawan->id) {
+                        $data_terlambat->update([
+                            'status_approve_atasan1' => 1,
+                            'status_terlambat' => 1,
+                            'waktu_approve' => date('Y-m-d H:i:s'),
+                            // 'no_form_terlambat' => $no_form,
+                            'ttd_atasan' => $fileName,
+                            'jam_finger' => $request->jam_finger,
+                        ]);
+
+                        QuickPanel::where('content_id', $request->id_terlambat)->update([
+                            'read_at' => date('Y-m-d H:i:s'),
+                            'status' => 1,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
+                        $quick = new QuickPanel();
+                        $quick->id_quick = Uuid::uuid4();
+                        $quick->user_id_from = $data_terlambat->id_user_atasan;
+                        $quick->user_id_to = $data_terlambat->id_user_atasan2;
+                        $quick->title_quick = 'Pengajuan Izin Terlambat';
+                        $quick->message_quick = 'Ada Pengajuan Izin Terlambat Baru Dari ' . $data_terlambat->nama_karyawan;
+                        $quick->status = 0;
+                        $quick->quick_type = 'izin_terlambat';
+                        $quick->menu_id = Auth::user()->menu_active;
+                        $quick->content_id = $data_terlambat->id;
+                        $quick->created_at = date('Y-m-d H:i:s');
+                        $quick->updated_at = date('Y-m-d H:i:s');
+                        $quick->save();
+                        ActivityLog::create([
+                            'user_id' => $request->user()->id,
+                            'user_name' => $user_name->username,
+                            'menu_id' => null,
+                            'menu_name' => 'approval terlambat',
+                            'id_table' => $data_terlambat->id,
+                            'holding_id' => $holdings->id ?? '-',
+                            'holding_category' => $holdings->holding_category ?? '-',
+                            'table' => 'izin_terlambat',
+                            'activity' => 'add',
+                            'description' => 'Menyatujui pengajuan terlambat sebagai atasan 1 ' .  $data_terlambat->nama_karyawan,
+                            'keterangan' => 'Success',
+                            'karir' => '2'
+                        ]);
+                        $atasan2 = $data_terlambat->Atasan2;
+                        $email_atasan = $atasan2?->email_kantor ?: $atasan2?->email;
+                        $email              = $email_atasan;
+                        $nama_penerim       = $data_terlambat->nama_atasan2;
+                        $nama               = $data_terlambat->nama_karyawan;
+                        $tanggal_terlambat      = Carbon::parse($data_terlambat->tanggal_terlambat)->format('d-m-Y');
+                        $judul              = 'Pengajuan Izin Terlambat';
+                        $perihal            = 'Melalui email ini, kami menginformasikan bahwa ada pengajuan izin terlambat dari :';
+
+                        $waktu              = 'Yang akan diajukan pada ' . $tanggal_terlambat . '';
+
+                        $penutup            = 'Pengajuan ini dapat disetujui atau ditolak melalui button di bawah ini';
+                        $link               = url('/izin/approve_terlambat_detail/' . $data_terlambat->id);
+                        Cache::put("Wawancara:$email", true, now()->addHours(2));
+                        if ($email) {
+                            Mail::mailer('hrd')->to($email)->queue(new SemuaIzin(
+                                $judul,
+                                $nama_penerim,
+                                $perihal,
+                                $nama,
+                                $waktu,
+                                $penutup,
+                                $link,
+                            ));
+                        }
+                    } else {
+                        $data_terlambat->update([
+                            'status_approve_atasan2' => 1,
+                            'status_terlambat' => 2,
+                            // 'no_form_terlambat' => $no_form,
+                            'ttd_atasan2' => $fileName,
+                            'waktu_approve2' => date('Y-m-d H:i:s'),
+                            'jam_finger' => $request->jam_finger,
+                        ]);
+                        QuickPanel::where('content_id', $request->id_terlambat)->update([
+                            'read_at' => date('Y-m-d H:i:s'),
+                            'status' => 1,
+                            'updated_at' => date('Y-m-d H:i:s'),
+                        ]);
+                        ActivityLog::create([
+                            'user_id' => $request->user()->id,
+                            'user_name' => $user_name->username,
+                            'menu_id' => null,
+                            'menu_name' => 'approval terlambat',
+                            'id_table' => $data_terlambat->id,
+                            'holding_id' => $holdings->id ?? '-',
+                            'holding_category' => $holdings->holding_category ?? '-',
+                            'table' => 'izin_terlambat',
+                            'activity' => 'add',
+                            'description' => 'Menyatujui pengajuan terlambat sebagai atasan 2 ' .  $data_terlambat->nama_karyawan,
+                            'keterangan' => 'Success',
+                            'karir' => '2'
+                        ]);
+
+                        $email              = 'jmhrd.gasumberpangan@gmail.com';
+                        $nama_penerim       = 'HRD Sumber Pangan';
+                        $nama               = $data_terlambat->nama_karyawan;
+                        $tanggal_terlambat      = Carbon::parse($data_terlambat->tanggal_terlambat)->format('d-m-Y');
+                        $judul              = 'Pengajuan Izin Terlambat';
+                        $perihal            = 'Melalui email ini, kami menginformasikan bahwa ada pengajuan izin terlambat dari :';
+
+                        $waktu              = 'Yang akan dilakukan pada ' . $tanggal_terlambat . '';
+
+                        $penutup            = 'Pengajuan ini dapat disetujui atau ditolak melalui button di bawah ini';
+                        $link               = url('/terlambat_karyawan/' . $data_terlambat->id);
+                        Cache::put("Wawancara:$email", true, now()->addHours(2));
+                        if ($email) {
+                            Mail::mailer('hrd')->to($email)->queue(new SemuaIzin(
+                                $judul,
+                                $nama_penerim,
+                                $perihal,
+                                $nama,
+                                $waktu,
+                                $penutup,
+                                $link,
+                            ));
+                        }
+                    }
+                }
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Pengajuan izin berhasil disetujui.',
+                ]);
+            } else {
+                // dd('kk');
+
+                return response()->json([
+                    'code' => 401,
+                    'message' => 'Jam presensi finger melebihi batas keterlambatan, mohon ditolak',
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 400,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function cetak_form_terlambat($id, $karyawan_id)
+    {
+        $terlambat = IzinTerlambat::with('Atasan1', 'Atasan2')->where('id', $id)->first();
+        $karyawn_jabatan = KaryawanJabatan::with('Departemen', 'Jabatan', 'Divisi', 'Bagian')->where('karyawan_id', $karyawan_id)->where('is_active', 1)->where('main', 1)->first();
+        $user_karyawan = Karyawan::where('id', $karyawan_id)->first();
+        $holding = Holding::where('id', $user_karyawan->kontrak_kerja)->first();
+        $data = [
+            'title' => 'domPDF in Laravel 10',
+            'data_terlambat' => $terlambat,
+            'karyawan_jabatan' => $karyawn_jabatan,
+            'user_karyawan' => $user_karyawan,
+            'holding' => $holding,
+            // 'logo' => $data['logo'],
+            // 'ttd_user' => $data['ttd_pemohon'],
+            // 'ttd_atasan' => $data['ttd_atasan'],
+            // 'ttd_atasan2' => $data['ttd_atasan2']
+        ];
+        $pdf = PDF::setOptions([
+            'defaultFont' => 'Poppins, sans-serif',
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+            'chroot' => [storage_path('app/public')],
+        ])
+            ->loadView('users/izin/terlambat_form', $data)
+            ->setPaper('letter', 'potrait');
+
+        return $pdf->stream(
+            'FORM_KETERLAMBATAN_' .
+                $user_karyawan->name . '_' .
+                now()->format('Y-m-d_H-i-s') .
+                '.pdf'
+        );
     }
 }

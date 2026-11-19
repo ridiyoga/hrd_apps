@@ -1,813 +1,1501 @@
 @extends('admin.layouts.dashboard')
 @section('css')
-<link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
-<link href="https://cdn.syncfusion.com/ej2/material.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/orgchart/4.0.1/css/jquery.orgchart.css">
-<!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/orgchart/4.0.1/css/jquery.orgchart.min.css"> -->
-<style type="text/css">
-    .my-swal {
-        z-index: X;
-    }
-</style>
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/orgchart@2.1.9/dist/css/jquery.orgchart.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet" />
+    <style type="text/css">
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       TABLE LOADING OVERLAY
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ================================ */
+        .table-loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        /* Spinner modern */
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #7367f0;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .chart-wrapper {
+            overflow: auto;
+            width: 100%;
+            height: 80vh;
+            background: #fff;
+        }
+
+        .swal2-container {
+            position: fixed !important;
+            z-index: 2147483647 !important;
+            /* max safe z-index */
+        }
+
+        .select2-container--bootstrap-5 .select2-selection {
+            font-size: 0.875rem !important;
+            /* Bootstrap small (14px) */
+            min-height: calc(1.5em + 0.75rem + 2px);
+            /* biar tinggi konsisten */
+        }
+
+        /* ukuran teks di dropdown list */
+        .select2-container--bootstrap-5 .select2-results__option {
+            font-size: 0.875rem !important;
+        }
+
+        /* Fokus warna primary */
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+            border-color: var(--bs-primary) !important;
+            box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25) !important;
+        }
+
+        /* Background dan teks saat option terpilih */
+        .select2-container--bootstrap-5 .select2-results__option--selected {
+            background-color: var(--bs-primary) !important;
+            color: #fff !important;
+        }
+
+        /* Hover option */
+        .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+            color: var(--bs-primary) !important;
+        }
+
+        /* ukuran huruf untuk pilihan yang sudah dipilih (tag dalam box) */
+        .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered .select2-selection__choice {
+            font-size: 0.75rem;
+            /* kecilin text */
+            padding: 2px 6px;
+            /* biar nggak terlalu tinggi */
+            line-height: 1.2;
+        }
+
+        /* icon "x" di tag */
+        .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove {
+            font-size: 0.7rem;
+            margin-right: 2px;
+        }
+
+        /* tulisan placeholder / hasil render */
+        .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
+            font-size: 0.8rem;
+        }
+
+        /* BIKIN NODE AUTO SIZE */
+        .orgchart .node {
+            min-width: 180px;
+            max-width: 360px;
+            min-height: 90px;
+            /* PENTING */
+            height: auto;
+            /* jangan pakai !important */
+            padding: 6px 10px;
+        }
+
+        /* BIAR TEKS TURUN BARIS */
+        .orgchart .node .title,
+        .orgchart .node .content {
+            white-space: normal !important;
+            width: auto !important;
+            max-width: none !important;
+            word-break: break-word;
+            height: auto !important;
+            min-height: 30px;
+            line-height: 1.2;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* OPTIONAL: biar kelihatan rapi */
+        .orgchart .node .title {
+            font-weight: 600;
+            background-color: #9055fd !important;
+        }
+
+        .orgchart .node .content {
+            border: 2px solid #9055fd !important;
+        }
+
+        .orgchart .lines .topLine {
+            border-top: 2px solid #9055fd !important;
+            float: none !important;
+            border-radius: 0 !important;
+        }
+
+        .orgchart .lines .downLine {
+            background-color: #9055fd !important;
+            border: 2px solid #9055fd !important;
+            float: none !important;
+            border-radius: 0 !important;
+        }
+
+        .orgchart .lines .rightLine {
+            border-right: 2px solid #9055fd !important;
+            float: none !important;
+            border-radius: 0 !important;
+        }
+
+        .orgchart .lines .leftLine {
+            border-left: 2px solid #9055fd !important;
+            float: none !important;
+            border-radius: 0 !important;
+        }
+
+        /* HAPUS BACKGROUND GRADIENT LINE */
+        .orgchart {
+
+            background-image: none !important;
+            background: none !important;
+        }
+
+        .org-wrapper {
+            border: 1px solid #9055fd !important;
+            border-radius: 0.375rem !important;
+            width: 100%;
+            height: auto;
+            overflow: auto;
+        }
+
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        SELECT LOADING
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ================================ */
+        .select-loader {
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            transform: translateY(-50%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        DOT LOADER (3 DOT)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ================================ */
+        .dot-loader {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot-loader span {
+            width: 6px;
+            height: 6px;
+            background-color: #7367f0;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: dotPulse 1.2s infinite ease-in-out;
+        }
+
+        .dot-loader span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .dot-loader span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot-loader span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotPulse {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+    </style>
 @endsection
 @section('isi')
-@include('sweetalert::alert')
-<div class="container-xxl flex-grow-1 container-p-y">
-    <div class="row gy-4">
-        <!-- Transactions -->
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <h5 class="card-title m-0 me-2">STRUKTUR ORGANISASI</h5>
-                        <ul class="nav nav-pills flex-column flex-md-row mb-4 gap-2 gap-lg-0" role="tablist">
-                            <li class="nav-item">
-                                <button type="button" class="nav-link waves-effect waves-light @if($holding=='sp') active @endif" role="tab" data-bs-toggle="tab" data-bs-target="#navs-pills-top-home" aria-controls="navs-pills-top-home" aria-selected="true">
-                                    <i class="tf-icons mdi mdi-family-tree me-1"></i> SP
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link waves-effect waves-light @if($holding=='sps') active @endif" role="tab" data-bs-toggle="tab" data-bs-target="#navs-pills-top-profile" aria-controls="navs-pills-top-profile" aria-selected="false" tabindex="-1">
-                                    <i class="tf-icons mdi mdi-family-tree me-1"></i> SPS
-                                </button>
-                            </li>
-                            <li class="nav-item">
-                                <button type="button" class="nav-link waves-effect waves-light @if($holding=='sip') active @endif" role="tab" data-bs-toggle="tab" data-bs-target="#navs-pills-top-messages" aria-controls="navs-pills-top-messages" aria-selected="false" tabindex="-1">
-                                    <i class="tf-icons mdi mdi-family-tree me-1"></i> SIP
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="tab-content">
-                    <div class="tab-pane fade @if($holding=='sp') active show @endif" id="navs-pills-top-home" role="tabpanel">
-
-                        <div class="card-body">
-
-                            <div id="chartDiv1" class="chartDiv" style="max-width: 100%;  height: 800px"></div>
-                            <div id="keterangan_karyawan_sp" style="min-height:10px;text-align: left"></div>
+    @include('sweetalert::alert')
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row gy-4">
+            <!-- Transactions -->
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h5 class="card-title m-0 me-2">STRUKTUR ORGANISASI</h5>
                         </div>
                     </div>
-                    <div class="tab-pane fade @if($holding=='sps') active show @endif" id="navs-pills-top-profile" role="tabpanel">
-
-                        <div class="card-body">
-
-                            <div id="chartDiv2" class="chartDiv2" style="max-width: 100%; height: 800px"></div>
-                            <div id="keterangan_karyawan_sps" style="min-height:10px;text-align: left"></div>
+                    <div class="card-body">
+                        {{-- @if ($struktur == 0)
+                        @endif --}}
+                        <div class="d-flex justify-content-end">
+                            <a class="btn btn-sm btn-primary dropdown-toggle hide-arrow" data-bs-toggle="dropdown"
+                                aria-expanded="false" data-bs-offset="0,10" href="javascript:void(0);">
+                                <i class="mdi mdi-download mdi-24px"></i>
+                                <span class="sr-only">&nbsp;DOWNLOAD STRUKTUR ORGANISASI</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end mt-3 py-2">
+                                <li class="dropdown-item">
+                                    <a href="javascript:void(0);" id="btn_download_image">
+                                        <i class="mdi mdi-file-image-outline me-2"></i>
+                                        <span>Download JPG</span>
+                                    </a>
+                                </li>
+                                <li class="dropdown-item">
+                                    <a href="javascript:void(0);" id="btn_download_pdf">
+                                        <i class="mdi mdi-file-document-outline me-2"></i>
+                                        <span>Download PDF</span>
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
-                    </div>
-                    <div class="tab-pane fade @if($holding=='sip') active show @endif" id="navs-pills-top-messages" role="tabpanel">
+                        <div id="btn-tree"></div>
+                        <div class="tree-wrapper mt-4 ">
 
-                        <div class="card-body">
-
-                            <div id="chartDiv3" class="chartDiv3" style="max-width: 100%; height: 800px"></div>
-                            <div id="keterangan_karyawan_sip" style="min-height:10px;text-align: left"></div>
+                            <div id="tree-container">
+                                <div id="tableLoading" class="table-loading d-none">
+                                    <div class="loading-content">
+                                        <div class="spinner"></div>
+                                        <span>Memuat data...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!--/ Transactions -->
-    <!--/ Data Tables -->
-</div>
-</div>
+    <div class="modal fade" id="modal_struktur" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="backDropModalTitle">Buat Struktur</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form_add_struktur">
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-control asoy" id="jabatan_add" name="jabatan" autofocus
+                                        value="">
+                                        <option value="">Pilih jabatan</option>
+                                        @foreach ($jabatan as $jabt)
+                                            <option value="{{ $jabt->id }}">
+                                                {{ $jabt->nama_jabatan }} ({{ $jabt->Holding->holding_category }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <label for="jabatan">jabatan</label>
+
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" id="kuota_atasan_add" name="kuota_atasan" class="form-control" />
+                                    <label for="kuota_atasan">Kuota Atasan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-control asoy" id="bawahan_add" name="bawahan" autofocus
+                                        value="">
+                                        <option value="">Pilih Bawahan</option>
+                                        @foreach ($jabatan as $jabt)
+                                            <option value="{{ $jabt->id }}">
+                                                {{ $jabt->nama_jabatan }} ({{ $jabt->Holding->holding_category }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <label for="bawahan">Bawahan</label>
+
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" id="kuota_bawahan_add" name="kuota_bawahan"
+                                        class="form-control" />
+                                    <label for="kuota_bawahan">Kuota Bawahan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-outline-secondary m-1" data-bs-dismiss="modal">
+                                Tutup
+                            </button>
+                            <button type="button" class="btn btn-primary m-1" id="btn_add_struktur">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modal_struktur_update" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="backDropModalTitle">Update Kuota</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form_add_struktur">
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="hidden" id="id_update" name="id" class="form-control" />
+                                    <input type="text" id="jabatan_update" name="jabatan" class="form-control"
+                                        disabled />
+                                    <label for="jabatan">Jabatan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" id="parent_update" name="parent">
+                                    </select>
+                                    <label for="parent_update" class="form-label">Atasan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" id="kuota_karyawan_update" name="kuota_karyawan"
+                                        class="form-control" />
+                                    <label for="kuota_karyawan">Kuota Karyawan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" id="status_pegawai_update2" name="status_pegawai">
+                                        <option value="">PKWT & Organik</option>
+                                        <option value="1">Outsourching</option>
+                                    </select>
+                                    <label for="status_pegawai_update2" class="form-label">Status</label>
+                                </div>
+                            </div>
+                            {{-- <input type="text" name="" id="status_pegawai_update2"> --}}
+                        </div>
+                        <br>
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-outline-secondary m-1" data-bs-dismiss="modal">
+                                Tutup
+                            </button>
+                            <button type="button" class="btn btn-primary m-1" id="btn_update_struktur">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modal_struktur_bawahan" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="backDropModalTitle">Tambah Bawahan</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="form_add_struktur">
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="hidden" id="id_atasan" name="id" class="form-control" />
+                                    <input type="text" id="jabatan_bawahan" name="jabatan" class="form-control"
+                                        disabled />
+                                    <label for="jabatan">Jabatan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" asoy id="nama_dept_update" name="nama_dept" autofocus
+                                        value="">
+                                        <option value=""> Pilih Departemen
+                                        </option>
+                                        @foreach ($data_dept as $data)
+                                            <option value="{{ $data->id }}">
+                                                {{ $data->nama_departemen }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <label for="nama_dept_update">Nama Departemen</label>
+                                </div>
+                                @error('nama_departemen_update')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" asoy id="nama_divisi_update" name="nama_divisi_update"
+                                        autofocus value="">
+                                    </select>
+                                    <label for="nama_divisi_update">Nama Divisi</label>
+                                    <div class="select-loader d-none">
+                                        <div class="dot-loader">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @error('nama_divisi_update')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" asoy id="nama_bagian_update" name="nama_bagian_update"
+                                        autofocus value="">
+                                    </select>
+                                    <label for="nama_bagian_update">Nama Bagian</label>
+                                    <div class="select-loader d-none">
+                                        <div class="dot-loader">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @error('nama_bagian_update')
+                                    <div class="invalid-feedback">
+                                        {{ $message }}
+                                    </div>
+                                @enderror
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" asoy id="bawahan_update" name="bawahan">
+                                    </select>
+                                    <label for="bawahan_update" class="form-label">Jabatan</label>
+                                    <div class="select-loader d-none">
+                                        <div class="dot-loader">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <select class="form-select" asoy id="status_pegawai_update" name="bawahan">
+                                        <option value="">PKWT & Organik</option>
+                                        <option value="1">Outsourching</option>
+                                    </select>
+                                    <label for="status_pegawai_update" class="form-label">Status</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="row g-2">
+                            <div class="col mb-2">
+                                <div class="form-floating form-floating-outline">
+                                    <input type="text" id="kuota_karyawan_bawahan" name="kuota_karyawan"
+                                        class="form-control" />
+                                    <label for="kuota_karyawan">Kuota Karyawan</label>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-outline-secondary m-1" data-bs-dismiss="modal">
+                                Tutup
+                            </button>
+                            <button type="button" class="btn btn-primary m-1" id="btn_bawahan_struktur">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modal_karyawan" data-bs-backdrop="static" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="backDropModalTitle">Daftar Karyawan</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table" id="tabel_karyawan" style="width: 100%; font-size: small;">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>No.</th>
+                                <th>Nama&nbsp;Karyawan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="table-border-bottom-0">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 @section('js')
-<script src="https://cdn.syncfusion.com/ej2/dist/ej2.min.js" type="text/javascript"></script>
-<script src="https://code.jscharting.com/latest/jscharting.js"></script>
-<script type="text/javascript" src="https://code.jscharting.com/latest/modules/types.js"></script>
-<script type="text/javascript" src="https://code.jscharting.com/latest/modules/toolbar.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
-<script>
-    var selectedPoint;
-    var highlightColor = '#5C6BC0',
-        mutedHighlightColor = '#9FA8DA',
-        mutedFill = '#f3f4fa',
-        selectedFill = '#E8EAF6',
-        normalFill = 'white',
-        highlightDirection = 'Down';
-    var points = <?php echo json_encode($user) ?>;
+    <script src="https://cdn.datatables.net/2.0.5/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.0.5/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/orgchart/2.1.9/js/jquery.orgchart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var menu_id = $('#asoy').val();
+            var formData = new FormData();
 
-    // console.log(points);
-    var chart = JSC.chart('chartDiv1', {
-        debug: true,
-        type: 'organizational',
-        defaultTooltip_enabled: true,
+            //ambil data dari form
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('menu_id', menu_id);
+            // console.log(formData);
 
-        /* These options will apply to all annotations including point nodes. */
-        defaultAnnotation: {
-            padding: [5, 10],
-            margin: 6
-        },
-        annotations: [{
-            position: 'bottom',
-            label_text: 'STRUKTUR ORGANISASI CV. SUMBER PANGAN'
-        }],
+            $.ajax({
+                type: "POST",
 
-        defaultSeries: {
-            color: normalFill,
-            /* Point selection is disabled because it is managed manually with point click events. */
-            pointSelection: false
-        },
+                url: "{{ url('/recruitment/update_menu') }}",
+                data: formData,
+                contentType: false,
+                processData: false,
+                error: function() {
+                    alert('Something is wrong!');
+                    // console.log(formData);
+                },
+            });
+            // console.log(menu_id);
 
+            loadTreeview();
+            var holding_id = '{{ $holding->id }}'
 
-        defaultPoint: {
-            focusGlow: true,
-            connectorLine: {
-                color: '#e0e0e0',
-                radius: [10, 3]
-            },
-            label: {
-                text: '%photo%name<br><span style="color:#9E9E9E">%role</span>',
-                style_color: 'black'
-            },
-            outline: {
-                color: '#e0e0e0',
-                width: 1
-            },
-            annotation: {
-                syncHeight_with: 'level'
-            },
-            states: {
-                mute: {
-                    opacity: 0.8,
-                    outline: {
-                        color: mutedHighlightColor,
-                        opacity: 0.9,
-                        width: 2
+            function loadTreeview() {
+                $.ajax({
+                    url: "{{ url('/get_tree_struktur/' . $holding->holding_code) }}",
+                    type: "GET",
+                    dataType: "json",
+                    beforeSend: function() {
+                        showTableLoading();
+                    },
+                    success: function(response) {
+                        hideTableLoading();
+                        $('#tree-container').empty(); // container utama untuk semua org chart
+                        $('#btn-tree').empty(); // container utama untuk semua org chart
+                        // console.log(response.length);
+                        if (response.length == 0) {
+                            $('#btn-tree').append(
+                                `<button type="button" class="btn btn-sm btn-primary waves-effect waves-light my-3"
+                                id="btn_struktur"><i class="menu-icon tf-icons mdi mdi-plus"></i>Tambah</button>`
+                            );
+                        }
+                        response.forEach(function(g) {
+                            // buat wrapper org chart per root
+                            let chartId = 'chart-' + g.id;
+                            $('#tree-container').append(
+                                `<div class="mb-5"><div id="${chartId}" class="org-wrapper"></div></div>`
+                            );
+
+                            // render orgchart menggunakan plugin
+                            $('#' + chartId).orgchart({
+                                'data': g, // langsung data root dari controller
+                                'nodeContent': 'title', // gunakan field title
+                                createNode: function($node, data) {
+                                    // tambahkan tombol edit & delete jika perlu
+                                    const UserKaryawan =
+                                        `<span class="click_asoy" data-id_jabatan="${data.id_jabatan}" >${data.UserKaryawan}</span>`;
+                                    const Kuota =
+                                        `<span class="click_asoy" data-id_jabatan="${data.id_jabatan}" >${data.kuota}</span>`;
+                                    const actionHtml = `
+                                <div class="row mt-2">
+                                    <div class="col-lg-4">
+                                        <a href="javascript:void(0)" id="btn-update-struktur" class="btn-edit-node" 
+                                            data-id="${data.id}" 
+                                            data-kuota_karyawan='${data.kuota_karyawan}'
+                                            data-jabatan='${data.jabatan}'
+                                            data-status_pegawai='${data.status_pegawai}'
+                                            >
+                                            <i class="mdi mdi-pencil text-secondary mdi-24px"></i>
+                                        </a>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <a href="javascript:void(0)" id="btn-add-bawahan" class="btn-edit-node" 
+                                            data-id="${data.id}" 
+                                            data-kuota_karyawan='${data.kuota_karyawan}'
+                                            data-jabatan='${data.jabatan}'
+                                            data-level='${data.level}'
+                                            >
+                                            <i class="mdi mdi-plus-thick text-secondary mdi-24px"></i>
+                                        </a>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <a href="javascript:void(0)" id="btn-delete-struktur" class="button" 
+                                            data-id="${data.id}">
+                                            <i class="mdi mdi-delete text-danger mdi-24px"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                                    $node.find('.content').append(UserKaryawan,
+                                        Kuota,
+                                        actionHtml);
+                                },
+                                'pan': true,
+                                'zoom': true
+                            });
+                        });
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Gagal memuat data struktur organisasi.',
+                        })
                     }
-                },
-                select: {
-                    enabled: true,
-                    outline: {
-                        color: highlightColor,
-                        width: 2
-                    },
-                    color: selectedFill
-                },
-                hover: {
-                    outline: {
-                        color: mutedHighlightColor,
-                        width: 2
-                    },
-                    color: mutedFill
-                }
-            },
-            events: {
-                click: pointClick,
-                mouseOver: pointMouseOver,
-                mouseOut: pointMouseOut
+                });
             }
-        },
-        series: [{
-            points: points
-        }]
-    });
+            $(document).on('click', '#btn_download_image', function() {
 
-    /** 
-     * Event Handlers 
-     */
+                const chart = document.querySelector('#tree-container');
 
-    function pointClick() {
-        var point = this,
-            chart = point.chart;
-        // console.log(point.userOptions.attributes.role, chart);
-        resetStyles(chart);
-        if (point.id === selectedPoint) {
-            selectedPoint = undefined;
-            return;
-        }
-        switch (highlightDirection) {
-            case 'Up':
-                highlightUp(point.id);
-                break;
-            case 'Down':
-                highlightDown(point.id);
-                break;
-            case 'Both':
-                highlightUp(point.id);
-                highlightDown(point.id);
-        }
-        chart
-            .series()
-            .points([point.id, 'up'])
-            .options({
-                muted: true
-            });
+                // 🔥 CLONE CHART
+                const clone = chart.cloneNode(true);
 
-        function highlightUp(id) {
-            chart.connectors([id, 'up'], {
+                // container sementara (di luar layar)
+                const temp = document.createElement('div');
+                temp.style.position = 'fixed';
+                temp.style.left = '-10000px';
+                temp.style.top = '0';
+                temp.style.background = '#fff';
 
-                width: 2
-            });
-            chart
-                .series()
-                .points([id, 'up'])
-                .options({
-                    selected: true,
-                    muted: false
+                // RESET semua transform di clone
+                clone.style.transform = 'none';
+                clone.style.position = 'relative';
+                clone.style.left = '0';
+                clone.style.top = '0';
+
+                temp.appendChild(clone);
+                document.body.appendChild(temp);
+
+                // hitung ukuran FULL
+                const width = clone.scrollWidth;
+                const height = clone.scrollHeight;
+
+                html2canvas(clone, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    width: width,
+                    height: height,
+                    windowWidth: width,
+                    windowHeight: height
+                }).then(canvas => {
+
+                    document.body.removeChild(temp); // bersihkan DOM
+
+                    const link = document.createElement('a');
+                    link.download = 'STRUKTUR ORGANISASI.jpg';
+                    link.href = canvas.toDataURL('image/jpeg', 1.0);
+                    link.click();
                 });
-        }
-
-        // Use the muted state to highlight points down the tree. 
-        function highlightDown(id) {
-            chart.connectors([id, 'down'], {
-
-                width: 2
             });
-            chart
-                .series()
-                .points([id, 'down'])
-                .options({
-                    selected: false,
-                    muted: true
+            $('#btn_download_pdf').on('click', function() {
+
+                const original = document.querySelector('#tree-container');
+
+                // CLONE
+                const clone = original.cloneNode(true);
+                clone.style.transform = 'none';
+                clone.style.position = 'relative';
+
+                const temp = document.createElement('div');
+                temp.style.position = 'fixed';
+                temp.style.left = '-10000px';
+                temp.style.top = '0';
+                temp.style.background = '#fff';
+
+                temp.appendChild(clone);
+                document.body.appendChild(temp);
+
+                const width = clone.scrollWidth;
+                const height = clone.scrollHeight;
+
+                html2canvas(clone, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    width: width,
+                    height: height,
+                    windowWidth: width,
+                    windowHeight: height
+                }).then(canvas => {
+
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+                    const {
+                        jsPDF
+                    } = window.jspdf;
+
+                    // PDF ukuran custom (sesuai chart)
+                    const pdf = new jsPDF({
+                        orientation: width > height ? 'landscape' : 'portrait',
+                        unit: 'px',
+                        format: [width, height]
+                    });
+
+                    pdf.addImage(imgData, 'JPEG', 0, 0, width, height);
+                    pdf.save('STRUKTUR ORGANISASI.pdf');
+
+                    document.body.removeChild(temp);
                 });
-        }
-        updateInfo(point);
-        selectedPoint = point.id;
-        styleSelectedPoint(chart);
-    }
-
-    function reset(c) {
-        c.connectors();
-        c.series()
-            .points()
-            .options({
-                selected: false
             });
-        var el = document.getElementById('keterangan_karyawan_sp');
-        el.innerHTML = '';
-    }
 
-    function updateInfo(point) {
-        var chart = point.chart,
-            pathSelection = [
-                point.id,
-                highlightDirection
-            ],
-            paths = chart.connectors(pathSelection, {});
-        var html =
-            ' Daftar Karyawan : <br/>';
-
-        var pathList =
-            '<li>' +
-            point.userOptions.user +
-            '</li>';
-        console.log(point.userOptions.user);
-        html += '<ul>' + pathList + '</ul>';
-
-        var el = document.getElementById('keterangan_karyawan_sp');
-        el.innerHTML = html;
-
-        function idToPointName(id) {
-            var point = chart.series().points(id);
-            var user = chart.series().points(user);
-            console.log(point.x, point.id);
-            return point.x || point.name;
-        }
-    }
-
-    function pointMouseOver() {
-        var point = this,
-            chart = point.chart;
-        chart.connectors([point.id, 'up'], {
-            color: mutedHighlightColor,
-            width: 2
-        });
-    }
-
-    function pointMouseOut() {
-        var point = this,
-            chart = point.chart;
-        // Reset point and line styling. 
-        resetStyles(chart);
-        // Style clicked points 
-        styleSelectedPoint(chart);
-        return false;
-    }
-
-    function styleSelectedPoint(chart) {
-        if (selectedPoint) {
-            chart.connectors([selectedPoint, 'up'], {
-                color: highlightColor,
-                width: 2
+            $(document).on('click', '#btn_struktur', function() {
+                // console.log('asoy');
+                $('#modal_struktur').modal('show');
             });
-            chart
-                .series()
-                .points([selectedPoint, 'up'])
-                .options({
-                    selected: true,
-                    muted: false
-                });
-        }
-    }
+            $(document).on('click', '.click_asoy', function() {
 
-    function resetStyles(chart) {
-        chart.connectors();
-        chart
-            .series()
-            .points()
-            .options({
-                selected: false,
-                muted: false
+                let id_jabatan = $(this).data('id_jabatan');
+                let url = "{{ url('/struktur_organisasi/dt_karyawan') }}" + "/" + id_jabatan;
+                $('#tabel_karyawan').DataTable().destroy()
+                // console.log(url);
+                $.ajax({
+                    url: url,
+                    method: 'GET',
+                    contentType: false,
+                    cache: false,
+                    processData: false,
+                    // data: {
+                    //     id_dept: id_dept
+                    // },
+                    // beforeSend: function() {
+                    //     Swal.fire({
+                    //         title: 'Mohon tunggu...',
+                    //         text: 'Sedang memproses data',
+                    //         allowOutsideClick: false,
+                    //         didOpen: () => {
+                    //             Swal.showLoading();
+                    //         }
+                    //     });
+                    // },
+                    success: function(response) {
+                        Swal.close();
+
+                        // console.log(response);
+                        $('#modal_karyawan').modal('show');
+                        var table = $('#tabel_karyawan').DataTable({
+                            pageLength: 50,
+                            "scrollY": true,
+                            "scrollX": true,
+                            processing: true,
+                            serverSide: true,
+                            ajax: {
+                                url: "{{ url('/struktur_organisasi/dt_karyawan') }}" +
+                                    "/" +
+                                    id_jabatan,
+                            },
+                            columns: [{
+                                    data: "id_approval",
+
+                                    render: function(data, type, row, meta) {
+                                        return meta.row + meta.settings
+                                            ._iDisplayStart + 1;
+                                    }
+                                },
+
+                                {
+                                    data: 'nama',
+                                    name: 'nama'
+                                },
+                            ],
+                            order: [
+                                [1, 'asc']
+                            ]
+                        });
+
+                    },
+                    error: function(data) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.responseJSON.message ||
+                                'Terjadi kesalahan pada server',
+                        });
+                    },
+
+                })
             });
-    }
+            $('#jabatan_add').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih jabatan",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur')
+            });
+            $('#bawahan_add').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih jabatan",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur')
+            });
+            $('#nama_dept_update').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Departemen",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur_bawahan')
+            });
+            $('#nama_divisi_update').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Divisi",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur_bawahan')
+            });
+            $('#nama_bagian_update').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Bagian",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur_bawahan')
+            });
+            $('#bawahan_update').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Bawahan",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur_bawahan')
+            });
 
-    function getImgText(name) {
-        return (
-            '<img width=50 height=50 style="border-radius:50%;" align=center margin_bottom=4 margin_top=4 src=' +
-            name +
-            '><br>'
-        );
-    }
-</script>
-<script>
-    var selectedPoint1;
-    var highlightColor1 = '#5C6BC0',
-        mutedHighlightColor1 = '#9FA8DA',
-        mutedFill1 = '#f3f4fa',
-        selectedFill1 = '#E8EAF6',
-        normalFill1 = 'white',
-        highlightDirection1 = 'Down';
-    var points1 = <?php echo json_encode($user1) ?>;
+            $('#parent_update').select2({
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Atasan",
+                allowClear: true,
+                dropdownParent: $('#modal_struktur_update')
+            });
+            var table = $('#table_struktur').DataTable({
+                pageLength: 50,
+                "scrollY": true,
+                "scrollX": true,
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ url('/dt_struktur/') }}",
+                },
+                columns: [{
+                        data: "jabatan",
+                        name: "jabatan"
+                    },
+                    {
+                        data: "parent",
+                        name: "parent"
+                    },
+                    {
+                        data: "kuota_karyawan",
+                        name: "kuota_karyawan"
+                    },
+                    {
+                        data: "option",
+                        name: "option"
+                    },
+                ],
+                order: [
+                    [2, 'asc']
+                ]
+            });
 
-    // console.log(points);
-    var chart1 = JSC.chart('chartDiv2', {
-        debug: true,
-        type: 'organizational',
-        defaultTooltip_enabled: true,
+            function showSelectLoading(selectId) {
+                $(selectId).prop('disabled', true)
+                    .closest('.form-floating')
+                    .find('.select-loader')
+                    .removeClass('d-none');
+            }
 
-        /* These options will apply to all annotations including point nodes. */
-        defaultAnnotation: {
-            padding: [5, 10],
-            margin: 6
-        },
-        annotations: [{
-            position: 'bottom',
-            label_text: 'STRUKTUR ORGANISASI PT. SURYA PANGAN SEMESTA'
-        }],
+            function showTableLoading() {
+                $('#tableLoading').removeClass('d-none');
+            }
 
-        defaultSeries: {
-            color: normalFill,
-            /* Point selection is disabled because it is managed manually with point click events. */
-            pointSelection: false
-        },
+            function hideTableLoading() {
+                $('#tableLoading').addClass('d-none');
+            }
 
+            function hideSelectLoading(selectId) {
+                $(selectId).prop('disabled', false)
+                    .closest('.form-floating')
+                    .find('.select-loader')
+                    .addClass('d-none');
+            }
+            $('#btn_add_struktur').click(function() {
+                $('#modal_struktur').modal('hide');
+                var jabatan = $('#jabatan_add').val();
+                var bawahan = $('#bawahan_add').val();
+                var kuota_atasan = $('#kuota_atasan_add').val();
+                var kuota_bawahan = $('#kuota_bawahan_add').val();
+                // console.log(id_karyawan, jenjang, jurusan, tahun_masuk, tahun_lulus, nama_instansi);
+                $.ajax({
+                    url: "{{ url('/struktur_store/' . $holding->id) }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        jabatan: jabatan,
+                        bawahan: bawahan,
+                        kuota_atasan: kuota_atasan,
+                        kuota_bawahan: kuota_bawahan,
+                        menu_id: menu_id
+                    },
+                    beforeSend: function() {
+                        Swal.fire({
+                            title: 'Mohon tunggu...',
+                            text: 'Sedang memproses data',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.code == 200) {
+                            $('#btn_struktur').hide()
+                            $('#modal_struktur').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                            })
+                        } else if (data.code == 400) {
+                            let errors = response.errors;
+                            let errorMessages = '';
 
-        defaultPoint: {
-            focusGlow: true,
-            connectorLine: {
-                color: '#e0e0e0',
-                radius: [10, 3]
-            },
-            label: {
-                text: '%photo%name<br><span style="color:#9E9E9E">%role</span>',
-                style_color: 'black'
-            },
-            outline: {
-                color: '#e0e0e0',
-                width: 1
-            },
-            annotation: {
-                syncHeight_with: 'level'
-            },
-            states: {
-                mute: {
-                    opacity: 0.8,
-                    outline: {
-                        color: mutedHighlightColor1,
-                        opacity: 0.9,
-                        width: 2
+                            Object.keys(errors).forEach(function(key) {
+                                errors[key].forEach(function(message) {
+                                    errorMessages += `• ${message}<br>`;
+                                });
+                            });
+
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Validasi Gagal',
+                                html: errorMessages,
+                            });
+                        } else {
+                            let errors = '';
+                            $.each(response.message, function(key, value) {
+                                errors += value.join('<br>') + '<br>';
+                            });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: errors,
+                            })
+                        }
+                        loadTreeview();
+                        $('#form_add_struktur').trigger('reset');
+                        // table.ajax.reload();
+                    },
+                    error: function(data) {
+                        Swal.close();
+                        // console.log(data);
+                        $('#form_add_struktur').trigger('reset');
+                        $('#modal_struktur').modal('hide');
+                        let errors = '';
+                        $.each(data.responseJSON.message, function(key, value) {
+                            errors += value.join('<br>') + '<br>';
+                        });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: errors,
+                        });
+
                     }
-                },
-                select: {
-                    enabled: true,
-                    outline: {
-                        color: highlightColor1,
-                        width: 2
-                    },
-                    color: selectedFill1
-                },
-                hover: {
-                    outline: {
-                        color: mutedHighlightColor1,
-                        width: 2
-                    },
-                    color: mutedFill1
-                }
-            },
-            events: {
-                click: pointClick1,
-                mouseOver: pointMouseOver1,
-                mouseOut: pointMouseOut1
-            }
-        },
-        series: [{
-            points: points1
-        }]
-    });
-
-    /** 
-     * Event Handlers 
-     */
-
-    function pointClick1() {
-        var point = this,
-            chart = point.chart;
-        // console.log(point.userOptions.attributes.role, chart);
-        resetStyles1(chart);
-        if (point.id === selectedPoint1) {
-            selectedPoint1 = undefined;
-            return;
-        }
-        switch (highlightDirection1) {
-            case 'Up':
-                highlightUp(point.id);
-                break;
-            case 'Down':
-                highlightDown1(point.id);
-                break;
-            case 'Both':
-                highlightUp1(point.id);
-                highlightDown1(point.id);
-        }
-        chart
-            .series()
-            .points([point.id, 'up'])
-            .options({
-                muted: true
-            });
-
-        function highlightUp1(id) {
-            chart.connectors([id, 'up'], {
-
-                width: 2
-            });
-            chart
-                .series()
-                .points([id, 'up'])
-                .options({
-                    selected: true,
-                    muted: false
                 });
-        }
 
-        // Use the muted state to highlight points down the tree. 
-        function highlightDown1(id) {
-            chart.connectors([id, 'down'], {
-
-                width: 2
             });
-            chart
-                .series()
-                .points([id, 'down'])
-                .options({
-                    selected: false,
-                    muted: true
-                });
-        }
-        updateInfo1(point);
-        selectedPoint1 = point.id;
-        styleSelectedPoint1(chart);
-    }
+            $(document).on('click', '#btn-delete-struktur', function() {
+                let id = $(this).data('id'); // ambil id dari tombol
+                // console.log(menu_id);
+                Swal.fire({
+                    title: 'Apakah kamu yakin?',
+                    text: "Data struktur akan dihapus permanen!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.value) { // v9 pakai result.value, bukan result.isConfirmed
+                        $.ajax({
+                            url: "{{ url('/struktur/struktur_delete') }}",
+                            type: "POST",
+                            data: {
+                                _token: "{{ csrf_token() }}",
+                                id: id,
+                                menu_id: menu_id
 
-    function reset(c) {
-        c.connectors();
-        c.series()
-            .points()
-            .options({
-                selected: false
-            });
-        var el1 = document.getElementById('keterangan_karyawan_sps');
-        el1.innerHTML = '';
-    }
-
-    function updateInfo1(point) {
-        var chart = point.chart,
-            pathSelection = [
-                point.id,
-                highlightDirection
-            ],
-            paths = chart.connectors(pathSelection, {});
-        var html =
-            ' Daftar Karyawan : <br/>';
-
-        var pathList =
-            '<li>' +
-            point.userOptions.user +
-            '</li>';
-        console.log(point.userOptions.user);
-        html += '<ul>' + pathList + '</ul>';
-
-        var el = document.getElementById('keterangan_karyawan_sps');
-        el.innerHTML = html;
-
-        function idToPointName1(id) {
-            var point = chart.series().points(id);
-            var user = chart.series().points(user);
-            console.log(point.x, point.id);
-            return point.x || point.name;
-        }
-    }
-
-    function pointMouseOver1() {
-        var point = this,
-            chart = point.chart;
-        chart.connectors([point.id, 'up'], {
-            color: mutedHighlightColor,
-            width: 2
-        });
-    }
-
-    function pointMouseOut1() {
-        var point = this,
-            chart = point.chart;
-        // Reset point and line styling. 
-        resetStyles1(chart);
-        // Style clicked points 
-        styleSelectedPoint1(chart);
-        return false;
-    }
-
-    function styleSelectedPoint1(chart) {
-        if (selectedPoint1) {
-            chart.connectors([selectedPoint1, 'up'], {
-                color: highlightColor1,
-                width: 2
-            });
-            chart
-                .series()
-                .points([selectedPoint1, 'up'])
-                .options({
-                    selected: true,
-                    muted: false
-                });
-        }
-    }
-
-    function resetStyles1(chart) {
-        chart.connectors();
-        chart
-            .series()
-            .points()
-            .options({
-                selected: false,
-                muted: false
-            });
-    }
-
-    function getImgText1(name) {
-        return (
-            '<img width=50 height=50 style="border-radius:50%;" align=center margin_bottom=4 margin_top=4 src=' +
-            name +
-            '><br>'
-        );
-    }
-</script>
-
-<script>
-    var selectedPoint2;
-    var highlightColor2 = '#5C6BC0',
-        mutedHighlightColor2 = '#9FA8DA',
-        mutedFill2 = '#f3f4fa',
-        selectedFill2 = '#E8EAF6',
-        normalFill2 = 'white',
-        highlightDirection2 = 'Down';
-    var points2 = <?php echo json_encode($user2) ?>;
-
-
-    console.log(points2);
-    var chart2 = JSC.chart('chartDiv3', {
-        debug: true,
-        type: 'organizational',
-        defaultTooltip_enabled: true,
-
-        /* These options will apply to all annotations including point nodes. */
-        defaultAnnotation: {
-            padding: [5, 10],
-            margin: 6
-        },
-        annotations: [{
-            position: 'bottom',
-            label_text: 'STRUKTUR ORGANISASI CV. SURYA INTI PANGAN'
-        }],
-
-        defaultSeries: {
-            color: normalFill,
-            /* Point selection is disabled because it is managed manually with point click events. */
-            pointSelection: false
-        },
-        defaultPoint: {
-            focusGlow: false,
-            connectorLine: {
-                color: '#e0e0e0',
-                radius: [10, 3]
-            },
-            label: {
-                text: '%photo%name<br><span style="color:#9E9E9E">%role</span>',
-                style_color: 'black'
-            },
-            outline: {
-                color: '#e0e0e0',
-                width: 1
-            },
-            annotation: {
-                syncHeight_with: 'level'
-            },
-            states: {
-                mute: {
-                    opacity: 0.8,
-                    outline: {
-                        color: mutedHighlightColor2,
-                        opacity: 0.9,
-                        width: 2
+                            },
+                            beforeSend: function() {
+                                Swal.fire({
+                                    title: 'Mohon tunggu...',
+                                    text: 'Sedang menghapus data',
+                                    allowOutsideClick: false,
+                                    onBeforeOpen: () => {
+                                        Swal.showLoading();
+                                    }
+                                });
+                            },
+                            success: function(response) {
+                                Swal.close();
+                                table.ajax.reload();
+                                if (response.code == 200) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Berhasil',
+                                        text: response.message
+                                    });
+                                    loadTreeview();
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Gagal',
+                                        text: response.message
+                                    });
+                                }
+                            },
+                            error: function() {
+                                Swal.close();
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: 'Terjadi kesalahan pada server'
+                                });
+                            }
+                        });
                     }
-                },
-                select: {
-                    enabled: true,
-                    outline: {
-                        color: highlightColor2,
-                        width: 2
-                    },
-                    color: selectedFill2
-                },
-                hover: {
-                    outline: {
-                        color: mutedHighlightColor2,
-                        width: 2
-                    },
-                    color: mutedFill2
-                }
-            },
-            events: {
-                click: pointClick2,
-                mouseOver: pointMouseOver2,
-                mouseOut: pointMouseOut2
-            }
-        },
-        series: [{
-            points: points2
-        }]
-    });
-
-    /** 
-     * Event Handlers 
-     */
-
-    function pointClick2() {
-        var point = this,
-            chart = point.chart;
-        // console.log(point.userOptions.attributes.role, chart);
-        resetStyles2(chart);
-        if (point.id === selectedPoint2) {
-            selectedPoint2 = undefined;
-            return;
-        }
-        switch (highlightDirection1) {
-            case 'Up':
-                highlightUp(point.id);
-                break;
-            case 'Down':
-                highlightDown2(point.id);
-                break;
-            case 'Both':
-                highlightUp2(point.id);
-                highlightDown2(point.id);
-        }
-        chart
-            .series()
-            .points([point.id, 'up'])
-            .options({
-                muted: true
-            });
-
-        function highlightUp2(id) {
-            chart.connectors([id, 'up'], {
-
-                width: 2
-            });
-            chart
-                .series()
-                .points([id, 'up'])
-                .options({
-                    selected: true,
-                    muted: false
                 });
-        }
-
-        // Use the muted state to highlight points down the tree. 
-        function highlightDown2(id) {
-            chart.connectors([id, 'down'], {
-
-                width: 2
             });
-            chart
-                .series()
-                .points([id, 'down'])
-                .options({
-                    selected: false,
-                    muted: true
+            $(document).on('click', '#btn-update-struktur', function() {
+                var id = $(this).data('id');
+                var kuota_karyawan = $(this).data('kuota_karyawan');
+                var jabatan = $(this).data('jabatan');
+                var status_pegawai = $(this).data('status_pegawai');
+
+                // console.log(status_pegawai);
+                $('#id_update').val(id);
+                $('#kuota_karyawan_update').val(kuota_karyawan);
+                $('#status_pegawai_update2').val(status_pegawai);
+                // $('#jabatan_update').val(jabatan);
+
+                // if (status_pegawai == null || status_pegawai == "") {
+                //     $('#status_pegawai_update2').val('');
+                // } else {
+                //     $('#status_pegawai_update2').val(status_pegawai.toString());
+                // }
+                Swal.fire({
+                    title: 'Mohon Tunggu...',
+                    html: 'Sedang memuat data...',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
                 });
-        }
-        updateInfo2(point);
-        selectedPoint2 = point.id;
-        styleSelectedPoint2(chart);
-    }
+                $.ajax({
+                    url: "{{ url('struktur_get_parent') }}" + '/' + id + '/' + holding_id,
+                    type: "GET",
+                    dataType: "json",
+                    beforeSend: function() {
+                        $('#parent_update').html(`
+                            <option value="">Loading...</option>
+                        `);
+                    },
+                    success: function(response) {
+                        // let html = '<'
+                        // console.log(response.struktur_get);
+                        let html =
+                            `<option value="${response.struktur_parent?.id ?? ''}">${response.struktur_parent?.parent?.jabatan.nama_jabatan ?? '-'}&nbsp;BAGIAN&nbsp;${response.struktur_parent?.parent?.jabatan.bagian.nama_bagian ?? '-'}</option>`;
+                        response.struktur_get.forEach((item) => {
+                            html +=
+                                `<option value="${item.id ?? ''}"> ${item?.jabatan.nama_jabatan ?? '-'}&nbsp;BAGIAN&nbsp;${item?.jabatan.bagian.nama_bagian ?? '-'}</option>`;
+                        });
+                        $('#parent_update').html(html);
 
-    function reset(c) {
-        c.connectors();
-        c.series()
-            .points()
-            .options({
-                selected: false
+                        Swal.close();
+
+                        $('#modal_struktur_update').modal('show');
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: 'Data gagal dimuat.'
+                        });
+                    }
+                });
+
             });
-        var el2 = document.getElementById('keterangan_karyawan_sip');
-        el2.innerHTML = '';
-    }
+            // $(document).on('select2:open', '#parent_update', function() {
+            //     var id = $('#id_update').val();
+            //     // console.log(id);
 
-    function updateInfo2(point) {
-        var chart = point.chart,
-            pathSelection = [
-                point.id,
-                highlightDirection
-            ],
-            paths = chart.connectors(pathSelection, {});
-        var html =
-            ' Daftar Karyawan : <br/>';
+            // });
+            $('#btn_update_struktur').click(function() {
+                $('#modal_struktur_update').modal('hide');
+                var id = $('#id_update').val();
+                var kuota_karyawan = $('#kuota_karyawan_update').val();
+                var parent_update = $('#parent_update').val();
+                var status_pegawai = $('#status_pegawai_update2').val();
+                // console.log(id_karyawan, jenjang, jurusan, tahun_masuk, tahun_lulus, nama_instansi);
+                $.ajax({
+                    url: "{{ url('/struktur_update/' . $holding->id) }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        id: id,
+                        kuota_karyawan: kuota_karyawan,
+                        menu_id: menu_id,
+                        status_pegawai: status_pegawai,
+                        parent: parent_update
+                    },
+                    beforeSend: function() {
+                        Swal.fire({
+                            title: 'Mohon tunggu...',
+                            text: 'Sedang memproses data',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.code == 200) {
+                            $('#btn_struktur').hide()
+                            $('#modal_struktur_update').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                            })
+                        } else {
+                            let errors = '';
+                            $.each(response.message, function(key, value) {
+                                errors += value.join('<br>') + '<br>';
+                            });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: errors,
+                            })
+                        }
+                        loadTreeview();
 
-        var pathList =
-            '<li>' +
-            point.userOptions.user +
-            '</li>';
-        console.log(point.userOptions.user);
-        html += '<ul>' + pathList + '</ul>';
+                        $('.form-select')[0].reset();
+                        table.ajax.reload();
+                    },
+                    error: function(data) {
+                        Swal.close();
+                        // console.log(data);
+                        $('#form_add_struktur').trigger('reset');
+                        $('#modal_struktur').modal('hide');
+                        let errors = '';
+                        $.each(data.responseJSON.message, function(key, value) {
+                            errors += value.join('<br>') + '<br>';
+                        });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: errors,
+                        });
 
-        var el = document.getElementById('keterangan_karyawan_sip');
-        el.innerHTML = html;
+                    }
+                });
 
-        function idToPointName2(id) {
-            var point = chart.series().points(id);
-            var user = chart.series().points(user);
-            console.log(point.x, point.id);
-            return point.x || point.name;
-        }
-    }
+            });
+            $(document).on('click', '#btn-add-bawahan', function() {
 
-    function pointMouseOver2() {
-        var point = this,
-            chart = point.chart;
-        chart.connectors([point.id, 'up'], {
-            color: mutedHighlightColor,
-            width: 2
+                var id = $(this).data('id');
+                var level = $(this).data('level');
+                var holding_code = '{{ $holding->holding_code }}'
+                var kuota_karyawan = $(this).data('kuota_karyawan');
+                var jabatan = $(this).data('jabatan');
+                // console.log(kuota_karyawan);
+                $('#id_atasan').val(id);
+                $('#kuota_karyawan_bawahan').val(kuota_karyawan);
+                $('#jabatan_bawahan').val(jabatan);
+                $(document)
+                    .off('change', '#nama_dept_update')
+                    .on('change', '#nama_dept_update', function() {
+                        showSelectLoading('#nama_divisi_update');
+                        showSelectLoading('#nama_bagian_update');
+                        showSelectLoading('#bawahan_update');
+                        let id_dept = $('#nama_dept_update').val();
+                        if (!id_dept) {
+                            hideSelectLoading('#nama_divisi_update');
+                            hideSelectLoading('#nama_bagian_update');
+                            hideSelectLoading('#bawahan_update');
+
+                            $('#nama_divisi_update').html('');
+                            $('#nama_bagian_update').html('');
+                            $('#bawahan_update').html('');
+
+                            return;
+                        }
+                        // console.log(id_dept);
+                        let url = "{{ url('/struktur_bawahan/divisi/') }}" + "/" + id_dept + "/" +
+                            holding_id;
+                        // console.log(url);
+                        $.ajax({
+                            url: url,
+                            method: 'GET',
+                            contentType: false,
+                            cache: false,
+                            processData: false,
+
+                            success: function(response) {
+                                hideSelectLoading('#nama_divisi_update');
+
+                                $('#nama_divisi_update').html(response);
+                            },
+                            error: function(data) {
+                                hideSelectLoading('#nama_divisi_update');
+                                hideSelectLoading('#nama_bagian_update');
+                                hideSelectLoading('#bawahan_update');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.responseJSON.message
+                                });
+
+                            },
+
+                        })
+                    })
+                $(document)
+                    .off('change', '#nama_divisi_update')
+                    .on('change', '#nama_divisi_update', function() {
+                        showSelectLoading('#nama_bagian_update');
+                        showSelectLoading('#bawahan_update');
+                        let id_divisi = $(this).val();
+                        if (!id_divisi) {
+                            hideSelectLoading('#nama_bagian_update');
+                            hideSelectLoading('#bawahan_update');
+
+                            $('#nama_bagian_update').html('');
+                            $('#bawahan_update').html('');
+
+                            return;
+                        }
+                        let url = "{{ url('/struktur_bawahan/bagian') }}" + "/" + id_divisi;
+
+                        $.ajax({
+                            url: url,
+                            method: 'GET',
+                            contentType: false,
+                            cache: false,
+                            processData: false,
+
+                            success: function(response) {
+                                hideSelectLoading('#nama_bagian_update');
+                                $('#nama_bagian_update').html(response);
+                            },
+                            error: function(data) {
+                                hideSelectLoading('#nama_divisi_update');
+                                hideSelectLoading('#nama_bagian_update');
+                                hideSelectLoading('#jabatan_update');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.responseJSON.message
+                                });
+                            },
+
+                        })
+                    })
+                $(document)
+                    .off('change', '#nama_bagian_update')
+                    .on('change', '#nama_bagian_update', function() {
+                        showSelectLoading('#bawahan_update');
+                        let id_bagian = $(this).val();
+                        if (!id_bagian) {
+                            hideSelectLoading('#bawahan_update');
+
+                            $('#bawahan_update').html('');
+
+                            return;
+                        }
+                        let url = "{{ url('/struktur_bawahan_select') }}" + "/" +
+                            id_bagian;
+                        $.ajax({
+                            url: url,
+                            method: 'GET',
+                            contentType: false,
+                            cache: false,
+                            processData: false,
+
+                            success: function(response) {
+                                hideSelectLoading('#bawahan_update');
+
+                                $('#bawahan_update').html(response);
+                            },
+                            error: function(data) {
+                                hideSelectLoading('#bawahan_update');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: data.responseJSON.message
+                                });
+                            },
+
+                        })
+                    });
+                $('#modal_struktur_bawahan').modal('show');
+            });
+            $('#btn_bawahan_struktur').click(function() {
+                $('#modal_struktur_bawahan').modal('hide');
+                var id = $('#id_atasan').val();
+                var kuota_karyawan = $('#kuota_karyawan_bawahan').val();
+                var bawahan = $('#bawahan_update').val();
+                var status_pegawai = $('#status_pegawai_update').val();
+                // console.log(id_karyawan, jenjang, jurusan, tahun_masuk, tahun_lulus, nama_instansi);
+                $.ajax({
+                    url: "{{ url('/struktur_bawahan/' . $holding->id) }}",
+                    type: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        id: id,
+                        kuota_karyawan: kuota_karyawan,
+                        bawahan: bawahan,
+                        menu_id: menu_id,
+                        status_pegawai: status_pegawai,
+                    },
+                    beforeSend: function() {
+                        Swal.fire({
+                            title: 'Mohon tunggu...',
+                            text: 'Sedang memproses data',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                    },
+                    success: function(response) {
+                        Swal.close();
+                        if (response.code == 200) {
+                            $('#btn_struktur').hide()
+                            $('#modal_struktur_bawahan').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                            })
+                        } else if (response.code == 400) {
+                            let errors = response.errors;
+                            let errorMessages = '';
+
+                            Object.keys(errors).forEach(function(key) {
+                                errors[key].forEach(function(message) {
+                                    errorMessages += `• ${message}\n`;
+                                });
+                            });
+                            Swal.fire({
+                                text: errorMessages,
+                                icon: 'warning',
+                                timer: 4500
+                            });
+                        } else {
+                            let errors = '';
+                            $.each(response.message, function(key, value) {
+                                errors += value.join('<br>') + '<br>';
+                            });
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                html: errors,
+                            })
+                        }
+                        loadTreeview();
+
+                        $('.form-select').val(null).trigger('change');
+                        table.ajax.reload();
+                    },
+                    error: function(data) {
+                        Swal.close();
+                        // console.log(data);
+                        $('#form_add_struktur').trigger('reset');
+                        $('#modal_struktur').modal('hide');
+                        let errors = '';
+                        $.each(data.responseJSON.message, function(key, value) {
+                            errors += value.join('<br>') + '<br>';
+                        });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: errors,
+                        });
+
+                    }
+                });
+
+            });
         });
-    }
-
-    function pointMouseOut2() {
-        var point = this,
-            chart = point.chart;
-        // Reset point and line styling. 
-        resetStyles2(chart);
-        // Style clicked points 
-        styleSelectedPoint2(chart);
-        return false;
-    }
-
-    function styleSelectedPoint2(chart) {
-        if (selectedPoint2) {
-            chart.connectors([selectedPoint2, 'up'], {
-                color: highlightColor2,
-                width: 2
-            });
-            chart
-                .series()
-                .points([selectedPoint2, 'up'])
-                .options({
-                    selected: true,
-                    muted: false
-                });
-        }
-    }
-
-    function resetStyles2(chart) {
-        chart.connectors();
-        chart
-            .series()
-            .points()
-            .options({
-                selected: false,
-                muted: false
-            });
-    }
-
-    function getImgText2(name) {
-        return (
-            '<img width=50 height=50 style="border-radius:50%;" align=center margin_bottom=4 margin_top=4 src=' +
-            name +
-            '><br>'
-        );
-    }
-</script>
-
-
+    </script>
 @endsection

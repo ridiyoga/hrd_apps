@@ -5,7 +5,8 @@
 
     <!-- Meta -->
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" />
 
     <title>HRD-APP | ADMIN</title>
 
@@ -14,12 +15,11 @@
     <link rel="apple-touch-icon" href="{{ asset('holding/assets/img/logosp.png') }}">
     <link rel="manifest" href="{{ asset('/manifest.json') }}">
 
-    <!-- Favicons Icon -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&ampdisplay=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="{{asset('admin/assets/vendor/fonts/materialdesignicons.css')}}" />
+    <link rel="stylesheet" href="{{ asset('admin/assets/vendor/fonts/materialdesignicons.css') }}" />
 
 
     <!-- Stylesheets -->
@@ -27,7 +27,6 @@
     <link rel="stylesheet" href="{{ asset('assets/assets_users/vendor/swiper/swiper-bundle.min.css') }}">
 
     <style>
-        /* --- ELEGANT BASE STYLES --- */
         :root {
             --primary-purple: #673ab7;
             /* Your original primary color */
@@ -37,309 +36,263 @@
             --card-bg: #ffffff;
         }
 
-        .page-wraper {
-            min-height: 100vh;
-            background-color: #f0f0f0;
-            /* Light background for the overall page */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f4f7fe;
+            color: #1a1c2d;
         }
 
-        /* --- ENHANCED BACKGROUND (HEADER) --- */
-        .stripe_background {
+        /* Hero Section - Gradient Ungu Modern */
+        .holding-hero-section {
+            padding: 50px 0 50px;
             background: linear-gradient(0deg, var(--light-purple) 0%, var(--primary-purple) 100%);
-            color: var(--text-light);
-            padding: 80px 20px 150px 20px;
-            /* More vertical padding */
-            position: relative;
-            min-height: 40vh;
-            overflow: hidden;
-            border-bottom-left-radius: 50px;
-            border-bottom-right-radius: 50px;
-            z-index: 1;
-            display: flex;
-            /* Use flexbox for easy centering */
-            align-items: center;
-            /* Center vertically */
-            justify-content: center;
-            /* Center horizontally */
+            /* Ungu ke Biru */
+            border-radius: 0 0 40px 40px;
         }
 
-        /* Removing the old ::after for stripe_background as we're rebuilding the wave below */
-        .stripe_background::after {
-            display: none;
-            /* Hide the previous, simpler ::after */
-        }
-
-        /* New: Wavy bottom for the header background */
-        .stripe_background::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 120px;
-            /* Height of the wave */
-            background-color: var(--card-bg);
-            /* Match content background */
-            /* More complex SVG-like wave effect */
-            clip-path: ellipse(150% 100% at 50% 100%);
-            z-index: 2;
-            /* Ensure it overlaps the gradient background */
-        }
-
-        .holding-header-content {
-            /* Renamed from .holding-header for clarity */
-            position: relative;
-            z-index: 3;
-            /* Ensure text is above the wave and other elements */
-            margin-top: -50px;
-            /* Adjust if needed to position title better with the wave */
-            text-align: center;
-            width: 100%;
-            max-width: 800px;
-            /* Limit width for better readability */
-            padding: 20px 30px;
-            border-radius: 15px;
-            /* Subtle frosted glass or soft white background for the title */
-            background: rgba(255, 255, 255, 0.15);
-            /* Slightly transparent white */
-            backdrop-filter: blur(5px);
-            /* Frosted glass effect */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            /* Soft shadow for depth */
-            animation: fadeIn 1s ease-out forwards;
-            /* Simple animation */
-        }
 
         .holding-title {
-            font-family: 'Poppins', sans-serif;
-            /* Example: Use a modern font, ensure it's loaded */
-            font-weight: 700;
-            font-size: 3.2rem;
-            /* Larger and bolder */
-            letter-spacing: 2px;
-            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
-            /* Stronger, softer shadow for text */
+            /* font-family: 'Plus Jakarta Sans', sans-serif; */
+            font-weight: 800;
+            font-size: 3.0rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
             color: #ffffff;
-            /* Pure white text for contrast */
-            margin: 0;
-            /* Remove default margin */
-            padding: 10px 0;
-            line-height: 1.2;
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+
         }
 
-        /* --- CARD STYLES (The core "elegance") --- */
-
-        /* Container for the cards to position them over the background */
-        .card-container-row {
-            position: relative;
-            margin-top: -120px;
-            /* Pull the cards up further to align with the wave */
-            z-index: 10;
-        }
-
-        .holding-card-elegant {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: none;
-            border-radius: 15px;
-            /* Softer rounded corners */
-            background-color: var(--card-bg);
-            /* Subtle, multi-level box shadow for depth */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 0 5px rgba(0, 0, 0, 0.05);
-            min-height: 220px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .holding-card-elegant a {
-            color: inherit;
-            text-decoration: none;
-            display: block;
-            height: 100%;
-        }
-
-        .holding-card-elegant:hover {
-            transform: translateY(-8px) scale(1.02);
-            /* More noticeable lift and subtle growth */
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-            /* Stronger shadow on hover */
-        }
-
-        .card-title-elegant {
+        .sub-title {
+            /* font-family: 'Plus Jakarta Sans', sans-serif; */
             font-weight: 600;
-            color: var(--primary-purple);
-            /* Highlight the title with the primary color */
-            margin-bottom: 15px;
-            font-size: 1.5rem;
+            font-size: 1.0rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            color: #ffffff;
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
         }
 
-        .location-cite {
-            font-size: 0.9rem;
-            color: #6c757d;
-            font-style: normal;
-            margin-top: 10px;
-        }
-
-        .location-text {
-            color: var(--text-dark);
-            font-size: 0.95rem;
-            margin: 5px 0 0 0;
+        /* Link Wrapper agar tinggi sinkron */
+        .holding-link {
+            text-decoration: none !important;
             display: flex;
-            align-items: flex-start;
+            /* Penting untuk h-100 */
         }
 
-        .location-text i {
-            margin-right: 8px;
-            color: var(--light-purple);
-            /* Icon color matching the header */
-            font-size: 1.1rem;
-        }
-
-        /* Logo/Image Overlay */
-        .logo-overlay {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            width: 60px;
-            /* Smaller, modern logo placement */
-            height: 60px;
-            opacity: 0.8;
-        }
-
-        .logo-overlay img {
+        /* Card Styling */
+        .holding-card-modern {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            background: #fff;
             width: 100%;
-            height: 100%;
+        }
+
+        /* Logo Wrapper - Dibuat lebih tipis */
+        .card-logo-wrapper {
+            padding: 25px 20px;
+            /* Space dikurangi */
+            background: #fcfcfc;
+            border-bottom: 1px inset #f1f1f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 120px;
+            /* Tinggi logo area dikunci */
+        }
+
+        .holding-logo-img {
+            max-height: 70px;
+            /* Ukuran logo lebih terkontrol */
+            max-width: 180px;
             object-fit: contain;
         }
 
-        .holding-card-elegant:hover .logo-overlay {
-            opacity: 0.4;
-            /* Slightly more visible on hover */
-        }
-
-        /* Footer Logos (simplified for all screen sizes) */
-        .footer-logos {
-            position: fixed;
-            bottom: 10px;
-            width: 100%;
+        .card-body-content {
+            padding: 20px;
             display: flex;
-            justify-content: space-between;
-            padding: 0 5%;
-            z-index: 20;
+            flex-direction: column;
+            flex-grow: 1;
+            /* Mengambil sisa ruang agar footer terdorong ke bawah */
         }
 
-        .footer-logos img {
-            width: 70px;
-            /* Standard size for all small logos */
-            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.4));
+        .holding-name {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
         }
 
-        .text_version_app {
-            position: fixed;
-            bottom: 5px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.8rem;
-            color: #6c757d;
-            z-index: 20;
+        /* Container Lokasi - Menjaga keseragaman tinggi */
+        .location-scroll-container {
+            min-height: 90px;
+            /* Menjamin kartu yang lokasinya sedikit tetap punya tinggi yang sama */
         }
 
-        .app-footer {
-            width: 100%;
-            padding: 20px 0;
-            margin-top: 50px;
-            /* Memberi jarak dari cards di atasnya */
-            background-color: #f8f9fa;
-            /* Warna latar belakang abu-abu muda yang bersih */
-            border-top: 1px solid #e9ecef;
-            /* Garis tipis di atas untuk pemisah */
-            text-align: center;
-            position: relative;
-            z-index: 10;
-        }
-
-        .footer-content {
+        .location-label {
+            font-size: 0.7rem;
+            color: #999;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 8px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
+            gap: 4px;
         }
 
-        .footer-logo-container {
+        .site-list {
             display: flex;
-            gap: 20px;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
         }
 
-        .footer-logo {
-            width: 60px;
-            /* Ukuran logo yang lebih kecil dan konsisten */
-            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
-            transition: transform 0.3s ease;
-        }
-
-        .footer-logo:hover {
-            transform: scale(1.05);
-        }
-
-        .text_version_app {
-            font-size: 0.85rem;
-            color: #6c757d;
+        .site-badge {
+            font-size: 0.72rem;
+            background: #f7f7f7;
+            /* Ungu sangat muda */
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid #efeef7;
             font-weight: 500;
         }
 
-        /* Hidden elements for a cleaner look */
-        .img_beras,
-        .scaleX-n1-rtl {
-            display: none !important;
+        /* Footer Action */
+        .card-footer-action {
+            padding: 15px 20px;
+            background: #fbfbfb;
+            color: #6a11cb;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 0 0 16px 16px;
+            border-top: 1px solid #f1f1f1;
         }
 
-        /* Animation Keyframes */
-        @keyframes fadeIn {
+        /* Hover State */
+        .holding-link:hover .holding-card-modern {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(106, 17, 203, 0.2);
+        }
+
+        .holding-link:hover .card-footer-action {
+            background: #6a11cb;
+            color: #fff;
+        }
+
+        .brand-text {
+            font-weight: 800;
+            color: #1a1c2d;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .version-text {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .v-num {
+            font-weight: 700;
+            color: #6d28d9;
+        }
+
+        /* ================= GLOBAL LOADING (MODERN) ================= */
+        .global-loading {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .global-loading.d-none {
+            display: none;
+        }
+
+        .loading-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 28px 34px;
+            min-width: 220px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, .12), 0 4px 12px rgba(0, 0, 0, .06);
+            animation: loadingPop .25s ease;
+        }
+
+        @keyframes loadingPop {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: scale(.95);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: scale(1);
             }
         }
 
-        @media (max-width: 991px) {
-            .stripe_background {
-                padding-top: 60px;
-                padding-bottom: 100px;
-            }
+        /* Container kustom untuk loader */
+        .custom-loader-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0;
+        }
 
-            .holding-title {
-                font-size: 2.2rem;
-                letter-spacing: 1px;
-            }
+        /* Animasi Double Ring yang Elegan */
+        .modern-spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 14px;
+            border: 4px solid rgba(102, 108, 255, 0.1);
+            border-left-color: #666cff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: relative;
+        }
 
-            .holding-header-content {
-                margin-top: -30px;
-                padding: 15px 20px;
-            }
+        .modern-spinner::before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border: 4px solid rgba(102, 108, 255, 0.1);
+            border-left-color: #00cfe8;
+            border-radius: 50%;
+            animation: spin 2s linear infinite;
+        }
 
-            .card-container-row {
-                margin-top: -80px;
-            }
-
-            .stripe_background::before {
-                height: 80px;
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
             }
         }
 
-        @media (max-width: 576px) {
-            .holding-title {
-                font-size: 1.8rem;
+        /* Efek teks berdenyut (Pulse) */
+        .pulse-text {
+            animation: pulse 1.5s ease-in-out infinite;
+            font-weight: 500;
+            color: #5d596c;
+            letter-spacing: 1px;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
             }
 
-            .holding-header-content {
-                padding: 10px 15px;
+            50% {
+                opacity: 0.5;
             }
         }
     </style>
@@ -347,38 +300,60 @@
 </head>
 
 <body>
-    <div class="page-wraper">
+    <!-- GLOBAL LOADING -->
+    <div id="global-loading" class="global-loading d-none">
+        <div class="loading-card">
+            <div class="modern-spinner"></div>
+            <div class="loading-title">
+                <span id="loading-text">Memproses</span>
+                <span class="loading-dots"></span>
+            </div>
+            <div class="loading-subtitle">Mohon tunggu sebentar</div>
+        </div>
+    </div>
+    <div class="page-wraper bg-light" style="min-height: 100vh; padding-bottom: 80px;">
         <div class="page-content">
             @include('sweetalert::alert')
+
             <div class="content-body">
-                <div class="stripe_background">
-                    <div class="container d-flex justify-content-center"> {{-- Added d-flex and justify-content-center here --}}
-                        <div class="holding-header-content"> {{-- New wrapper for the title styling --}}
-                            <h1 class="holding-title">SILAHKAN PILIH HOLDING</h1>
-                        </div>
+                <div class="holding-hero-section">
+                    <div class="container text-center">
+                        <h1 class="holding-title">Silahkan Pilih Holding</h1>
+                        <p class="sub-title">Akses dashboard Manajemen HRD sesuai Holding yang anda pilih</p>
                     </div>
                 </div>
 
-                <div class="container">
-                    <div class="row card-container-row g-4 justify-content-center">
-                        @foreach($holding as $data)
-                        <div class="col-sm-6 col-md-6 col-lg-4">
-                            <a href=" {{ url('dashboard/option/'.$data->holding_code) }}" class="text-decoration-none">
-                                <div class="card holding-card-elegant">
-                                    <div class="card-body">
-                                        <h4 class="card-title-elegant mb-1">{{$data->holding_name}}</h4>
-                                        <figcaption class="location-cite">
-                                            Lokasi Holding
-                                        </figcaption>
-                                        @foreach($data->Site as $site)
-                                        <p class="location-text">
-                                            <i class="mdi mdi-map-marker-outline"></i>
-                                            <span>{{$site->site_alamat}}</span>
-                                        </p>
-                                        @endforeach
+                <div class="container mt-n5 mb-5">
+                    <div class="row g-4 justify-content-center">
+                        @foreach ($holding as $data)
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <a href="{{ url('dashboard/switch/' . $data->holding_code) }}" class="holding-link h-100">
+                                <div class="card holding-card-modern h-100">
+                                    <div class="card-logo-wrapper">
+                                        <img src="{{ asset('storage/holding_image/' . $data->holding_image) }}"
+                                            alt="{{ $data->holding_name }} Logo"
+                                            class="holding-logo-img">
                                     </div>
-                                    <div class="logo-overlay">
-                                        <img src="{{ asset('holding/assets/img/'.$data->holding_image) }}" alt="{{$data->holding_name}} Logo" />
+                                    <div class="card-body-content">
+                                        <h5 class="holding-name text-center text-uppercase">{{ $data->holding_name }}</h5>
+
+                                        <div class="location-scroll-container">
+                                            <div class="location-label">
+                                                <p>
+                                                    <i class="mdi mdi-map-marker-outline"></i>
+                                                    Alamat Holding
+                                                </p>
+                                            </div>
+                                            <div class="site-list">
+                                                @foreach ($data->Site as $site)
+                                                <span class="site-badge">{{ $site->site_alamat }}</span>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer-action mt-auto">
+                                        <span>Pilih Holding</span>
+                                        <i class="mdi mdi-arrow-right-circle-outline"></i>
                                     </div>
                                 </div>
                             </a>
@@ -386,89 +361,177 @@
                         @endforeach
                     </div>
                 </div>
-
-                <footer class="app-footer">
-                    <p class="text_version_app">Versi Aplikasi <span style="font-weight: 700;">V1.0.0</span></p>
-                </footer>
             </div>
         </div>
+
+        <footer class="modern-sticky-footer">
+            <div class="container d-flex justify-content-between align-items-center">
+                <div class="footer-left">
+                    <span class="brand-text">HRD-APPS</span>
+                </div>
+                <div class="footer-right">
+                    <span class="version-text">Versi Aplikasi <span class="v-num">V1.1.0</span></span>
+                </div>
+            </div>
+        </footer>
     </div>
-    <script src="{{ asset('assets/assets_users/js/jquery.js') }}"></script>
-    <script src="{{ asset('assets/assets_users/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{asset('assets/assets_users/vendor/swiper/swiper-bundle.min.js')}}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
-    <!-- <script src="{{ asset('/sw.js') }}"></script> -->
-    <script>
-        if ("serviceWorker" in navigator) {
-            // Register a service worker hosted at the root of the
-            // site using the default scope.
-            navigator.serviceWorker.register("/sw.js").then(
-                (registration) => {
-                    console.log("Service worker registration succeeded:", registration);
-                },
-                (error) => {
-                    console.error(`Service worker registration failed: ${error}`);
-                },
-            );
-        } else {
-            console.error("Service workers are not supported.");
-        }
-    </script>
-    <script>
-        $("document").ready(function() {
-            // console.log('ok');
-            setTimeout(function() {
-                // console.log('ok1');
-                $("#alert_logout_success").remove();
-            }, 7000); // 7 secs
-
-        });
-        $("document").ready(function() {
-            // console.log('ok');
-            setTimeout(function() {
-                // console.log('ok1');
-                $("#alert_login_error").remove();
-            }, 7000); // 7 secs
-
-        });
-        $(document).on('click', '#btn_login', function(e) {
-            Swal.fire({
-                allowOutsideClick: false,
-                background: 'transparent',
-                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-                showCancelButton: false,
-                showConfirmButton: false,
-                onBeforeOpen: () => {
-                    // Swal.showLoading()
-                },
-            });
-        });
-        window.onbeforeunload = function() {
-            Swal.fire({
-                allowOutsideClick: false,
-                background: 'transparent',
-                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-                showCancelButton: false,
-                showConfirmButton: false,
-                onBeforeOpen: () => {
-                    // Swal.showLoading()
-                },
-            });
-        };
-
-        $("document").ready(function() {
-            $('#password_show').change(function() {
-                var x = document.getElementById("dz-password");
-                var ok = $(this).is(':checked');
-                if (ok == true) {
-                    x.type = "text";
-                } else {
-                    x.type = "password";
-
-                }
-            });
-        });
-    </script>
 </body>
+<script src="{{ asset('assets/assets_users/js/jquery.js') }}"></script>
+<script src="{{ asset('assets/assets_users/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ asset('assets/assets_users/vendor/swiper/swiper-bundle.min.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- <script src="{{ asset('/sw.js') }}"></script> -->
+<script>
+    (function() {
+
+        const overlay = document.getElementById('global-loading');
+        const loadingText = document.getElementById('loading-text');
+
+        let shown = false;
+
+        function showLoading(text = 'Memuat halaman') {
+            if (!overlay || shown) return;
+
+            shown = true;
+            loadingText.textContent = text;
+
+            overlay.classList.remove('d-none');
+            document.body.style.pointerEvents = 'none';
+        }
+
+        function hideLoading() {
+            if (!overlay) return;
+
+            overlay.classList.add('d-none');
+            document.body.style.pointerEvents = '';
+
+            shown = false;
+        }
+
+        function getTextByHref(href) {
+
+            if (!href) return 'Memuat halaman';
+
+            if (href.includes('dashboard')) return 'Memuat Dashboard';
+            if (href.includes('departemen')) return 'Memuat Departemen';
+            if (href.includes('divisi')) return 'Memuat Divisi';
+            if (href.includes('bagian')) return 'Memuat Bagian';
+            if (href.includes('jabatan')) return 'Memuat Jabatan';
+            if (href.includes('holding')) return 'Memuat Holding';
+            if (href.includes('karyawan')) return 'Memuat Karyawan';
+            if (href.includes('recruitment')) return 'Memuat Recruitment';
+            if (href.includes('report')) return 'Memuat Laporan';
+
+            return 'Memuat halaman';
+        }
+
+        /* ================= FORM SUBMIT ================= */
+
+        document.addEventListener('submit', function(e) {
+
+            const form = e.target;
+
+            const btn = document.activeElement;
+
+            const methodInput = form.querySelector('input[name="_method"]');
+
+            const method = methodInput ?
+                methodInput.value.toUpperCase() :
+                (form.method || 'GET').toUpperCase();
+
+            if (btn?.dataset?.loading) {
+                return showLoading(btn.dataset.loading);
+            }
+
+            if (method === 'DELETE') return showLoading('Menghapus data');
+
+            if (method === 'PUT' || method === 'PATCH')
+                return showLoading('Memperbarui data');
+
+            if (method === 'POST')
+                return showLoading('Menyimpan data');
+
+            showLoading('Memproses data');
+
+        }, true);
+
+        /* ================= LINK CLICK ================= */
+
+        document.addEventListener('click', function(e) {
+
+            const el = e.target.closest('a,button');
+
+            if (!el) return;
+
+            /* Skip Bootstrap UI */
+
+            if (
+                el.hasAttribute('data-bs-toggle') ||
+                el.getAttribute('role') === 'tab' ||
+                el.closest('.nav-tabs') ||
+                el.closest('.nav-pills')
+            ) {
+                return;
+            }
+
+            /* Skip submit button */
+
+            if (el.tagName === 'BUTTON' && el.type === 'submit')
+                return;
+
+            if (el.closest('form'))
+                return;
+
+            /* Anchor */
+
+            if (el.tagName === 'A') {
+
+                const href = el.getAttribute('href');
+
+                if (
+                    !href ||
+                    href === '#' ||
+                    href.startsWith('#') ||
+                    href.startsWith('javascript') ||
+                    el.target === '_blank' ||
+                    el.hasAttribute('download') ||
+                    el.hasAttribute('data-no-loading')
+                ) {
+                    return;
+                }
+
+                const text = el.dataset.loading || getTextByHref(href);
+
+                showLoading(text);
+
+            }
+
+        }, true);
+
+        /* ================= PAGE LOAD ================= */
+
+        window.addEventListener('load', function() {
+            hideLoading();
+        });
+
+        window.addEventListener('pageshow', function() {
+            hideLoading();
+        });
+
+        window.addEventListener('beforeunload', function() {
+
+            if (overlay) {
+                overlay.classList.remove('d-none');
+            }
+
+        });
+
+        /* expose */
+
+        window.showGlobalLoading = showLoading;
+        window.hideGlobalLoading = hideLoading;
+
+    })();
+</script>
 
 </html>

@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\SsoController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -19,7 +20,14 @@ Route::middleware('guest')->group(function () {
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
+    Route::get('user/login', [AuthenticatedSessionController::class, 'create_user'])
+        ->name('login_user');
 
+    Route::get('auth/sso', [SsoController::class, 'redirect'])->name('sso.login');
+    Route::get('auth/callback', [SsoController::class, 'callback'])->name('sso.callback');
+
+    Route::post('/login-user-proses', [AuthenticatedSessionController::class, 'store_user'])
+        ->name('login_user.proses');
     Route::post('/login-proses', [AuthenticatedSessionController::class, 'store'])
         ->name('login.proses');
 
@@ -35,6 +43,8 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
+
+Route::post('auth/logout', [SsoController::class, 'logout'])->name('sso.logout');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
@@ -57,4 +67,6 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+    Route::post('logout_user', [AuthenticatedSessionController::class, 'destroy_user'])
+        ->name('logout_user');
 });

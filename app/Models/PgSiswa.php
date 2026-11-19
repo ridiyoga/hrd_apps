@@ -10,6 +10,7 @@ class PgSiswa extends Model
     public $table = 'ujian_pg_siswa';
     // Disable the model timestamps
     public $timestamps = false;
+    protected $keyType = 'string';
     use HasFactory;
 
     protected $guarded = ['id'];

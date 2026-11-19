@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class RecruitmentUserRecord extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $table = 'recruitment_user_record';
     public $incrementing = false;
     public $timestamps = false;

@@ -1,0 +1,4 @@
+# Konfigurasi minimal untuk pembangkitan kunci RSA pengujian di Windows/Linux.
+[req]
+distinguished_name = req_distinguished_name
+[req_distinguished_name]

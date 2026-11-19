@@ -1,604 +1,691 @@
 @extends('users.layouts.main')
-@section('title') APPS | KARYAWAN - SP @endsection
-@section('content')
-<!-- Categorie -->
-<div class="fixed-content p-0" style=" border-radius: 10px; margin-top: 0%;box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); ">
-    <div class=" container" style="margin-top: -5%;">
-        <div class="card" style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-            <div class="card-body">
-                <div class="row">
+@section('title')
+    APPS | KARYAWAN - SP
+@endsection
+@section('css')
+    <style>
+        .form-input {
+            position: relative;
+        }
 
-                    <h5 class="dz-title">
-                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" height="18px" width="18px" viewBox="0 0 512 512" xml:space="preserve">
-                            <rect x="77.913" y="50.352" style="fill:#365558;" width="178.087" height="453.698" />
-                            <rect x="256" y="50.352" style="fill:#687F82;" width="178.087" height="453.698" />
-                            <polygon style="fill:#E6EAEA;" points="111.834,84.273 111.834,474.369 319.602,474.369 400.166,393.805 400.166,84.273 " />
-                            <g>
-                                <rect x="111.834" y="84.273" style="fill:#CDD4D5;" width="144.166" height="390.095" />
-                                <polygon style="fill:#CDD4D5;" points="319.602,393.805 319.602,474.369 400.166,393.805  " />
-                            </g>
-                            <path style="fill:#FF8C29;" d="M306.165,50.352C302.127,26.289,281.211,7.95,256,7.95c-25.211,0-46.126,18.339-50.165,42.402  h-34.638v63.602h169.607V50.352H306.165z" />
-                            <path style="fill:#F0353D;" d="M205.835,50.352h-34.638v63.602H256V7.95C230.789,7.95,209.874,26.289,205.835,50.352z" />
-                            <circle style="fill:#4ACFD9;" cx="256" cy="253.88" r="93.284" />
-                            <path style="fill:#0295AA;" d="M162.716,253.88c0,51.165,41.194,92.701,92.224,93.27V160.61  C203.911,161.179,162.716,202.715,162.716,253.88z" />
-                            <path style="fill:#FFFFFF;" d="M224.199,299.992c-2.034,0-4.07-0.776-5.621-2.328l-25.441-25.441c-3.105-3.106-3.105-8.139,0-11.244  c3.105-3.104,8.139-3.104,11.243,0l19.82,19.82l68.581-68.581c3.105-3.104,8.139-3.104,11.243,0c3.105,3.106,3.105,8.139,0,11.244  l-74.203,74.203C228.268,299.216,226.233,299.992,224.199,299.992z" />
-                            <path d="M434.087,42.402h-93.284h-28.318C305.306,17.472,282.542,0,256,0s-49.305,17.472-56.485,42.402h-28.318H77.913  c-4.391,0-7.95,3.559-7.95,7.95V504.05c0,4.392,3.56,7.95,7.95,7.95h356.174c4.391,0,7.95-3.559,7.95-7.95V50.352  C442.037,45.96,438.478,42.402,434.087,42.402z M392.215,385.855h-72.613c-4.391,0-7.95,3.559-7.95,7.95v72.613H119.785V92.224  h43.462v21.731c0,4.392,3.56,7.95,7.95,7.95h169.607c4.391,0,7.95-3.559,7.95-7.95V92.224h43.462V385.855z M380.971,401.756  l-53.419,53.419v-53.419H380.971z M256,15.901c21.045,0,38.846,15.042,42.324,35.767c0.007,0.045,0.02,0.086,0.028,0.129  c0.024,0.13,0.053,0.26,0.084,0.388c0.028,0.118,0.057,0.235,0.09,0.351c0.035,0.123,0.073,0.243,0.113,0.364  c0.041,0.122,0.086,0.243,0.133,0.361c0.042,0.107,0.085,0.213,0.131,0.318c0.058,0.13,0.121,0.258,0.186,0.385  c0.046,0.089,0.09,0.178,0.139,0.265c0.078,0.14,0.162,0.275,0.248,0.408c0.046,0.071,0.088,0.142,0.136,0.212  c0.103,0.151,0.213,0.294,0.325,0.436c0.038,0.049,0.074,0.101,0.114,0.148c0.156,0.187,0.318,0.368,0.49,0.538  c0.001,0.001,0.002,0.002,0.003,0.003c0.172,0.171,0.351,0.333,0.536,0.488c0.071,0.059,0.147,0.112,0.221,0.17  c0.116,0.09,0.231,0.18,0.352,0.263c0.094,0.066,0.193,0.125,0.29,0.186c0.106,0.067,0.212,0.134,0.321,0.195  c0.105,0.059,0.212,0.113,0.32,0.167c0.11,0.056,0.22,0.11,0.334,0.161c0.108,0.049,0.217,0.093,0.328,0.137  c0.122,0.049,0.245,0.093,0.37,0.136c0.105,0.035,0.209,0.07,0.316,0.102c0.144,0.042,0.289,0.078,0.436,0.112  c0.092,0.021,0.182,0.045,0.276,0.063c0.185,0.036,0.374,0.063,0.563,0.086c0.058,0.007,0.117,0.018,0.175,0.023  c0.255,0.025,0.513,0.04,0.774,0.04c0.004,0,0.008-0.001,0.013-0.001h26.685v25.971v21.732H179.147V84.273V58.302h26.688  c0.038,0,0.075-0.005,0.113-0.005c0.174-0.002,0.347-0.013,0.518-0.027c0.092-0.007,0.184-0.014,0.276-0.023  c0.172-0.019,0.34-0.047,0.509-0.077c0.092-0.017,0.184-0.032,0.276-0.051c0.159-0.035,0.315-0.077,0.471-0.121  c0.098-0.028,0.195-0.053,0.29-0.085c0.145-0.047,0.286-0.102,0.427-0.156c0.101-0.039,0.202-0.077,0.301-0.12  c0.134-0.058,0.262-0.124,0.391-0.189c0.1-0.05,0.2-0.099,0.297-0.154c0.127-0.071,0.25-0.148,0.373-0.227  c0.091-0.057,0.183-0.113,0.272-0.175c0.125-0.086,0.244-0.179,0.364-0.272c0.079-0.061,0.16-0.122,0.237-0.187  c0.122-0.102,0.237-0.211,0.353-0.321c0.068-0.065,0.137-0.127,0.202-0.194c0.114-0.117,0.222-0.239,0.329-0.363  c0.059-0.069,0.122-0.137,0.179-0.208c0.101-0.124,0.194-0.253,0.287-0.384c0.057-0.08,0.116-0.158,0.17-0.24  c0.082-0.124,0.157-0.252,0.232-0.382c0.056-0.098,0.114-0.194,0.166-0.294c0.061-0.118,0.118-0.239,0.174-0.36  c0.055-0.12,0.111-0.239,0.161-0.361c0.043-0.108,0.082-0.218,0.121-0.329c0.05-0.142,0.1-0.285,0.141-0.43  c0.03-0.102,0.054-0.206,0.079-0.31c0.038-0.156,0.074-0.312,0.104-0.472c0.007-0.04,0.019-0.08,0.026-0.12  C217.155,30.943,234.954,15.901,256,15.901z M426.137,496.099H85.863V58.302h77.383v18.021h-51.412c-4.391,0-7.95,3.559-7.95,7.95  v390.095c0,4.392,3.56,7.95,7.95,7.95h207.768c0.262,0,0.524-0.014,0.784-0.039c0.12-0.012,0.235-0.034,0.354-0.051  c0.138-0.02,0.278-0.036,0.414-0.064c0.136-0.026,0.266-0.064,0.399-0.098c0.119-0.03,0.239-0.056,0.355-0.091  c0.129-0.039,0.254-0.088,0.382-0.134c0.118-0.042,0.236-0.082,0.353-0.129c0.119-0.049,0.233-0.107,0.349-0.162  c0.119-0.056,0.24-0.109,0.356-0.172c0.111-0.059,0.216-0.127,0.324-0.192c0.115-0.069,0.231-0.134,0.343-0.209  c0.118-0.078,0.228-0.165,0.34-0.25c0.095-0.071,0.192-0.137,0.284-0.212c0.19-0.156,0.371-0.32,0.545-0.493  c0.012-0.013,0.025-0.022,0.037-0.034l80.563-80.563c0.011-0.011,0.019-0.022,0.03-0.033c0.174-0.176,0.34-0.358,0.497-0.549  c0.075-0.092,0.141-0.189,0.212-0.284c0.085-0.113,0.173-0.224,0.251-0.341c0.075-0.113,0.141-0.23,0.211-0.347  c0.064-0.106,0.13-0.211,0.189-0.32c0.064-0.12,0.119-0.243,0.176-0.365c0.053-0.113,0.109-0.224,0.158-0.339  c0.05-0.12,0.089-0.242,0.133-0.363c0.045-0.123,0.092-0.246,0.13-0.372c0.037-0.122,0.064-0.245,0.094-0.368  c0.032-0.128,0.068-0.255,0.094-0.386c0.029-0.144,0.046-0.288,0.066-0.434c0.016-0.112,0.037-0.223,0.049-0.336  c0.025-0.262,0.04-0.526,0.039-0.789V84.273c0-4.392-3.56-7.95-7.95-7.95h-51.411V58.302h77.383V496.099z" />
-                            <path d="M256,152.646c-55.821,0-101.234,45.413-101.234,101.234S200.179,355.114,256,355.114s101.234-45.413,101.234-101.234  S311.821,152.646,256,152.646z M256,339.213c-47.053,0-85.333-38.28-85.333-85.333s38.28-85.333,85.333-85.333  s85.333,38.28,85.333,85.333S303.053,339.213,256,339.213z" />
-                        </svg>
-                        Approval
-                    </h5>
+        /* Offcanvas Kedua (Konfirmasi) */
+        #off-canvas-konfirmasi-save {
+            z-index: 1085 !important;
+        }
+
+        /* Backdrop untuk Offcanvas Kedua */
+        /* Ini sedikit trik karena Bootstrap pakai satu class backdrop */
+        #off-canvas-terlambat {
+            z-index: 1060 !important;
+        }
+
+        .offcanvas-backdrop+.offcanvas-backdrop {
+            z-index: 1070 !important;
+            opacity: 0.2 !important;
+            /* Buat backdrop kedua lebih tipis agar tidak gelap total */
+        }
+
+        /* ICON */
+        .form-input .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .profile-card {
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+        }
+
+        .profile-tabs {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-bottom: none;
+        }
+
+        .profile-tabs .nav-link {
+            border: none;
+            border-radius: 14px;
+            padding: 8px 12px;
+            background: #f3e8ff;
+            color: #6b21a8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .profile-tabs .nav-link.active {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(168, 85, 247, 0.4);
+        }
+
+        .profile-tabs .nav-link i {
+            font-size: 12px;
+        }
+
+        @media (max-width: 576px) {
+            .profile-card {
+                border-radius: 12px;
+            }
+
+            .profile-tabs span {
+                font-size: 10px;
+            }
+        }
+
+        /* Memaksa kalender muncul di paling depan */
+        .daterangepicker {
+            z-index: 9999 !important;
+            /* Angka tinggi agar di atas elemen apapun */
+            border: none !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            border-radius: 12px !important;
+            padding: 8px !important;
+            margin-top: 5px !important;
+        }
+
+        /* Menghilangkan panah kecil di atas kalender agar lebih clean */
+        .daterangepicker:before,
+        .daterangepicker:after {
+            display: none !important;
+        }
+
+        .daterangepicker .ranges li.active {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+        }
+
+        .daterangepicker td.active,
+        .daterangepicker td.active:hover {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .daterangepicker td.in-range {
+            background-color: #dcd9fa;
+            border-color: transparent;
+            color: #000;
+            border-radius: 0;
+        }
+
+        /* Responsif Mobile */
+        @media (max-width: 768px) {
+            .daterangepicker {
+                width: 90% !important;
+                left: 5% !important;
+                right: 5% !important;
+                position: fixed !important;
+                /* Membuatnya 'floating' di tengah layar mobile */
+                top: 20% !important;
+            }
+
+            .daterangepicker .drp-calendar {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Style Signature Pad */
+        .kbw-signature {
+            width: 100%;
+            height: 160px;
+            border: 1px solid #f3e8ff !important;
+            background: #ffffff;
+        }
+
+        #sig canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .border-dashed {
+            border: 2px dashed #d8b4fe !important;
+        }
+
+        .opacity-75 {
+            opacity: 0.75;
+        }
+
+        /* Agar tulisan di dalam kotak otorisasi rapi */
+        .bg-light small {
+            letter-spacing: 0.5px;
+        }
+
+        .futuristic-header {
+            padding: 28px 20px 18px;
+        }
+
+        .futuristic-header h5 {
+            color: --primary();
+            font-weight: 600;
+        }
+
+        .futuristic-header small {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .futuristic-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+        }
+
+        .coworker-card {
+            background: linear-gradient(135deg, #f5edff, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card-history {
+            background: linear-gradient(135deg, #cffbd1, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .icon-box-success {
+            background: linear-gradient(135deg, #cffbd1, #ffffff);
+            width: 55px;
+            height: 55px;
+            line-height: 50px;
+            text-align: center;
+            border: 1px solid #8ae68f;
+            border-radius: 50%;
+        }
+
+        .icon-box-success i {
+            color: #2f7e32;
+        }
+
+        .icon-box-reject {
+            background: linear-gradient(135deg, #fbcfcf, #ffffff);
+            width: 55px;
+            height: 55px;
+            line-height: 50px;
+            text-align: center;
+            border: 1px solid #dc8888;
+            border-radius: 50%;
+        }
+
+        .icon-box-reject i {
+            color: #8b3838;
+        }
+
+        .coworker-card-reject {
+            background: linear-gradient(135deg, #fbcfcf, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(111, 66, 193, 0.18);
+        }
+
+        .skeleton {
+            display: inline-block;
+            background: linear-gradient(90deg,
+                    #ede9fe 25%,
+                    #f5f3ff 37%,
+                    #ede9fe 63%);
+            background-size: 400% 100%;
+            animation: pulse 1.4s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        .skeleton-number {
+            display: inline-block;
+            /* ⬅️ WAJIB */
+            width: 2ch;
+            height: 30px;
+            /* ⬅️ samakan dengan h3 */
+            vertical-align: middle;
+            /* ⬅️ penting */
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: .5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .form-control {
+            border-radius: 12px;
+            padding-left: 42px;
+            height: 44px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .form-input {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .form-input .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            /* transform: translateY(-50%); */
+            color: #6f42c1;
+            font-size: 14px;
+        }
+
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                SELECT LOADING
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      ================================ */
+        .select-loader {
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            transform: translateY(-50%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                DOT LOADER (3 DOT)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ================================ */
+        .dot-loader {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot-loader span {
+            width: 6px;
+            height: 6px;
+            background-color: #7367f0;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: dotPulse 1.2s infinite ease-in-out;
+        }
+
+        .dot-loader span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .dot-loader span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot-loader span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotPulse {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        .quota-card-sm {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px 5px;
+            border: 1px solid #edf2f7;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-purple {
+            background: #f8f7ff;
+            border: 1px solid #e9e5ff;
+        }
+
+        .q-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #718096;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .q-value-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .q-value {
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .q-unit {
+            font-size: 9px;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+
+        /* Warna Khusus */
+        .text-purple {
+            color: #6b46c1;
+        }
+
+        .text-purple-bold {
+            color: #553c9a;
+        }
+
+        .bg-purple {
+            background-color: #6b46c1;
+        }
+
+        /* Aksen Bar di bawah card */
+        .q-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            opacity: 0.6;
+        }
+
+
+
+        .btn-quota-modern {
+            background: linear-gradient(135deg, #6f42c1 0%, #a855f7 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 6px 6px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(111, 66, 193, 0.3);
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        /* Efek saat tombol ditekan (Mobile Touch) */
+        .btn-quota-modern:active {
+            transform: scale(0.97);
+            box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .icon-box {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .text-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .btn-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-subtitle {
+            font-size: 11px;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+
+        .arrow-icon {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Aksen Abstrak di dalam tombol */
+        .btn-quota-modern::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .badge-status-right {
+            position: absolute;
+            /* Sesuaikan top agar sejajar lurus dengan teks "SALDO CUTI" */
+            top: 20px;
+            /* Jarak dari kanan (sebelum tombol close) */
+            right: 5px;
+
+            background-color: #e8fadf;
+            color: #28a745;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 50px;
+            /* Bentuk kapsul lebih elegan */
+            text-transform: uppercase;
+            border: 1px solid #c3e6cb;
+        }
+
+        .filter-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Warna ungu lembut untuk select box */
+        .form-select-purple {
+            border-color: #d6bcfa !important;
+            /* Soft purple border */
+            color: #4a5568;
+        }
+
+        .form-select-purple:focus {
+            border-color: #9f7aea !important;
+            box-shadow: 0 0 0 0.25rem rgba(159, 122, 234, 0.25) !important;
+        }
+
+        /* Tombol warna ungu estetik */
+        .btn-purple {
+            background-color: #805ad5 !important;
+            border-color: #805ad5 !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-purple:hover {
+            background-color: #6b46c1 !important;
+            border-color: #6b46c1 !important;
+            box-shadow: 0 4px 6px -1px rgba(128, 90, 213, 0.2), 0 2px 4px -1px rgba(128, 90, 213, 0.1) !important;
+        }
+
+        .btn-purple:active {
+            background-color: #553c9a !important;
+        }
+    </style>
+@endsection
+@section('content_top')
+    <div class="card">
+        <div class="futuristic-header text-center">
+            <div class="futuristic-icon">
+                <i class="fa-solid fa-user-clock"></i>
+            </div>
+            <h5 class="mt-3 mb-1">Approval</h5>
+            <small class="text-muted">Halaman pengesahan semua pengajuan karyawan</small>
+        </div>
+
+        <div class="card-body px-3 px-md-4">
+            <div class="row g-3 justify-content-start text-center my-1">
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/approval/dashboard/cuti/' . $menu_id) }}"
+                        class="btn btn-success d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-umbrella-beach"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Cuti</span>
+                </div>
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/izin/terlambat_approval/' . $menu_id) }}"
+                        class="btn btn-primary d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-business-time"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Terlambat</span>
+                </div>
+
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/izin/pulang_approval/' . $menu_id) }}"
+                        class="btn btn-warning d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-plane-departure"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Pulang</span>
+                </div>
+
+            </div>
+        </div>
+        <div class="card-body px-3 px-md-4">
+            <div class="row g-3 justify-content-start text-center my-1">
+
+
+
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/izin/keluar_approval/' . $menu_id) }}"
+                        class="btn btn-info text-white d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-door-open"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Keluar</span>
+                </div>
+                <div class="col-4 d-flex flex-column align-items-center">
+
+                    <a href="{{ url('/izin/sakit_approval/' . $menu_id) }}"
+                        class="btn btn-secondary d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-stethoscope"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Sakit</span>
+
+                </div>
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/izin/libur_approval/' . $menu_id) }}"
+                        class="btn btn-primary d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-retweet"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Tukar Libur</span>
                 </div>
             </div>
         </div>
-        <div class="col-lg-12">
-            <div class="card" style="margin-top: 0%;">
-                <nav>
-                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                        <button class="nav-link active" id="nav-izin-tab" data-bs-toggle="tab" data-bs-target="#nav-izin" type="button" role="tab" aria-controls="nav-izin" aria-selected="true">Izin</button>
-                        <button class="nav-link" id="nav-cuti-tab" data-bs-toggle="tab" data-bs-target="#nav-cuti" type="button" role="tab" aria-controls="nav-cuti" aria-selected="false">Cuti</button>
-                        <button class="nav-link" id="nav-penugasan-tab" data-bs-toggle="tab" data-bs-target="#nav-penugasan" type="button" role="tab" aria-controls="nav-penugasan" aria-selected="false">Penugasan</button>
-                    </div>
-                </nav>
-                <div class="tab-content" id="nav-tabContent" style="margin-top: 2%;">
-                    <div class="tab-pane fade show active" id="nav-izin" role="tabpanel" aria-labelledby="nav-izin-tab">
-                        @if ($dataizin->count() > 0)
-                        @foreach ($dataizin as $dataizin)
-                        <a id="btn_klik" href="{{ url('/izin/approve/'.$dataizin->id) }}">
-                            <div class="swiper-slide">
-                                <div class="card job-post" style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1); margin-bottom: 4%;">
-                                    <div class="card-body" style="padding: 6px;">
-                                        <div class="media media-70">
-                                            @if($dataizin->User != '')
-                                            @if($dataizin->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$dataizin->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;">{{ $dataizin->fullname }}</h6>
-                                            <span class="location">{{ $dataizin->izin }}</span>
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($dataizin->tanggal)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endforeach
-                        @else
-                        <div class="text-center">
-                            <h5>Data Approval Tidak Ada</h5>
-                        </div>
-                        @endif
-                    </div>
-                    <div class="tab-pane fade" id="nav-cuti" role="tabpanel" aria-labelledby="nav-cuti-tab">
-                        @if ($datacuti_tingkat1->count() > 0 || $datacuti_tingkat2->count() > 0)
-                        @foreach ($datacuti_tingkat1 as $datacuti)
-                        <a id="btn_klik" href="{{ url('/cuti/approve/'.$datacuti->id) }}">
-                            <div class="swiper-slide">
-                                <div class="card job-post">
-                                    <div class="card-body" style="padding: 6x;">
-                                        <div class="media media-70">
-                                            @if($datacuti->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$datacuti->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;"><a href="javascript:void(0);">{{$datacuti->name}}</a></h6>
-                                            @if($datacuti->nama_cuti=='Diluar Cuti Tahunan')
-                                            <span class="location">{{ $datacuti->KategoriCuti->nama_cuti }}</span>
-                                            @else
-                                            <span class="location">{{ $datacuti->nama_cuti }}</span>
-                                            @endif
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($datacuti->tanggal)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endforeach
-                        @foreach ($datacuti_tingkat2 as $datacuti)
-                        <a id="btn_klik" href="{{ url('/cuti/approve/'.$datacuti->id) }}">
-                            <div class="swiper-slide">
-                                <div class="card job-post">
-                                    <div class="card-body" style="padding: 6x;">
-                                        <div class="media media-70">
-                                            @if($datacuti->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$datacuti->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;"><a href="javascript:void(0);">{{$datacuti->name}}</a></h6>
-                                            @if($datacuti->nama_cuti=='Diluar Cuti Tahunan')
-                                            <span class="location">{{ $datacuti->KategoriCuti->nama_cuti }}</span>
-                                            @else
-                                            <span class="location">{{ $datacuti->nama_cuti }}</span>
-                                            @endif
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($datacuti->tanggal)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endforeach
-                        @else
-                        <div class="text-center">
-                            <h5>Data Approval Tidak Ada</h5>
-                        </div>
-                        @endif
-                    </div>
-                    <div class="tab-pane fade" id="nav-penugasan" role="tabpanel" aria-labelledby="nav-penugasan-tab">
-                        @if($datapenugasan->count() > 0)
-                        @foreach ($datapenugasan as $datapenugasan)
-                        @if($datapenugasan->status_penugasan == 1)
-                        @if($datapenugasan->id_user_atasan == $user_karyawan->id)
-                        @if($datapenugasan->ttd_id_diminta_oleh == NULL)
-                        <a id="btn_klik" href="{{ url('/penugasan/approve/diminta/show/'.$datapenugasan->id) }}">
-                            <div class="swiper-slide swiper-slide-active">
-                                <div class="card job-post">
-                                    <div class="card-body" style="padding: 6px;">
-                                        <div class="media media-70">
-                                            @if($datapenugasan->User != '')
-                                            @if($datapenugasan->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$datapenugasan->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;">{{ $datapenugasan->nama_diajukan }}</h6>
-                                            <span class="location">Penugasan {{ $datapenugasan->penugasan }}</span>
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($datapenugasan->tanggal_pengajuan)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endif
-                        @endif
-                        @elseif($datapenugasan->status_penugasan == 2)
-                        @if($datapenugasan->id_user_atasan2 == $user_karyawan->id)
-                        @if($datapenugasan->ttd_id_disahkan_oleh == NULL)
-                        <a id="btn_klik" href="{{ url('/penugasan/approve/diminta/show/'.$datapenugasan->id) }}">
-                            <div class="swiper-slide  swiper-slide-active">
-                                <div class="card job-post">
-                                    <div class="card-body" style="padding: 6px;">
-                                        <div class="media media-70">
-                                            @if($datapenugasan->User != '')
-                                            @if($datapenugasan->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$datapenugasan->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;">{{ $datapenugasan->nama_diajukan }}</h6>
-                                            <span class="location">Penugasan {{ $datapenugasan->penugasan }}</span>
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($datapenugasan->tanggal_pengajuan)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endif
-                        @endif
-                        @elseif($datapenugasan->status_penugasan == 3)
-                        @if($datapenugasan->id_user_hrd==Auth::user()->id)
-                        @if($datapenugasan->ttd_proses_hrd == NULL)
-                        <a id="btn_klik" href="{{ url('/penugasan/approve/diminta/show/'.$datapenugasan->id) }}">
-                            <div class="swiper-slide  swiper-slide-active">
-                                <div class="card job-post">
-                                    <div class="card-body" style="padding: 6px;">
-                                        <div class="media media-70">
-                                            @if($datapenugasan->User != '')
-                                            @if($datapenugasan->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$datapenugasan->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;">{{ $datapenugasan->nama_diajukan }}</h6>
-                                            <span class="location">Penugasan {{ $datapenugasan->penugasan }}</span>
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($datapenugasan->tanggal_pengajuan)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endif
-                        @endif
-                        @elseif($datapenugasan->status_penugasan == 4)
-                        @if($datapenugasan->id_user_finance==Auth::user()->id)
-                        @if($datapenugasan->ttd_proses_finance == NULL)
-                        <a id="btn_klik" href="{{ url('/penugasan/approve/diminta/show/'.$datapenugasan->id) }}">
-                            <div class="swiper-slide  swiper-slide-active">
-                                <div class="card job-post">
-                                    <div class="card-body" style="padding: 6px;">
-                                        <div class="media media-70">
-                                            @if($datapenugasan->User != '')
-                                            @if($datapenugasan->User->foto_karyawan != '')
-                                            <img src="{{asset('../storage/app/public/foto_karyawan/'.$datapenugasan->User->foto_karyawan)}}" alt="/">
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                            @else
-                                            <img src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/">
-                                            @endif
-                                        </div>
-                                        <div class="card-info">
-                                            <h6 class="title" style="font-size: 9pt;">{{ $datapenugasan->nama_diajukan }}</h6>
-                                            <span class="location">Penugasan {{ $datapenugasan->penugasan }}</span>
-                                            <div class="d-flex align-items-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 460 460" xml:space="preserve">
-                                                    <g id="XMLID_1011_">
-                                                        <path id="XMLID_1012_" style="fill:#354A67;" d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                        <path id="XMLID_1013_" style="fill:#466289;" d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                        <path id="XMLID_1014_" style="fill:#BEC8D6;" d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                        <path id="XMLID_1015_" style="fill:#DAE0E7;" d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                        <path id="XMLID_1016_" style="fill:#DAE0E7;" d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                        <path id="XMLID_1017_" style="fill:#FFFFFF;" d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                        <rect id="XMLID_1018_" x="142.496" y="89.424" transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1019_" x="89.423" y="142.503" transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)" style="fill:#DAE0E7;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1020_" x="89.419" y="287.503" transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1021_" x="142.505" y="340.583" transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)" style="fill:#BEC8D6;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1022_" x="287.508" y="340.583" transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-
-                                                        <rect id="XMLID_1023_" x="340.582" y="287.492" transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)" style="fill:#A3B1C4;" width="29.999" height="29.999" />
-                                                        <polygon id="XMLID_1024_" style="fill:#354A67;" points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                        <polygon id="XMLID_1025_" style="fill:#466289;" points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                        <rect id="XMLID_1026_" x="230" y="360" style="fill:#A3B1C4;" width="15" height="30" />
-                                                        <rect id="XMLID_1027_" x="230" y="70" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1028_" x="215" y="360" style="fill:#BEC8D6;" width="15" height="30" />
-                                                        <rect id="XMLID_1029_" x="215" y="70" style="fill:#DAE0E7;" width="15" height="30" />
-                                                        <rect id="XMLID_1030_" x="360" y="230" style="fill:#A3B1C4;" width="30" height="15" />
-                                                        <rect id="XMLID_1031_" x="360" y="215" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1032_" x="70" y="230" style="fill:#BEC8D6;" width="30" height="15" />
-                                                        <rect id="XMLID_1033_" x="70" y="215" style="fill:#DAE0E7;" width="30" height="15" />
-                                                    </g>
-                                                </svg>
-                                                <span style="font-size: 9pt;" class="ms-2 price-item">{{\Carbon\Carbon::parse($datapenugasan->tanggal_pengajuan)->format('d-m-Y')}}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        @endif
-                        @endif
-                        @endif
-                        @endforeach
-                        @else
-                        <div class="text-center">
-                            <h5>Data Approval Tidak Ada</h5>
-                        </div>
-                        @endif
-                    </div>
+        <div class="card-body px-3 px-md-4">
+            <div class="row g-3 justify-content-start text-center my-1">
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/lembur/lembur_approval/' . $menu_id) }}"
+                        class="btn btn-success text-white d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-regular fa-calendar-plus"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Lembur</span>
+                </div>
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/izin/tidak_masuk_approval/' . $menu_id) }}"
+                        class="btn btn-danger text-white d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-door-open"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Tidak Masuk</span>
+                </div>
+                <div class="col-4 d-flex flex-column align-items-center">
+                    <a href="{{ url('/perdin/perdin_approval/' . $menu_id) }}"
+                        class="btn btn-warning text-white d-flex align-items-center justify-content-center shadow-sm"
+                        style="width: 55px; height: 55px; border-radius: 50%;">
+                        <span style="font-size: 1.2rem;">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </span>
+                    </a>
+                    <span class="mt-2 fw-medium" style="font-size: 8.5pt; line-height: 1.2;">Perjalanan Dinas</span>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<!-- Categorie End -->
+    </div>
 @endsection
+@section('content')
+@endsection
+
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
-<script type="text/javascript">
-    $(document).ready(function() {
-        load_data();
-
-        function load_data(filter_month = '') {
-            console.log(filter_month);
-            var table1 = $('#table_absensi').DataTable({
-                processing: true,
-                serverSide: true,
-                responsive: true,
-                scrollX: true,
-                "bPaginate": false,
-                searching: false,
-                ajax: {
-                    url: "{{ route('get_table_absensi') }}",
-                    data: {
-                        filter_month: filter_month,
-                    }
-                },
-                columns: [{
-                        data: 'id',
-                        render: function(data, type, row, meta) {
-                            return meta.row + meta.settings._iDisplayStart + 1;
-                        }
-                    },
-                    {
-                        data: 'tanggal_masuk',
-                        name: 'tanggal_masuk'
-                    },
-                    {
-                        data: 'jam_absen',
-                        name: 'jam_absen'
-                    },
-                    {
-                        data: 'tanggal_pulang',
-                        name: 'tanggal_pulang'
-                    },
-                    {
-                        data: 'jam_pulang',
-                        name: 'jam_pulang'
-                    },
-                    {
-                        data: 'status_absen',
-                        name: 'status_absen'
-                    },
-                ],
-                order: [
-                    [1, 'desc']
-                ]
-            });
-        }
-
-        function load_absensi(filter_month = '') {
-            $.ajax({
-                url: "{{route('get_count_absensi_home')}}",
-                data: {
-                    filter_month: filter_month,
-                },
-                type: "GET",
-                error: function() {
-                    alert('Something is wrong');
-                },
-                success: function(data) {
-                    $('#count_absen_hadir').html(data);
-                    console.log(data)
-                }
-            });
-        }
-        $('#month').change(function() {
-            filter_month = $(this).val();
-            console.log(filter_month);
-            $('#table_absensi').DataTable().destroy();
-            load_data(filter_month);
-            load_absensi(filter_month);
-
-
-        })
-    });
-</script>
-<script>
-    $(document).on('click', '#btn_klik', function(e) {
-        Swal.fire({
-            allowOutsideClick: false,
-            background: 'transparent',
-            html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-            showCancelButton: false,
-            showConfirmButton: false,
-            onBeforeOpen: () => {
-                // Swal.showLoading()
-            },
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="http://keith-wood.name/js/jquery.signature.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            let menu_active = '{{ $menu_id }}';
         });
-    });
-</script>
+    </script>
 @endsection

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Menu;
 use App\Providers\RouteServiceProvider;
 use Closure;
 use Illuminate\Http\Request;
@@ -25,15 +26,25 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
 
                 // 1. Tentukan tujuan redirect berdasarkan peran atau guard
-                $redirectTo = '/dashboard/holding';
-                dd("Guard aktif: {$guard}. Seharusnya redirect ke dashboard/holding.");
+                // $redirectTo = '/dashboard/holding';
+                // dd("Guard aktif: {$guard}. Seharusnya redirect ke dashboard/holding.");
                 // Jika guard 'web' aktif, Anda bisa mendapatkan user dan mengecek peran:
                 if ($guard === 'web') {
                     $user = Auth::guard('web')->user();
 
                     // Logika Redirect Multi-Role:
                     if ($user && $user->is_admin === 'user') {
-                        $redirectTo = '/home'; // Redirect user biasa ke /home
+                        if ($user->menu_active == null) {
+                            $menu = Menu::where('url', 'home')->where('kategori', 'mobile')->where('main', 2)->where('is_active', 1)->first();
+                            if ($menu) {
+                                $redirectTo = '/' . $menu->url . '/' . $menu->id;
+                            }
+                        } else {
+                            $menu = Menu::where('id', $user->menu_active)->where('kategori', 'mobile')->where('main', 2)->where('is_active', 1)->first();
+                            if ($menu) {
+                                $redirectTo = '/' . $menu->url . '/' . $menu->id;
+                            }
+                        }
                     } else {
                         $redirectTo = '/dashboard/holding'; // Redirect admin/default ke /dashboard/holding
                     }

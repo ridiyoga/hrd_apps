@@ -1430,7 +1430,7 @@
 <script>
     let holding = window.location.pathname.split("/").pop();
     let id = @json($id_recruitment);
-    console.log(id);
+    // console.log(id);
     var table = $('#table_recruitment_interview').DataTable({
         "scrollY": true,
         "scrollX": true,
@@ -1638,9 +1638,9 @@
         let nama_status_interview = $(this).data('status_interview');
         let nama_statusinterviewmanager = $(this).data('status_interview_manager');
         let holding = $(this).data("holding");
-        console.log('a');
-        console.log(nama_statusinterviewmanager);
-        console.log('b');
+        // console.log('a');
+        // console.log(nama_statusinterviewmanager);
+        // console.log('b');
         $('#show_recruitmentinterviewid1').val(recruitment_interview_id);
         $('#show_recruitmentinterviewid2').val(recruitment_interview_id);
         $('#show_nama_pelamar3').text(nama_pelamar);

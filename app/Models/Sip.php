@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Sip extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $guarded = ['id'];
 
     public function User()

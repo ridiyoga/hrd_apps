@@ -1,2745 +1,1150 @@
 @extends('users.layouts.main')
 @section('title')
-APPS | KARYAWAN - SP
+    APPS | KARYAWAN - SP
 @endsection
 @section('css')
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
-    integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
-    crossorigin="" />
-<style>
-    .modal-backdrop.show:nth-of-type(even) {
-        z-index: 1051 !important;
-    }
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/assets_users/css/home_user.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <style>
+        .info-card {
 
-    .garis {
-        border-left: 0.1px solid gray;
-        height: 80%;
-    }
-
-    .leaflet-container {
-        height: 400px;
-        width: 600px;
-        max-width: 100%;
-        max-height: 100%;
-    }
-
-    .penempatan_text {
-        font-size: 8pt;
-        font-weight: bold;
-
-    }
-
-
-    .jamkerja_text {
-        font-size: 8pt;
-        font-weight: bold;
-        text-align: right;
-    }
-
-    .jamkerja_text_main {
-        font-size: 8pt;
-        font-weight: bold;
-        /* margin-top: -50%; */
-    }
-
-    .absen_title {
-        font-size: 23pt;
-        text-align: center;
-    }
-
-    .icon_kategori {
-        height: 40;
-        width: 40;
-    }
-
-    .icon_text {
-        font-size: 12pt;
-    }
-
-    .leaflet-popup-content {
-        font-size: small;
-    }
-
-    @media only screen and (max-width: 600px) {
-
-        /* styles for browsers larger than 960px; */
-        .icon_kategori {
-            height: 40;
-            width: 40;
+            border-radius: 18px;
+            padding: 14px 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .icon_text {
-            font-size: 12pt;
+        /* LEFT & RIGHT */
+        .info-left,
+        .info-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .absen_masuk_icon {
-            width: 30px;
-            height: 30px;
-        }
-
-        .absen_masuk_context {
-            font-size: 11pt;
-            margin: 0;
-        }
-
-        .absen_masuk_text {
-            font-size: 8pt;
-        }
-
-        .absen_pulang_icon {
-            width: 30px;
-            height: 30px;
-        }
-
-        .absen_pulang_context {
-            font-size: 11pt;
-            margin: 0;
-        }
-
-        .absen_pulang_text {
-            font-size: 8pt;
-        }
-
-        .absen_title {
-            font-size: 23pt;
-            text-align: center;
-        }
-
-        .jamkerja_text {
-            font-size: 8pt;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .penempatan_text {
-            font-size: 8pt;
-            font-weight: bold;
-
-        }
-
-        .garis_content {
-            width: max-content;
-        }
-
-        .garis {
-            border-left: 0.1px solid gray;
-            height: 50%;
-        }
-
-        .jamkerja_content {
-            width: max-content;
-            margin-left: auto;
-            margin-right: 0;
-        }
-
-        .jamkerja_content .jamkerja_text_main {
-            font-size: 8pt;
-            font-weight: bold;
-            margin-top: -5%;
-        }
-
-    }
-
-    @media only screen and (max-width: 390px) {
-
-        /* styles for browsers larger than 960px; */
-        .icon_kategori {
-            height: 40;
-            width: 40;
-        }
-
-        .icon_text {
-            font-size: 12pt;
-        }
-
-        .absen_title {
-            font-size: 23pt;
-            text-align: center;
-        }
-
-        .jamkerja_text {
-            font-size: 8pt;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .penempatan_text {
-            font-size: 8pt;
-            font-weight: bold;
-
-        }
-
-        .garis_content {
-            width: max-content;
-        }
-
-        .garis {
-            border-left: 0.1px solid gray;
-            height: 50%;
-        }
-
-        .jamkerja_content {
-            width: max-content;
-            margin-left: auto;
-            margin-right: 0;
-        }
-
-        .jamkerja_content .jamkerja_text_main {
-            font-size: 8pt;
-            font-weight: bold;
-            margin-top: -5%;
-        }
-
-        .absen_masuk_icon {
-            width: 27px;
-            height: 27px;
-        }
-
-        .absen_masuk_context {
-            font-size: 10pt;
-            margin: 0;
-        }
-
-        .absen_masuk_text {
-            font-size: 8pt;
-        }
-
-        .absen_pulang_icon {
-            width: 27px;
-            height: 27px;
-        }
-
-        .absen_pulang_context {
-            font-size: 10pt;
-            margin: 0;
-        }
-
-        .absen_pulang_text {
-            font-size: 8pt;
-        }
-
-    }
-
-    @media only screen and (max-width: 380px) {
-
-        /* styles for browsers larger than 960px; */
-
-
-        .absen_title {
-            font-size: 22pt;
-            text-align: center;
-        }
-
-        .jamkerja_text {
-            font-size: 8pt;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .penempatan_text {
-            font-size: 8pt;
-            font-weight: bold;
-
-        }
-
-        .garis_content {
-            width: max-content;
-        }
-
-        .garis {
-            border-left: 0.1px solid gray;
-            height: 50%;
-        }
-
-        .jamkerja_content {
-            width: max-content;
-            margin-left: auto;
-            margin-right: 0;
-        }
-
-        .jamkerja_content .jamkerja_text_main {
-            font-size: 8pt;
-            font-weight: bold;
-            margin-top: -5%;
-        }
-
-        .absen_masuk_icon {
-            width: 27px;
-            height: 27px;
-        }
-
-        .absen_masuk_context {
-            font-size: 10pt;
-            margin: 0;
-        }
-
-        .absen_masuk_text {
-            font-size: 8pt;
-        }
-
-        .absen_pulang_icon {
-            width: 27px;
-            height: 27px;
-        }
-
-        .absen_pulang_context {
-            font-size: 10pt;
-            margin: 0;
-        }
-
-        .absen_pulang_text {
-            font-size: 8pt;
-        }
-
-    }
-
-    @media only screen and (max-width: 375px) {
-
-        /* styles for browsers larger than 960px; */
-        .absen_title {
-            font-size: 22pt;
-            text-align: center;
-        }
-
-        .absen_masuk_icon {
+        /* ICON BADGE */
+        .icon-badge {
             width: 25px;
             height: 25px;
+            border-radius: 12px;
+            background: rgba(111, 79, 216, 0.12);
+            color: #6f4fd8;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
         }
 
-        .absen_masuk_context {
-            font-size: 10pt;
-            margin: 0;
+        .icon-badge.clock {
+            background: rgba(255, 193, 7, 0.15);
+            color: #f1a900;
         }
 
-        .absen_masuk_text {
-            font-size: 8pt;
+        /* TEXT */
+        .info-text .label {
+            font-size: 11px;
+            display: block;
         }
 
-        .absen_pulang_icon {
-            width: 25px;
-            height: 25px;
+        .info-text .value {
+            font-size: 0.68rem;
+            font-weight: 700 !important;
+            line-height: 1.2;
         }
 
-        .absen_pulang_context {
-            font-size: 10pt;
-            margin: 0;
+        .attendance-card {
+            border-radius: 22px;
+            padding: 16px;
         }
 
-        .absen_pulang_text {
-            font-size: 8pt;
+        .info-row {
+            font-size: 13px;
+            font-weight: 500;
         }
 
-        .jamkerja_text {
-            font-size: 7pt;
-            font-weight: bold;
-            text-align: right;
+
+
+        .btn-absen {
+            width: 100%;
+            border-radius: 16px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: none;
+            background: #f8f9fa;
         }
 
-        .penempatan_text {
-            font-size: 7pt;
-            font-weight: bold;
-
+        .btn-absen.masuk {
+            /* background: #e9f9f0; */
+            color: #1b8a5a;
         }
 
-        .garis_content {
-            width: max-content;
+        .btn-absen.pulang {
+            /* background: #fdeaea; */
+            color: #c0392b;
         }
 
-        .garis {
-            border-left: 0.1px solid gray;
-            height: 50%;
+        .btn-absen i {
+            font-size: 22px;
         }
 
-        .jamkerja_content {
-            width: max-content;
-            margin-left: auto;
-            margin-right: 0;
+        .section-title.accent-inline span {
+            display: inline-block;
+            padding: 6px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            background: linear-gradient(90deg,
+                    rgba(111, 79, 216, 0.35),
+                    rgba(111, 79, 216, 0.15));
+            border-radius: 0 999px 999px 0;
         }
 
-        .jamkerja_content .jamkerja_text_main {
-            font-size: 7pt;
-            font-weight: bold;
-            margin-top: -5%;
+        /* SWIPER FIX WIDTH */
+        .approvalSwiper {
+            padding-left: 4px;
         }
 
-    }
-
-    @media only screen and (max-width: 360px) {
-
-        /* styles for browsers larger than 960px; */
-        .jamkerja_content {
-            width: max-content;
-            margin-left: auto;
-            margin-right: 0;
+        .approvalSwiper .swiper-slide {
+            width: 80% !important;
+            /* 🔥 tidak full */
         }
 
-        .absen_masuk_icon {
-            width: 20px;
-            height: 20px;
+        /* APPROVAL PANEL */
+        .approval-card {
+            border-radius: 20px;
+            padding: 14px;
+            background: linear-gradient(145deg, #ffffff, #f8f9fc);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
         }
 
-        .absen_masuk_context {
-            font-size: 8pt;
-            margin: 0;
+        .approval-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
         }
 
-        .absen_masuk_text {
-            font-size: 8pt;
+        .approval-header strong {
+            font-size: 15px;
         }
 
-        .absen_pulang_icon {
-            width: 20px;
-            height: 20px;
+        .approval-header span {
+            font-size: 11px;
+            background: rgba(111, 79, 216, 0.1);
+            color: #6f4fd8;
+            padding: 4px 10px;
+            border-radius: 999px;
         }
 
-        .absen_pulang_context {
-            font-size: 8pt;
-            margin: 0;
+        .approval-body {
+            font-size: 12px;
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
-        .absen_pulang_text {
-            font-size: 8pt;
+        .approval-body i {
+            margin-right: 6px;
+            color: #6f4fd8;
         }
 
-        .absen_title {
-            font-size: 20pt;
+        .approval-action {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-approve,
+        .btn-reject {
+            flex: 1;
+            border: none;
+            padding: 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-approve {
+            background: linear-gradient(135deg, #40c057, #2b8a3e);
+            color: white;
+        }
+
+        .btn-reject {
+            background: linear-gradient(135deg, #fa5252, #c92a2a);
+            color: white;
+        }
+
+        /* =====================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ABSENSI LIST
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        ===================== */
+        .absensi-list {
+            border-radius: 18px;
+            background: #fff;
+        }
+
+        .absensi-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-bottom: 2px solid #d6dbe5;
+        }
+
+        .absensi-item:active {
+            background-color: #d9cdfb;
+        }
+
+        .absensi-item:last-child {
+            border-bottom: none;
+        }
+
+        .absensi-list .absensi-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .absensi-list .attendance-times {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eef0f4;
+        }
+
+        .absensi-list .attendance-time {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .absensi-list .attendance-time-label {
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .absensi-list .attendance-time-value {
+            overflow-wrap: anywhere;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .absensi-list .attendance-shift {
+            display: block;
+            margin-top: 7px;
+        }
+
+        .absensi-list .status {
+            flex: 0 0 auto;
             text-align: center;
         }
 
-        .jamkerja_content .jamkerja_text_main {
-            font-size: 6pt;
-            font-weight: bold;
-            margin-top: -10%;
-        }
-
-        .jamkerja_text {
-            font-size: 6pt;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .penempatan_text {
-            font-size: 6pt;
-            font-weight: bold;
-
-        }
-
-        .garis {
-            border-left: 0.1px solid gray;
-            height: 50%;
-        }
-
-        .garis_content {
-            width: max-content;
-        }
-
-    }
-
-    @media only screen and (max-width: 334px) {
-
-        /* styles for browsers larger than 960px; */
-        .jamkerja_content {
-            width: max-content;
-            margin-left: auto;
-            margin-right: 0;
-        }
-
-        .absen_masuk_icon {
-            width: 20px;
-            height: 20px;
-        }
-
-        .absen_masuk_context {
-            font-size: 8pt;
-            margin: 0;
-        }
-
-        .absen_masuk_text {
-            font-size: 8pt;
-        }
-
-        .absen_pulang_icon {
-            width: 20px;
-            height: 20px;
-        }
-
-        .absen_pulang_context {
-            font-size: 8pt;
-            margin: 0;
-        }
-
-        .absen_pulang_text {
-            font-size: 8pt;
-        }
-
-        .absen_title {
-            font-size: 16pt;
-            text-align: center;
-        }
-
-        .jamkerja_content .jamkerja_text_main {
-            font-size: 6pt;
-            font-weight: bold;
-            margin-top: -5%;
-        }
-
-        .jamkerja_text {
-            font-size: 6pt;
-            font-weight: bold;
-            text-align: right;
-        }
-
-        .penempatan_text {
-            font-size: 6pt;
-            font-weight: bold;
-
-        }
-
-        .garis {
-            border-left: 0.1px solid gray;
-            height: 50%;
-        }
-
-        .garis_content {
-            width: max-content;
-        }
-
-        .penempatan_content {
-            width: max-content;
-        }
-    }
-</style>
-@endsection
-@section('alert')
-@if (session()->has('absenmasuksuccess'))
-<div id="alert_absen_masuk_success" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-            stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> Anda Berhasil Absen Masuk.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('login_success'))
-<div id="alert_login_success" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-            stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> Anda Berhasil Login.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('absenmasukerror'))
-<div id="alert_absen_masuk_error" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-            stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>error!</strong> Anda Gagal Absen Masuk.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('absenmasukoutradius'))
-<div id="alert_absenmasukoutradius" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-            stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>Error!</strong> Anda Berada Diluar Radius Absen.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('absenpulangoutradius'))
-<div id="alert_absenpulangoutradius" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>error!</strong> Anda Berada Diluar Radius Absen.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('absen_tidak_masuk'))
-<div id="alert_absen_tidak_masuk" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>Maaf!</strong> Anda Dianggap Tidak Masuk.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-    <div id="alert_absen_tidak_masuk1" class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        Dikarenakan Anda Absen Melebihi Ketentuan Jam Masuk.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-<div id="alert_absen_masuk_success" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Absen Masuk.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('absenpulangsuccess'))
-<div id="alert_absenpulangsuccess" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Absen Pulang.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('absenkeluarerror'))
-<div id="alert_absenkeluarerror" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>error!</strong> &nbsp;Anda Gagal Absen Pulang.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('lokasikerjanull'))
-<div id="alert_lokasikerjanull" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>error!</strong>&nbsp;Lokasi Kerja Anda Kosong. Hubungi HRD
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('latlongnull'))
-<div id="alert_latlongnull" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>error!</strong>&nbsp;Lokasi Anda Tidak Teridentifikasi
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('approveperdinsukses'))
-<div id="alert_approve_penugasan_sukses" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Approve Penugasan.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('approvecuti_not_approve'))
-<div id="alert_approve_cuti_not_approve" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Tolak Approve Cuti.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('approvecuti_success'))
-<div id="alert_approve_cuti_success" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong>&nbsp; Anda Berhasil Approve Cuti.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('approveizin_not_approve'))
-<div id="alert_approve_izin_not_approve" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Tolak Approve Izin.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('approveizin_success'))
-<div id="alert_approve_izin_success" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Approve Izin.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('kontrakkerjaNULL'))
-<div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        &nbsp; Kontrak Kerja Anda Kosong. Hubungi HRD
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('karyawan_null'))
-<div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        &nbsp; Karyawan NULL. Hubungi HRD
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('kontrakkerjaNULL'))
-<div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        &nbsp; Kontrak Kerja Anda Kosong. Hubungi HRD
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('jabatanNULL'))
-<div id="alert_jabatan_null" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        &nbsp; Jabatan Anda Kosong. Hubungi HRD
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('mapping_shift_null'))
-<div class="container" style="margin-top:-5%">
-    <div class="alert alert-warning light alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-            </path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-        &nbsp;User Belum Mapping Shift. Harap Hubungi HRD.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('penugasan_wilayah_kantor'))
-<div id="alert_kontrak_kerja_null" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-            <line x1="15" y1="9" x2="9" y2="15"></line>
-            <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
-        <strong>Gagal!</strong> &nbsp;Anda Berada Diluar Wilayah Radius Penugasan
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('simpanface_success'))
-<div id="alert_simpanface_success" class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Success!</strong> &nbsp;Anda Berhasil Menyimpan Face
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('simpanface_error'))
-<div id="alert_simpanface_danger" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Error!</strong> &nbsp;Anda Gagal Menyimpan Face
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif(session()->has('jam_kerja_libur'))
-<div id="alert_jam_kerja_libur" class="container" style="margin-top:-5%">
-    <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-            fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-        </svg>
-        <strong>Error!</strong>&nbsp;Hari ini Anda Libur
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@endif
-
-@if ($status_absen_skrg == null)
-@else
-@if ($status_absen_skrg == 'ABSENSI PENUGASAN DILUAR WILAYAH KANTOR')
-<div class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20"
-            height="20" viewBox="0 0 32 32" enable-background="new 0 0 32 32" id="_x3C_Layer_x3E_"
-            version="1.1" xml:space="preserve">
-            <g id="car_x2C__transport_x2C__navigation_x2C__pin_x2C__vehicle">
-                <g id="XMLID_268_">
-                    <path d="    M29.5,27.5v2c0,0.55-0.45,1-1,1h-1c-0.55,0-1-0.45-1-1v-2" fill="none"
-                        id="XMLID_3822_" stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <line fill="none" id="XMLID_281_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="30.5" x2="16.5"
-                        y1="27.5" y2="27.5" />
-                    <path d="    M19.5,20.5c8.5,0,11,0.583,11,3v1.188" fill="none" id="XMLID_280_"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <path d="    M26.5,25.5v-1c0-0.55,0.45-1,1-1h3v2H26.5z" fill="none" id="XMLID_279_"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <path d="    M18.5,23.5h4c1.104,0,2,0.896,2,2l0,0" fill="none" id="XMLID_277_"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <path
-                        d="    M28.569,21.206L26.82,15.95c-0.181-0.53-0.761-1.02-1.311-1.09c-0.775-0.098-1.973-0.221-3.444-0.295"
-                        fill="none" id="XMLID_276_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" />
-                    <g id="XMLID_804_">
-                        <path
-                            d="     M8.439,1.85C9.254,1.621,10.113,1.5,11,1.5c5.245,0,9.5,4.254,9.5,9.5c0,8.063-9.5,19.5-9.5,19.5S1.5,19.063,1.5,11     c0-2.697,1.125-5.133,2.931-6.861"
-                            fill="none" id="XMLID_805_" stroke="#263238" stroke-linecap="round"
-                            stroke-linejoin="round" stroke-miterlimit="10" />
-                    </g>
-                    <circle cx="11" cy="11" fill="none" id="XMLID_3807_" r="5.5"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <line fill="none" id="XMLID_1915_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="3.5" x2="11"
-                        y1="30.5" y2="30.5" />
-                    <line fill="none" id="XMLID_2107_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="1.6" x2="1.5"
-                        y1="30.5" y2="30.5" />
-                    <line fill="none" id="XMLID_732_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="16.5" x2="27.5"
-                        y1="30.5" y2="30.5" />
-                    <line fill="none" id="XMLID_2200_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="1.6" x2="1.5"
-                        y1="30.5" y2="30.5" />
-                </g>
-                <line fill="none" id="XMLID_171_" stroke="#263238" stroke-linecap="round"
-                    stroke-linejoin="round" stroke-miterlimit="10" x1="6.577" x2="6.493"
-                    y1="2.508" y2="2.563" />
-                <line fill="none" id="XMLID_170_" stroke="#263238" stroke-linecap="round"
-                    stroke-linejoin="round" stroke-miterlimit="10" x1="6.577" x2="6.493"
-                    y1="2.508" y2="2.563" />
-            </g>
-        </svg>
-        &nbsp;&nbsp; Hari Ini Anda Sudah Absensi (Dalam Penugasan).
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@elseif($status_absen_skrg == 'ABSENSI PENUGASAN WILAYAH KANTOR')
-<div class="container" style="margin-top:-5%">
-    <div class="alert alert-success light alert-lg alert-dismissible fade show">
-        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="20"
-            height="20" viewBox="0 0 32 32" enable-background="new 0 0 32 32" id="_x3C_Layer_x3E_"
-            version="1.1" xml:space="preserve">
-            <g id="car_x2C__transport_x2C__navigation_x2C__pin_x2C__vehicle">
-                <g id="XMLID_268_">
-                    <path d="    M29.5,27.5v2c0,0.55-0.45,1-1,1h-1c-0.55,0-1-0.45-1-1v-2" fill="none"
-                        id="XMLID_3822_" stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <line fill="none" id="XMLID_281_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="30.5" x2="16.5"
-                        y1="27.5" y2="27.5" />
-                    <path d="    M19.5,20.5c8.5,0,11,0.583,11,3v1.188" fill="none" id="XMLID_280_"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <path d="    M26.5,25.5v-1c0-0.55,0.45-1,1-1h3v2H26.5z" fill="none" id="XMLID_279_"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <path d="    M18.5,23.5h4c1.104,0,2,0.896,2,2l0,0" fill="none" id="XMLID_277_"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <path
-                        d="    M28.569,21.206L26.82,15.95c-0.181-0.53-0.761-1.02-1.311-1.09c-0.775-0.098-1.973-0.221-3.444-0.295"
-                        fill="none" id="XMLID_276_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" />
-                    <g id="XMLID_804_">
-                        <path
-                            d="     M8.439,1.85C9.254,1.621,10.113,1.5,11,1.5c5.245,0,9.5,4.254,9.5,9.5c0,8.063-9.5,19.5-9.5,19.5S1.5,19.063,1.5,11     c0-2.697,1.125-5.133,2.931-6.861"
-                            fill="none" id="XMLID_805_" stroke="#263238" stroke-linecap="round"
-                            stroke-linejoin="round" stroke-miterlimit="10" />
-                    </g>
-                    <circle cx="11" cy="11" fill="none" id="XMLID_3807_" r="5.5"
-                        stroke="#263238" stroke-linecap="round" stroke-linejoin="round"
-                        stroke-miterlimit="10" />
-                    <line fill="none" id="XMLID_1915_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="3.5" x2="11"
-                        y1="30.5" y2="30.5" />
-                    <line fill="none" id="XMLID_2107_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="1.6" x2="1.5"
-                        y1="30.5" y2="30.5" />
-                    <line fill="none" id="XMLID_732_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="16.5" x2="27.5"
-                        y1="30.5" y2="30.5" />
-                    <line fill="none" id="XMLID_2200_" stroke="#263238" stroke-linecap="round"
-                        stroke-linejoin="round" stroke-miterlimit="10" x1="1.6" x2="1.5"
-                        y1="30.5" y2="30.5" />
-                </g>
-                <line fill="none" id="XMLID_171_" stroke="#263238" stroke-linecap="round"
-                    stroke-linejoin="round" stroke-miterlimit="10" x1="6.577" x2="6.493"
-                    y1="2.508" y2="2.563" />
-                <line fill="none" id="XMLID_170_" stroke="#263238" stroke-linecap="round"
-                    stroke-linejoin="round" stroke-miterlimit="10" x1="6.577" x2="6.493"
-                    y1="2.508" y2="2.563" />
-            </g>
-        </svg>
-        &nbsp;&nbsp;Hari Ini Anda Sedang Penugasan Dikantor Wilayah {{ $kantor_penugasan }}.
-        <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    </div>
-</div>
-@endif
-@endif
-@endsection
-@section('content_top')
-<div class="container">
-    <div class="row" style="margin-top: -2%;">
-        <div class="penempatan_content col-7">
-            <div class="main-content">
-                <svg xmlns="http://www.w3.org/2000/svg" style="margin-top: -5%;" width="20" height="20"
-                    viewBox="0 0 1024 1024" class="icon" version="1.1">
-                    <path
-                        d="M309.2 584.776h105.5l-49 153.2H225.8c-7.3 0-13.3-6-13.3-13.3 0-2.6 0.8-5.1 2.2-7.3l83.4-126.7c2.5-3.6 6.7-5.9 11.1-5.9z"
-                        fill="#FFFFFF" />
-                    <path
-                        d="M404.5 791.276H225.8c-36.7 0-66.5-29.8-66.5-66.5 0-13 3.8-25.7 11-36.6l83.4-126.7c12.3-18.7 33.1-29.9 55.5-29.9h178.4l-83.1 259.7z m-95.3-206.5c-4.5 0-8.6 2.2-11.1 6l-83.4 126.7c-1.4 2.2-2.2 4.7-2.2 7.3 0 7.3 6 13.3 13.3 13.3h139.9l49-153.2H309.2z"
-                        fill="#333333" />
-                    <path d="M454.6 584.776h109.6l25.3 153.3H429.3z" fill="#FFFFFF" />
-                    <path
-                        d="M652.2 791.276H366.6l42.8-259.6h200l42.8 259.6z m-222.9-53.2h160.2l-25.3-153.3H454.6l-25.3 153.3z"
-                        fill="#333333" />
-                    <path
-                        d="M618.6 584.776h105.5c4.5 0 8.6 2.2 11.1 6l83.5 126.7c4 6.1 2.3 14.4-3.8 18.4-2.2 1.4-4.7 2.2-7.3 2.2H667.7l-49.1-153.3z"
-                        fill="#FFFFFF" />
-                    <path
-                        d="M807.6 791.276H628.9l-83.1-259.7h178.4c22.4 0 43.2 11.2 55.5 29.9l83.4 126.7c9.8 14.8 13.2 32.6 9.6 50s-13.7 32.3-28.6 42.1c-10.8 7.2-23.5 11-36.5 11z m-139.9-53.2h139.9c2.6 0 5.1-0.8 7.3-2.2 4-2.6 5.3-6.4 5.7-8.4 0.4-2 0.7-6-1.9-10l-83.4-126.6c-2.5-3.8-6.6-6-11.1-6H618.6l49.1 153.2z"
-                        fill="#333333" />
-                    <path
-                        d="M534.1 639.7C652.5 537.4 711.7 445.8 711.7 365c0-127-102.7-212.1-195-212.1s-195 85.1-195 212.1c0 80.8 59.2 172.3 177.7 274.7 9.9 8.6 24.7 8.6 34.7 0z"
-                        fill="#8CAAFF" />
-                    <path
-                        d="M516.7 672.7c-12.5 0-24.9-4.3-34.8-12.9C356.2 551.2 295.1 454.7 295.1 365c0-142.8 114.6-238.7 221.6-238.7S738.3 222.2 738.3 365c0 89.7-61.1 186.2-186.9 294.8-9.8 8.6-22.3 12.9-34.7 12.9z m0-493.2c-79.7 0-168.4 76.2-168.4 185.5 0 72.3 56.7 158 168.4 254.6C628.5 523 685.1 437.3 685.1 365c0-109.3-88.7-185.5-168.4-185.5z"
-                        fill="#333333" />
-                    <path d="M516.7 348m-97.5 0a97.5 97.5 0 1 0 195 0 97.5 97.5 0 1 0-195 0Z" fill="#FFFFFF" />
-                    <path
-                        d="M516.7 472.1c-68.4 0-124.1-55.7-124.1-124.1s55.7-124.1 124.1-124.1S640.8 279.5 640.8 348 585.1 472.1 516.7 472.1z m0-195.1c-39.1 0-70.9 31.8-70.9 70.9 0 39.1 31.8 70.9 70.9 70.9s70.9-31.8 70.9-70.9c0-39.1-31.8-70.9-70.9-70.9z"
-                        fill="#333333" />
-                </svg>
-                <p class="penempatan_text">{{ $lokasi_kantor }}</p>
-            </div>
-        </div>
-        <div class="garis_content col-1">
-            <div class="garis vl"></div>
-        </div>
-        <div class="jamkerja_content col-5">
-            <p class="jamkerja_text">Jam Kerja : </p>
-            @if ($jam_kerja == null || $jam_kerja == '')
-            <div class="main-content" style="margin-top: -22%; float: right;">
-                <p class="jamkerja_text_main">
-                    @if ($jam_kerja == '')
-                    __-__
-                    @else
-                    {{ $jam_kerja->shift->jam_kerja }}-{{ $jam_kerja->shift->jam_keluar }}
-                    @endif&nbsp;
-                </p>
-                <svg xmlns="http://www.w3.org/2000/svg" style="margin-top: -20%;" width="17"
-                    height="17" viewBox="-4.52 0 69.472 69.472">
-                    <g id="Group_4" data-name="Group 4" transform="translate(-651.45 -155.8)">
-                        <circle id="Ellipse_4" data-name="Ellipse 4" cx="28.716" cy="28.716"
-                            r="28.716" transform="translate(652.95 157.3)" fill="none" stroke="#000000"
-                            stroke-miterlimit="10" stroke-width="3" />
-                        <path id="Path_11" data-name="Path 11" d="M697.51,186.016H681.667V163.846"
-                            fill="none" stroke="#814dff" stroke-miterlimit="10" stroke-width="3" />
-                        <circle id="Ellipse_5" data-name="Ellipse 5" cx="28.716" cy="28.716"
-                            r="28.716" transform="translate(652.95 166.34)" fill="none" stroke="#000000"
-                            stroke-linecap="round" stroke-miterlimit="10" stroke-width="3" opacity="0.15" />
-                    </g>
-                </svg>
-            </div>
-            @else
-            @if ($jam_kerja == 'LIBUR')
-            <div class="main-content" style="margin-top: -30%; float: right;">
-                <p class="jamkerja_text_main">LIBUR&nbsp;</p>
-            </div>
-            @else
-            <div class="main-content" style="margin-top: -22%; float: right;">
-                <p class="jamkerja_text_main">
-                    @if ($jam_kerja == '')
-                    __-__
-                    @else
-                    {{ $jam_kerja }}
-                    @endif&nbsp;
-                </p>
-                <svg xmlns="http://www.w3.org/2000/svg" style="margin-top: -20%;" width="17"
-                    height="17" viewBox="-4.52 0 69.472 69.472">
-                    <g id="Group_4" data-name="Group 4" transform="translate(-651.45 -155.8)">
-                        <circle id="Ellipse_4" data-name="Ellipse 4" cx="28.716" cy="28.716"
-                            r="28.716" transform="translate(652.95 157.3)" fill="none" stroke="#000000"
-                            stroke-miterlimit="10" stroke-width="3" />
-                        <path id="Path_11" data-name="Path 11" d="M697.51,186.016H681.667V163.846"
-                            fill="none" stroke="#814dff" stroke-miterlimit="10" stroke-width="3" />
-                        <circle id="Ellipse_5" data-name="Ellipse 5" cx="28.716" cy="28.716"
-                            r="28.716" transform="translate(652.95 166.34)" fill="none"
-                            stroke="#000000" stroke-linecap="round" stroke-miterlimit="10"
-                            stroke-width="3" opacity="0.15" />
-                    </g>
-                </svg>
-            </div>
-            @endif
-            @endif
-        </div>
-
-    </div>
-</div>
-@endsection
-@section('absensi')
-@if ($status_absen_skrg == null)
-@else
-<div class="container" style="margin-top: -5%; padding-bottom: 0; margin-bottom: 0;">
-    <div class="col-lg-12">
-        <div class="row">
-            <div class="col-6">
-                <div class3="card card-bx card-content">
-                    <div class="card-body" style="padding: 2px; margin: 2px;">
-                        <div class="row">
-                            <div class="col-2">
-                                <div class="dz-icon bg-green light absen_masuk_icon" style="padding: 0px;">
-                                    <svg style="margin-top: 10%;" viewBox="0 0 24 24" fill="none"
-                                        xmlns="http://www.w3.org/2000/svg">
-                                        <path fill-rule="evenodd" clip-rule="evenodd"
-                                            d="M11.8861 2H16.9254C19.445 2 21.5 4 21.5 6.44V17.56C21.5 20.01 19.445 22 16.9047 22H11.8758C9.35611 22 7.29083 20.01 7.29083 17.57V12.77H13.6932L12.041 14.37C11.7312 14.67 11.7312 15.16 12.041 15.46C12.1959 15.61 12.4024 15.68 12.6089 15.68C12.8051 15.68 13.0117 15.61 13.1666 15.46L16.1819 12.55C16.3368 12.41 16.4194 12.21 16.4194 12C16.4194 11.8 16.3368 11.6 16.1819 11.46L13.1666 8.55C12.8568 8.25 12.3508 8.25 12.041 8.55C11.7312 8.85 11.7312 9.34 12.041 9.64L13.6932 11.23H7.29083V6.45C7.29083 4 9.35611 2 11.8861 2ZM2.5 11.9999C2.5 11.5799 2.85523 11.2299 3.2815 11.2299H7.29052V12.7699H3.2815C2.85523 12.7699 2.5 12.4299 2.5 11.9999Z"
-                                            fill="#130F26"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="col-9">
-                                <div class="dz-inner">
-                                    <p class="dz-title absen_masuk_context">&nbsp;Absen&nbsp;Masuk</p>
-                                </div>
-                                @if ($checkIn == null && $checkIn == '')
-                                &nbsp;-
-                                @else
-                                {!! $checkIn !!}
-                                <!-- <h6 class="card-title card-intro-title">
-                                    </h6> -->
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class3="card card-bx card-content">
-                    <div class="card-body" style="padding: 2px; margin: 2px;">
-                        <div class="row">
-                            <div class="col-2">
-                                <div class="dz-icon bg-red light absen_pulang_icon" style="padding: 0px;">
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                        xmlns:xlink="http://www.w3.org/1999/xlink" width="6"
-                                        height="6" style="margin-top: 10%;" viewBox="0 0 24 24"
-                                        version="1.1" class="svg-main-icon">
-                                        <g stroke="none" stroke-width="1" fill="none"
-                                            fill-rule="evenodd">
-                                            <rect x="0" y="0" width="20" height="20" />
-                                            <path
-                                                d="M14.0069431,7.00607258 C13.4546584,7.00607258 13.0069431,6.55855153 13.0069431,6.00650634 C13.0069431,5.45446114 13.4546584,5.00694009 14.0069431,5.00694009 L15.0069431,5.00694009 C17.2160821,5.00694009 19.0069431,6.7970243 19.0069431,9.00520507 L19.0069431,15.001735 C19.0069431,17.2099158 17.2160821,19 15.0069431,19 L3.00694311,19 C0.797804106,19 -0.993056895,17.2099158 -0.993056895,15.001735 L-0.993056895,8.99826498 C-0.993056895,6.7900842 0.797804106,5 3.00694311,5 L4.00694793,5 C4.55923268,5 5.00694793,5.44752105 5.00694793,5.99956624 C5.00694793,6.55161144 4.55923268,6.99913249 4.00694793,6.99913249 L3.00694311,6.99913249 C1.90237361,6.99913249 1.00694311,7.89417459 1.00694311,8.99826498 L1.00694311,15.001735 C1.00694311,16.1058254 1.90237361,17.0008675 3.00694311,17.0008675 L15.0069431,17.0008675 C16.1115126,17.0008675 17.0069431,16.1058254 17.0069431,15.001735 L17.0069431,9.00520507 C17.0069431,7.90111468 16.1115126,7.00607258 15.0069431,7.00607258 L14.0069431,7.00607258 Z"
-                                                fill="#fff" fill-rule="nonzero" opacity="0.3"
-                                                transform="translate(9.006943, 12.000000) scale(-1, 1) rotate(-90.000000) translate(-9.006943, -12.000000) " />
-                                            <rect fill="#ff4db8" opacity="0.3"
-                                                transform="translate(14.000000, 12.000000) rotate(-270.000000) translate(-14.000000, -12.000000) "
-                                                x="13" y="6" width="2" height="12" rx="1" />
-                                            <path
-                                                d="M21.7928932,9.79289322 C22.1834175,9.40236893 22.8165825,9.40236893 23.2071068,9.79289322 C23.5976311,10.1834175 23.5976311,10.8165825 23.2071068,11.2071068 L20.2071068,14.2071068 C19.8165825,14.5976311 19.1834175,14.5976311 18.7928932,14.2071068 L15.7928932,11.2071068 C15.4023689,10.8165825 15.4023689,10.1834175 15.7928932,9.79289322 C16.1834175,9.40236893 16.8165825,9.40236893 17.2071068,9.79289322 L19.5,12.0857864 L21.7928932,9.79289322 Z"
-                                                fill="#fff" fill-rule="nonzero"
-                                                transform="translate(19.500000, 12.000000) rotate(-90.000000) translate(-19.500000, -12.000000) " />
-                                        </g>
-                                    </svg>
-                                </div>
-                            </div>
-                            <div class="col-9">
-                                <div class="dz-inner">
-                                    <p class="dz-title absen_pulang_context">&nbsp;Absen&nbsp;Pulang</p>
-                                </div>
-                                @if ($checkOut == null && $checkOut == '')
-                                &nbsp;-
-                                @else
-                                {!! $checkOut !!}
-                                <!-- <h6 class="card-title card-intro-title">
-                                    </h6> -->
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-@endsection
-@section('content')
-
-@if (session()->has('absenmasukoutradius'))
-<div id="canvas_absenmasukoutradius" class="offcanvas offcanvas-bottom pwa-offcanvas">
-    <input type="hidden" name="home_index" id="home_index"
-        value="{{ session()->has('absenmasukoutradius') }}">
-    <div class="container">
-        <div class="offcanvas-body small text-center">
-            <img src="{{ asset('assets/assets_users/images/location.gif') }}" width="70" height="70"
-                alt="">
-            <h4>
-                LOKASI SAYA
-            </h4>
-            <div id="maps"></div>
-        </div>
-    </div>
-</div>
-<div class="offcanvas-backdrop pwa-backdrop"></div>
-@elseif(session()->has('absenpulangoutradius'))
-<div class="offcanvas offcanvas-bottom pwa-offcanvas">
-    <div class="container">
-        <div class="offcanvas-body small text-center">
-            <img src="{{ asset('assets/assets_users/images/location.gif') }}" width="70" height="70"
-                alt="">
-            <div id="maps_pulang"></div>
-        </div>
-    </div>
-</div>
-<div class="offcanvas-backdrop pwa-backdrop"></div>
-@endif
-<div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout"
-    aria-labelledby="offcanvasBottomLabel">
-    <div class="offcanvas-body text-center small">
-        <h5 class="title">KONFIRMASI LOGOUT APP</h5>
-        <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
-        <a href="{{ url('/logout') }}" class="btn_klik btn btn-sm btn-danger light pwa-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                fill="none">
-                <path
-                    d="M5.46967 12.5303C5.17678 12.2374 5.17678 11.7626 5.46967 11.4697L7.46967 9.46967C7.76257 9.17678 8.23744 9.17678 8.53033 9.46967C8.82323 9.76256 8.82323 10.2374 8.53033 10.5303L7.81066 11.25L15 11.25C15.4142 11.25 15.75 11.5858 15.75 12C15.75 12.4142 15.4142 12.75 15 12.75L7.81066 12.75L8.53033 13.4697C8.82323 13.7626 8.82323 14.2374 8.53033 14.5303C8.23744 14.8232 7.76257 14.8232 7.46967 14.5303L5.46967 12.5303Z"
-                    fill="#1C274C" />
-                <path fill-rule="evenodd" clip-rule="evenodd"
-                    d="M13.9453 1.25H15.0551C16.4227 1.24998 17.525 1.24996 18.392 1.36652C19.2921 1.48754 20.05 1.74643 20.6519 2.34835C21.2538 2.95027 21.5127 3.70814 21.6337 4.60825C21.7503 5.47522 21.7502 6.57754 21.7502 7.94513V16.0549C21.7502 17.4225 21.7503 18.5248 21.6337 19.3918C21.5127 20.2919 21.2538 21.0497 20.6519 21.6517C20.05 22.2536 19.2921 22.5125 18.392 22.6335C17.525 22.75 16.4227 22.75 15.0551 22.75H13.9453C12.5778 22.75 11.4754 22.75 10.6085 22.6335C9.70836 22.5125 8.95048 22.2536 8.34857 21.6517C7.94963 21.2527 7.70068 20.7844 7.54305 20.2498C6.59168 20.2486 5.79906 20.2381 5.15689 20.1518C4.39294 20.0491 3.7306 19.8268 3.20191 19.2981C2.67321 18.7694 2.45093 18.1071 2.34822 17.3431C2.24996 16.6123 2.24998 15.6865 2.25 14.5537V9.44631C2.24998 8.31349 2.24996 7.38774 2.34822 6.65689C2.45093 5.89294 2.67321 5.2306 3.20191 4.7019C3.7306 4.17321 4.39294 3.95093 5.15689 3.84822C5.79906 3.76188 6.59168 3.75142 7.54305 3.75017C7.70068 3.21562 7.94963 2.74729 8.34857 2.34835C8.95048 1.74643 9.70836 1.48754 10.6085 1.36652C11.4754 1.24996 12.5778 1.24998 13.9453 1.25ZM7.25197 17.0042C7.25555 17.6487 7.2662 18.2293 7.30285 18.7491C6.46836 18.7459 5.848 18.7312 5.35676 18.6652C4.75914 18.5848 4.46611 18.441 4.26257 18.2374C4.05903 18.0339 3.91519 17.7409 3.83484 17.1432C3.7516 16.5241 3.75 15.6997 3.75 14.5V9.5C3.75 8.30029 3.7516 7.47595 3.83484 6.85676C3.91519 6.25914 4.05903 5.9661 4.26257 5.76256C4.46611 5.55902 4.75914 5.41519 5.35676 5.33484C5.848 5.2688 6.46836 5.25415 7.30285 5.25091C7.2662 5.77073 7.25555 6.35129 7.25197 6.99583C7.24966 7.41003 7.58357 7.74768 7.99778 7.74999C8.41199 7.7523 8.74964 7.41838 8.75194 7.00418C8.75803 5.91068 8.78643 5.1356 8.89448 4.54735C8.9986 3.98054 9.16577 3.65246 9.40923 3.40901C9.68599 3.13225 10.0746 2.9518 10.8083 2.85315C11.5637 2.75159 12.5648 2.75 14.0002 2.75H15.0002C16.4356 2.75 17.4367 2.75159 18.1921 2.85315C18.9259 2.9518 19.3144 3.13225 19.5912 3.40901C19.868 3.68577 20.0484 4.07435 20.1471 4.80812C20.2486 5.56347 20.2502 6.56459 20.2502 8V16C20.2502 17.4354 20.2486 18.4365 20.1471 19.1919C20.0484 19.9257 19.868 20.3142 19.5912 20.591C19.3144 20.8678 18.9259 21.0482 18.1921 21.1469C17.4367 21.2484 16.4356 21.25 15.0002 21.25H14.0002C12.5648 21.25 11.5637 21.2484 10.8083 21.1469C10.0746 21.0482 9.68599 20.8678 9.40923 20.591C9.16577 20.3475 8.9986 20.0195 8.89448 19.4527C8.78643 18.8644 8.75803 18.0893 8.75194 16.9958C8.74964 16.5816 8.41199 16.2477 7.99778 16.25C7.58357 16.2523 7.24966 16.59 7.25197 17.0042Z"
-                    fill="#1C274C" />
-            </svg>
-            &nbsp;Logout
-        </a>
-        <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
-            aria-label="Close">Batal</a>
-    </div>
-</div>
-
-<!-- {{ Auth::user()->id }} -->
-<!-- Features -->
-@include('sweetalert::alert')
-<!-- <div class="features-box">
-
-    </div> -->
-<!-- Categorie -->
-<div class="categorie-section" style="margin-bottom: 5%; padding: 0%;">
-    <div class="title-bar" style="margin: 0;">
-        <h6 class="dz-title">Layanan</h6>
-    </div>
-    <ul class="d-flex align-items-center">
-        <li class="text-center">
-            <a class="btn_klik nav-link " href="{{ url('/home/absen') }}">
-                <span class="dz-icon bg-green light"
-                    style="height: 50px; width: 50px; box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                    <svg xmlns="http://www.w3.org/2000/svg" style="height: 30px; width: 30px;" viewBox="0 0 24 24"
-                        fill="none">
-                        <path
-                            d="M7 3H5C3.89543 3 3 3.89543 3 5V7M3 17V19C3 20.1046 3.89543 21 5 21H7M17 21H19C20.1046 21 21 20.1046 21 19V17M21 7V5C21 3.89543 20.1046 3 19 3H17"
-                            stroke="#000000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
-                        <circle cx="12" cy="9" r="3" stroke="#000000" stroke-linecap="round"
-                            stroke-linejoin="round" stroke-width="2" />
-                        <path d="M17 16C17 13.7909 14.7614 12 12 12C9.23858 12 7 13.7909 7 16" stroke="#000000"
-                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
-                    </svg>
-                </span>
-            </a>
-            <span>Absen</span>
-        </li>
-        <li class="text-center">
-            <a class="nav-link btn_klik" href="{{ url('/izin/dashboard/') }}">
-                <span class="dz-icon bg-skyblue light"
-                    style="height: 50px; width: 50px; box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                    <span id="notif_izin" class="badge badge-danger light"
-                        style="position: absolute; margin-top: -12%; margin-right: -12%; "></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" style="height: 30px; width: 30px;"
-                        xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1"
-                        viewBox="0 0 392.598 392.598" xml:space="preserve">
-                        <path style="fill:#56ACE0;"
-                            d="M367.62,150.174l-19.265,19.265l-21.463-21.398l19.265-19.265c4.073-4.073,11.249-4.073,15.451,0  l6.012,6.012C371.887,138.99,371.887,145.972,367.62,150.174z" />
-                        <path style="fill:#FFFFFF;"
-                            d="M242.141,66.586c0-6.012-4.848-10.925-10.925-10.925H32.752c-6.012,0-10.925,4.848-10.925,10.925  v293.301c0,6.012,4.848,10.925,10.925,10.925h198.465c6.012,0,10.925-4.848,10.925-10.925" />
-                        <rect x="43.677" y="100.978" style="fill:#FFC10D;" width="176.614" height="248.048" />
-                        <g>
-                            <path style="fill:#194F82;"
-                                d="M194.626,148.17H69.341c-6.012,0-10.925-4.848-10.925-10.925c0-6.012,4.848-10.925,10.925-10.925   h125.285c6.012,0,10.925,4.848,10.925,10.925C205.487,143.321,200.638,148.17,194.626,148.17z" />
-                            <path style="fill:#194F82;"
-                                d="M194.626,207.257H69.341c-6.012,0-10.925-4.848-10.925-10.925s4.848-10.925,10.925-10.925h125.285   c6.012,0,10.925,4.848,10.925,10.925C205.487,202.343,200.638,207.257,194.626,207.257z" />
-                            <path style="fill:#194F82;"
-                                d="M383.006,119.337l-6.012-6.012c-6.206-6.206-14.352-9.568-23.079-9.568s-16.937,3.426-23.079,9.568   l-66.909,66.844V66.586c0-18.036-14.675-32.711-32.711-32.711h-7.499V10.925C223.717,4.913,218.869,0,212.792,0   c-6.012,0-10.925,4.848-10.925,10.925V33.81h-32.065V10.925C169.802,4.913,164.954,0,158.877,0   c-6.012,0-10.925,4.848-10.925,10.925V33.81h-32.129V10.925C115.822,4.913,110.974,0,104.897,0C98.82,0,94.166,4.913,94.166,10.925   V33.81H62.036V10.925C62.036,4.913,57.188,0,51.111,0S40.186,4.848,40.186,10.925V33.81h-7.434   C14.715,33.875,0.04,48.485,0.04,66.586v293.301c0,18.036,14.675,32.711,32.711,32.711h198.465   c18.036,0,32.711-14.675,32.711-32.711v-75.184l119.079-119.079C395.741,152.824,395.741,132.137,383.006,119.337z    M242.141,359.887c0,6.012-4.848,10.925-10.925,10.925H32.752c-6.012,0-10.925-4.848-10.925-10.925V66.586   c0-6.012,4.848-10.925,10.925-10.925h7.499v22.885c0,6.012,4.848,10.925,10.925,10.925s10.925-4.848,10.925-10.925V55.661h32.065   v22.885c0,6.012,4.848,10.925,10.925,10.925s10.925-4.848,10.925-10.925V55.661h32.065v22.885c0,6.012,4.848,10.925,10.925,10.925   s10.925-4.848,10.925-10.925V55.661h32.065v22.885c0,6.012,4.848,10.925,10.925,10.925c6.012,0,10.925-4.848,10.925-10.925V55.661   h7.499c6.012,0,10.925,4.848,10.925,10.925v135.37l-42.473,42.473H69.341c-6.012,0-10.925,4.848-10.925,10.925   c0,6.012,4.848,10.925,10.925,10.925h108.477l-6.335,6.335c-1.616,1.616-2.715,3.814-3.103,6.077l-3.685,24.76H69.341   c-6.012,0-10.925,4.848-10.925,10.925c0,6.012,4.848,10.925,10.925,10.925h92.574c0.323,2.327,1.293,4.461,3.038,6.206   c3.168,2.715,6.335,3.685,9.374,3.103l43.378-6.594c2.327-0.323,4.396-1.422,6.077-3.103l18.36-18.36V359.887z M210.853,307.006   l-25.277,3.814l3.814-25.277l122.117-122.117l21.398,21.398L210.853,307.006z M367.62,150.174l-19.265,19.265l-21.463-21.398   l19.265-19.265c4.073-4.073,11.313-4.073,15.451,0l6.012,6.012C371.887,138.99,371.887,145.972,367.62,150.174z" />
-                        </g>
-                        <polygon style="fill:#56ACE0;"
-                            points="332.905,184.824 311.507,163.426 189.325,285.479 185.576,310.756 210.853,307.006 " />
-                    </svg>
-                </span>
-            </a>
-            <span>Izin</span>
-        </li>
-        <li class="text-center">
-            <a class="nav-link btn_klik" href="{{ url('/cuti/dashboard/') }}">
-                <span class="dz-icon bg-orange light"
-                    style="height: 50px; width: 50px;box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                    <span id="notif_cuti" class="badge badge-danger light"
-                        style="position: absolute; margin-top: -12%; margin-right: -12%; "></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" style="height: 30px; width: 30px;"
-                        xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1"
-                        viewBox="0 0 393.568 393.568" xml:space="preserve">
-                        <circle style="fill:#FBD303;" cx="196.784" cy="196.784" r="196.784" />
-                        <rect x="80.743" y="52.428" style="fill:#FCFCFD;" width="232.404" height="293.689" />
-                        <g>
-                            <path style="fill:#4F5565;"
-                                d="M105.051,36.978c-3.168,0-5.754,2.651-5.754,5.754v17.842c0,3.168,2.651,5.754,5.754,5.754   c3.168,0,5.754-2.651,5.754-5.754V42.731C110.869,39.564,108.218,36.978,105.051,36.978z" />
-                            <path style="fill:#4F5565;"
-                                d="M141.77,36.978c-3.168,0-5.754,2.651-5.754,5.754v17.842c0,3.168,2.651,5.754,5.754,5.754   c3.168,0,5.754-2.651,5.754-5.754V42.731C147.523,39.564,144.937,36.978,141.77,36.978z" />
-                            <path style="fill:#4F5565;"
-                                d="M178.424,36.978c-3.168,0-5.754,2.651-5.754,5.754v17.842c0,3.168,2.65,5.754,5.754,5.754   s5.754-2.651,5.754-5.754V42.731C184.178,39.564,181.592,36.978,178.424,36.978z" />
-                            <path style="fill:#4F5565;"
-                                d="M215.143,36.978c-3.168,0-5.754,2.651-5.754,5.754v17.842c0,3.168,2.651,5.754,5.754,5.754   c3.103,0,5.754-2.651,5.754-5.754V42.731C220.897,39.564,218.246,36.978,215.143,36.978z" />
-                            <path style="fill:#4F5565;"
-                                d="M251.798,36.978c-3.168,0-5.754,2.651-5.754,5.754v17.842c0,3.168,2.651,5.754,5.754,5.754   c3.168,0,5.754-2.651,5.754-5.754V42.731C257.552,39.564,254.966,36.978,251.798,36.978z" />
-                            <path style="fill:#4F5565;"
-                                d="M288.517,36.978c-3.168,0-5.754,2.651-5.754,5.754v17.842c0,3.168,2.651,5.754,5.754,5.754   c3.103,0,5.754-2.651,5.754-5.754V42.731C294.271,39.564,291.62,36.978,288.517,36.978z" />
-                        </g>
-                        <g>
-                            <rect x="99.297" y="96.97" style="fill:#DEDEDF;" width="195.168" height="7.628" />
-                            <rect x="99.297" y="118.691" style="fill:#DEDEDF;" width="195.168" height="7.628" />
-                            <rect x="168.986" y="176.356" style="fill:#DEDEDF;" width="125.479" height="7.628" />
-                            <rect x="168.986" y="195.749" style="fill:#DEDEDF;" width="125.479" height="7.628" />
-                            <rect x="168.986" y="215.143" style="fill:#DEDEDF;" width="125.479" height="7.628" />
-                            <rect x="99.297" y="241.325" style="fill:#DEDEDF;" width="195.168" height="7.628" />
-                            <rect x="99.297" y="260.719" style="fill:#DEDEDF;" width="195.168" height="7.628" />
-                            <rect x="99.297" y="280.113" style="fill:#DEDEDF;" width="195.168" height="7.628" />
-                            <rect x="99.297" y="300.283" style="fill:#DEDEDF;" width="195.168" height="7.628" />
-                        </g>
-                        <g>
-                            <path style="fill:#BDBDBE;"
-                                d="M221.931,164.525h-25.923v-25.923h25.923V164.525z M197.56,162.715h22.562v-22.303H197.56V162.715z" />
-                            <path style="fill:#BDBDBE;"
-                                d="M257.293,164.525H231.37v-25.923h25.923V164.525z M233.18,162.715h22.562v-22.303H233.18V162.715z" />
-                            <path style="fill:#BDBDBE;"
-                                d="M292.913,164.525H266.99v-25.923h25.923V164.525z M268.865,162.715h22.562v-22.303h-22.562V162.715z   " />
-                        </g>
-                        <polygon style="fill:#646B79;"
-                            points="217.471,145.713 214.885,143.063 208.808,149.075 203.055,143.063 200.469,145.713   206.222,151.725 200.469,157.479 203.055,160.129 208.808,154.311 214.885,160.129 217.471,157.479 211.459,151.725 " />
-                        <g>
-                            <polygon style="fill:#F0582F;"
-                                points="278.562,159.289 270.675,150.691 273.261,148.299 278.82,154.053 292.913,140.477    295.564,143.063  " />
-                            <rect x="99.297" y="175.321" style="fill:#F0582F;" width="47.709" height="47.709" />
-                        </g>
-                    </svg>
-                </span>
-            </a>
-            <span>Cuti</span>
-        </li>
-        <li class="text-center">
-            <a class="nav-link btn_klik" href="{{ url('/penugasan/dashboard/') }}">
-                <span class="dz-icon bg-red light"
-                    style="height: 50px; width: 50px; box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                    <span id="notif_penugasan" class="badge badge-danger light"
-                        style="position: absolute; margin-top: -12%; margin-right: -12%; "></span>
-                    <svg fill="#000000" style="height: 30px; width: 30px;" viewBox="0 0 512 512" id="_x30_1"
-                        version="1.1" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"
-                        xmlns:xlink="http://www.w3.org/1999/xlink">
-                        <g>
-                            <path
-                                d="M344.969,211.875H167.031c-10.096,0-18.281,8.185-18.281,18.281s8.185,18.281,18.281,18.281v12.188   c0,10.096,8.185,18.281,18.281,18.281l0,0c10.096,0,18.281-8.185,18.281-18.281v-12.188h104.812v12.188   c0,10.096,8.185,18.281,18.281,18.281l0,0c10.096,0,18.281-8.185,18.281-18.281v-12.188c10.096,0,18.281-8.185,18.281-18.281   S355.065,211.875,344.969,211.875z" />
-                            <path
-                                d="M256,126.562c-20.193,0-36.562,16.37-36.562,36.562h73.125C292.562,142.932,276.193,126.562,256,126.562z" />
-                            <path
-                                d="M256,0C114.615,0,0,114.615,0,256s114.615,256,256,256s256-114.615,256-256S397.385,0,256,0z M412,365.438   C412,385.63,395.63,402,375.438,402H136.562C116.37,402,100,385.63,100,365.438v-165.75c0-20.193,16.37-36.562,36.562-36.562   h46.312C182.875,122.739,215.614,90,256,90l0,0c40.386,0,73.125,32.739,73.125,73.125h46.312c20.193,0,36.562,16.37,36.562,36.562   V365.438z" />
-                        </g>
-                    </svg>
-                </span>
-            </a>
-            <span>Penugasan</span>
-        </li>
-    </ul>
-</div>
-<!-- Categorie End -->
-
-@if ($data_count > 0)
-<div class="categorie-section" style="margin: 0;">
-    <div class="mb10" style="margin-bottom: 5%; padding: 0%;">
-        <div class="title-bar">
-            <h5 class="dz-title">Approval</h5>
-            <div
-                class="swiper-defult-pagination pagination-dots style-1 p-0 swiper-pagination-clickable swiper-pagination-bullets">
-
-                @for ($i = 0; $i <= $data_count; $i++)
-                    <span class="swiper-pagination-bullet" tabindex="0" role="button"
-                    aria-label="Go to slide {{ $i++ }}"></span>
-                    @endfor
-            </div>
-        </div>
-        <div class="swiper-btn-center-lr">
-            <div
-                class="swiper-container tag-group mt-4 dz-swiper recomand-swiper swiper-container-initialized swiper-container-horizontal swiper-container-pointer-events">
-                <div class="swiper-wrapper" id="swiper-wrapper-6276e666ffdae1dc" aria-live="polite"
-                    style="transform: translate3d(-325px, 0px, 0px); transition-duration: 0ms;">
-                    @foreach ($dataizin as $a)
-                    <div class="swiper-slide swiper-slide-prev" role="group" aria-label="1 / 4"
-                        style="margin-right: 10px;">
-                        <a class="btn_klik" href="{{ url('/izin/approve/' . $a->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6px;">
-                                    <div class="media media-70">
-                                        @if ($a->User != '')
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;">{{ $a->fullname }}</h6>
-                                        <span class="location">{{ $a->izin }}</span>
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18"
-                                                height="18" xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1" viewBox="0 0 460 460"
-                                                xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_" style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_" style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endforeach
-                    @foreach ($datacuti_tingkat1 as $a)
-                    <div class="swiper-slide swiper-slide-prev" role="group" aria-label="1 / 4"
-                        style="margin-right: 10px;">
-                        <a class="btn_klik" href="{{ url('/cuti/approve/' . $a->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6x;">
-                                    <div class="media media-70">
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;"><a
-                                                href="javascript:void(0);">{{ $a->name }}</a></h6>
-                                        @if ($a->nama_cuti == 'Diluar Cuti Tahunan')
-                                        <span class="location">{{ $a->KategoriCuti->nama_cuti }}</span>
-                                        @else
-                                        <span class="location">{{ $a->nama_cuti }}</span>
-                                        @endif
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18"
-                                                height="18" xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1" viewBox="0 0 460 460"
-                                                xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_" style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_" style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endforeach
-                    @foreach ($datacuti_tingkat2 as $a)
-                    <div class="swiper-slide swiper-slide-prev" role="group" aria-label="1 / 4"
-                        style="margin-right: 10px;">
-                        <a class="btn_klik" href="{{ url('/cuti/approve/' . $a->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6x;">
-                                    <div class="media media-70">
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;"><a
-                                                href="javascript:void(0);">{{ $a->name }}</a></h6>
-                                        @if ($a->nama_cuti == 'Diluar Cuti Tahunan')
-                                        <span class="location">{{ $a->KategoriCuti->nama_cuti }}</span>
-                                        @else
-                                        <span class="location">{{ $a->nama_cuti }}</span>
-                                        @endif
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18"
-                                                height="18" xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1" viewBox="0 0 460 460"
-                                                xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_" style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_" style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endforeach
-                    @foreach ($datapenugasan as $datapenugasan)
-                    @if ($datapenugasan->status_penugasan == 1)
-                    @if ($datapenugasan->id_user_atasan == $user_karyawan->id)
-                    @if ($datapenugasan->ttd_id_diminta_oleh == null)
-                    <div class="swiper-slide swiper-slide-prev" role="group"
-                        aria-label="1 / 4" style="margin-right: 10px;">
-                        <a class="btn_klik"
-                            href="{{ url('/penugasan/approve/diminta/show/' . $datapenugasan->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6px;">
-                                    <div class="media media-70">
-                                        @if ($a->User != '')
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;">
-                                            {{ $datapenugasan->nama_diajukan }}
-                                        </h6>
-                                        <span class="location">Penugasan
-                                            {{ $datapenugasan->penugasan }}</span>
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                width="18" height="18"
-                                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1"
-                                                viewBox="0 0 460 460" xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_"
-                                                        style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_"
-                                                        style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal_pengajuan)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endif
-                    @endif
-                    @elseif($datapenugasan->status_penugasan == 2)
-                    @if ($datapenugasan->id_user_atasan2 == $user_karyawan->id)
-                    @if ($datapenugasan->ttd_id_disahkan_oleh == null)
-                    <div class="swiper-slide swiper-slide-prev" role="group"
-                        aria-label="1 / 4" style="margin-right: 10px;">
-                        <a class="btn_klik"
-                            href="{{ url('/penugasan/approve/diminta/show/' . $datapenugasan->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6px;">
-                                    <div class="media media-70">
-                                        @if ($a->User != '')
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;">
-                                            {{ $datapenugasan->nama_diajukan }}
-                                        </h6>
-                                        <span class="location">Penugasan
-                                            {{ $datapenugasan->penugasan }}</span>
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                width="18" height="18"
-                                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1"
-                                                viewBox="0 0 460 460" xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_"
-                                                        style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_"
-                                                        style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal_pengajuan)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endif
-                    @endif
-                    @elseif($datapenugasan->status_penugasan == 3)
-                    @if ($datapenugasan->id_user_hrd == Auth::user()->id)
-                    @if ($datapenugasan->ttd_proses_hrd == null)
-                    <div class="swiper-slide swiper-slide-prev" role="group"
-                        aria-label="1 / 4" style="margin-right: 10px;">
-                        <a class="btn_klik" href="{{ url('/penugasan/approve/diminta/show/' . $datapenugasan->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6px;">
-                                    <div class="media media-70">
-                                        @if ($a->User != '')
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;">
-                                            {{ $datapenugasan->nama_diajukan }}
-                                        </h6>
-                                        <span class="location">Penugasan
-                                            {{ $datapenugasan->penugasan }}</span>
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                width="18" height="18"
-                                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1"
-                                                viewBox="0 0 460 460" xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_"
-                                                        style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_"
-                                                        style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal_pengajuan)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endif
-                    @endif
-                    @elseif($datapenugasan->status_penugasan == 4)
-                    @if ($datapenugasan->id_user_finance == Auth::user()->id)
-                    @if ($datapenugasan->ttd_proses_finance == null)
-                    <div class="swiper-slide swiper-slide-prev" role="group"
-                        aria-label="1 / 4" style="margin-right: 10px;">
-                        <a class="btn_klik" href="{{ url('/penugasan/approve/diminta/show/' . $datapenugasan->id) }}">
-                            <div class="card job-post"
-                                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                                <div class="card-body" style="padding: 6px;">
-                                    <div class="media media-70">
-                                        @if ($a->User != '')
-                                        @if ($a->User->foto_karyawan != '')
-                                        <img src="{{ asset('../storage/app/public/foto_karyawan/' . $a->User->foto_karyawan) }}"
-                                            alt="/">
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                        @else
-                                        <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
-                                            alt="/">
-                                        @endif
-                                    </div>
-                                    <div class="card-info">
-                                        <h6 class="title" style="font-size: 9pt;">
-                                            {{ $datapenugasan->nama_diajukan }}
-                                        </h6>
-                                        <span class="location">Penugasan
-                                            {{ $datapenugasan->penugasan }}</span>
-                                        <div class="d-flex align-items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                width="18" height="18"
-                                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                version="1.1" id="Layer_1"
-                                                viewBox="0 0 460 460" xml:space="preserve">
-                                                <g id="XMLID_1011_">
-                                                    <path id="XMLID_1012_" style="fill:#354A67;"
-                                                        d="M230,0c127.03,0,230,102.97,230,230S357.03,460,230,460l-60-230L230,0z" />
-                                                    <path id="XMLID_1013_" style="fill:#466289;"
-                                                        d="M230,460C102.97,460,0,357.03,0,230S102.97,0,230,0V460z" />
-                                                    <path id="XMLID_1014_" style="fill:#BEC8D6;"
-                                                        d="M230,420l-20-200l210,10C420,334.77,334.77,420,230,420z" />
-                                                    <path id="XMLID_1015_" style="fill:#DAE0E7;"
-                                                        d="M230,40c104.77,0,190,85.23,190,190H210L230,40z" />
-                                                    <path id="XMLID_1016_" style="fill:#DAE0E7;"
-                                                        d="M230,230v190c-104.77,0-190-85.23-190-190l95-30L230,230z" />
-                                                    <path id="XMLID_1017_" style="fill:#FFFFFF;"
-                                                        d="M230,40v190H40C40,125.23,125.23,40,230,40z" />
-
-                                                    <rect id="XMLID_1018_" x="142.496" y="89.424"
-                                                        transform="matrix(-0.866 0.5 -0.5 -0.866 346.103 116.1065)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1019_" x="89.423" y="142.503"
-                                                        transform="matrix(-0.5 0.866 -0.866 -0.5 293.0349 145.8244)"
-                                                        style="fill:#DAE0E7;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1020_" x="89.419" y="287.503"
-                                                        transform="matrix(0.5 0.866 -0.866 0.5 314.1816 60.8195)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1021_" x="142.505" y="340.583"
-                                                        transform="matrix(0.866 0.5 -0.5 0.866 198.8977 -31.1126)"
-                                                        style="fill:#BEC8D6;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1022_" x="287.508" y="340.583"
-                                                        transform="matrix(0.866 -0.5 0.5 0.866 -137.2649 198.8984)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-
-                                                    <rect id="XMLID_1023_" x="340.582" y="287.492"
-                                                        transform="matrix(0.5 -0.866 0.866 0.5 -84.1765 459.1824)"
-                                                        style="fill:#A3B1C4;" width="29.999"
-                                                        height="29.999" />
-                                                    <polygon id="XMLID_1024_"
-                                                        style="fill:#354A67;"
-                                                        points="333.241,106.256 230.711,208.787 230.711,251.213 354.454,127.47  " />
-                                                    <polygon id="XMLID_1025_"
-                                                        style="fill:#466289;"
-                                                        points="181.213,159.289 160,180.502 230.711,251.213 230.711,208.787  " />
-                                                    <rect id="XMLID_1026_" x="230" y="360"
-                                                        style="fill:#A3B1C4;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1027_" x="230" y="70"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1028_" x="215" y="360"
-                                                        style="fill:#BEC8D6;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1029_" x="215" y="70"
-                                                        style="fill:#DAE0E7;" width="15"
-                                                        height="30" />
-                                                    <rect id="XMLID_1030_" x="360" y="230"
-                                                        style="fill:#A3B1C4;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1031_" x="360" y="215"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1032_" x="70" y="230"
-                                                        style="fill:#BEC8D6;" width="30"
-                                                        height="15" />
-                                                    <rect id="XMLID_1033_" x="70" y="215"
-                                                        style="fill:#DAE0E7;" width="30"
-                                                        height="15" />
-                                                </g>
-                                            </svg>
-                                            <span style="font-size: 9pt;"
-                                                class="ms-2 price-item">{{ \Carbon\Carbon::parse($a->tanggal_pengajuan)->format('d-m-Y') }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    @endif
-                    @endif
-                    @endif
-                    @endforeach
-                </div>
-                <span class="swiper-notification" aria-live="assertive" aria-atomic="true"></span>
-            </div>
-            @if ($data_count_all > 5)
-            <div class="see_all" style="float: right;">
-                <a href="{{ url('/approval/dashboard') }}"><span class="badge light badge-secondary">Lihat
-                        Semua>></span></a>
-            </div>
-            @endif
-        </div>
-    </div>
-    <hr style="margin: 0;">
-</div>
-@else
-@endif
-
-<!-- Features End -->
-<div class="categorie-section" style="margin: 0;">
-    <div class="title-bar" style="margin: 0;">
-        <h6 class="title"> Absen&nbsp;Bulan&nbsp;
-            <select class="month"
-                style="width: max-content;border-radius: 0px; background-color:transparent; color: var(--primary); border: none;outline: none;"
-                name="" id="month">
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-            </select>
-            &nbsp;{{ $thnskrg }}
-        </h6>
-        <!-- <div class="dropdown d-inline-flex">
-                <span class="dropdown-toggle" data-bs-toggle="dropdown">
-                    Maret
-                </span>
-                <div class="dropdown-menu">
-                    <a class="dropdown-item" href="#">Link 1</a>
-                    <a class="dropdown-item" href="#">Link 2</a>
-                    <a class="dropdown-item" href="#">Link 3</a>
-                </div>
-            </div> -->
-    </div>
-    <div class="row">
-        <div class="col-6">
-            <div class="card"
-                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                <div class="card-body" style="padding: 5%; margin: 2%;">
-                    <div class="row">
-                        <div class="col">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon_kategori" viewBox="0 0 64 64"
-                                data-name="Layer 1" id="Layer_1">
-                                <defs>
-                                    <style>
-                                        .cls-1 {
-                                            fill: #e7ecef;
-                                        }
-
-                                        .cls-2 {
-                                            fill: #ffbc0a;
-                                        }
-
-                                        .cls-3 {
-                                            fill: #8b8c89;
-                                        }
-
-                                        .cls-4 {
-                                            fill: #bc6c25;
-                                        }
-
-                                        .cls-5 {
-                                            fill: #a3cef1;
-                                        }
-
-                                        .cls-6 {
-                                            fill: #dda15e;
-                                        }
-
-                                        .cls-7 {
-                                            fill: #6096ba;
-                                        }
-
-                                        .cls-8 {
-                                            fill: #274c77;
-                                        }
-                                    </style>
-                                </defs>
-                                <circle class="cls-5" cx="47" cy="17" r="13" />
-                                <circle class="cls-2" cx="47" cy="17" r="9" />
-                                <path class="cls-6"
-                                    d="M26.58,38.04l-3,1.29c-1.01,.43-2.15,.43-3.15,0l-3-1.29c-1.47-.63-2.42-2.08-2.42-3.68v-5.36c0-3.31,2.69-6,6-6h2c3.31,0,6,2.69,6,6v5.36c0,1.6-.95,3.05-2.42,3.68Z" />
-                                <path class="cls-8"
-                                    d="M35.14,44c-1.82-1.85-4.35-3-7.14-3h-3c0,1.66-1.34,3-3,3s-3-1.34-3-3h-3c-5.52,0-10,4.48-10,10v7H28l4-14h3.14Z" />
-                                <path class="cls-6" d="M17,54h2c1.1,0,2,.9,2,2v2h-4v-4h0Z" />
-                                <path class="cls-8"
-                                    d="M12,30.73c-.29,.17-.64,.27-1,.27-1.1,0-2-.9-2-2s.9-2,2-2c.42,0,.81,.13,1.14,.36" />
-                                <path class="cls-8"
-                                    d="M32,30.73c.29,.17,.64,.27,1,.27,1.1,0,2-.9,2-2s-.9-2-2-2c-.42,0-.81,.13-1.14,.36" />
-                                <path class="cls-4"
-                                    d="M19,38.71l1.42,.61c1.01,.44,2.15,.44,3.16,0l1.42-.61v2.29c0,1.66-1.34,3-3,3s-3-1.34-3-3v-2.29Z" />
-                                <polyline class="cls-3" points="28 58 32 44 54 44 50 58" />
-                                <path class="cls-8"
-                                    d="M28.4,26.38h-.01c-.57-.23-1.23-.38-2.06-.38-4.33,0-4.33,4-8.67,4-1.13,0-1.97-.27-2.66-.67v-.33c0-3.31,2.69-6,6-6h2c2.37,0,4.42,1.38,5.39,3.38h.01Z" />
-                                <path class="cls-1"
-                                    d="M29,33.6v-4.6c0-3.31-2.69-6-6-6h-2c-3.31,0-6,2.69-6,6v4h-2c-.55,0-1-.45-1-1v-3c0-5.52,4.48-10,10-10,2.76,0,5.26,1.12,7.07,2.93s2.93,4.31,2.93,7.07v3.18c0,.48-.34,.89-.8,.98l-2.2,.44Z" />
-                                <path class="cls-5" d="M41,50c.55,0,1,.45,1,1s-.45,1-1,1v-2Z" />
-                                <path class="cls-7"
-                                    d="M22,35h0c-.11-.54,.24-1.07,.78-1.18l8.22-1.64v-2.86c0-4.79-3.61-8.98-8.38-9.3-5.24-.35-9.62,3.81-9.62,8.98v3h2v2h-2c-1.1,0-2-.9-2-2v-2.68c0-5.72,4.24-10.74,9.94-11.27,6.54-.62,12.06,4.53,12.06,10.95v3.18c0,.95-.67,1.77-1.61,1.96l-8.22,1.64c-.54,.11-1.07-.24-1.18-.78Z" />
-                                <path class="cls-7"
-                                    d="M22,58h-2v-2c0-.55-.45-1-1-1h-7c-.55,0-1-.45-1-1v-4c0-.27,.11-.52,.29-.71l1.29-1.29c.39-.39,1.02-.39,1.41,0h0c.39,.39,.39,1.02,0,1.41l-1,1v2.59h6c1.66,0,3,1.34,3,3v2Z" />
-                                <rect class="cls-5" height="2" width="50" x="4" y="58" />
-                                <path class="cls-7"
-                                    d="M47,16c-.55,0-1-.45-1-1s.45-1,1-1,1,.45,1,1h2c0-1.3-.84-2.4-2-2.82v-1.18h-2v1.18c-1.16,.41-2,1.51-2,2.82,0,1.65,1.35,3,3,3,.55,0,1,.45,1,1s-.45,1-1,1-1-.45-1-1h-2c0,1.3,.84,2.4,2,2.82v1.18h2v-1.18c1.16-.41,2-1.51,2-2.82,0-1.65-1.35-3-3-3Z" />
-                                <path class="cls-7"
-                                    d="M44.02,29.66c-.01,.11-.02,.23-.02,.34,0,1.66,1.34,3,3,3s3-1.34,3-3c0-.11-.01-.23-.02-.34-.96,.22-1.95,.34-2.98,.34s-2.02-.12-2.98-.34Z" />
-                                <circle class="cls-7" cx="43" cy="36" r="2" />
-                                <circle class="cls-7" cx="38" cy="40" r="2" />
-                            </svg>
-                        </div>
-                        <div class="col">
-                            <h6 class="icon_text title"><a href="javascript:void(0);">HADIR</a></h6>
-                            <span class="">
-                                <h3 id="count_absen_hadir">
-                                    <div class="spinner-border spinner-border-sm mb-2 text-primary" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </h3>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6">
-            <div class="card"
-                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                <div class="card-body" style="padding: 5%; margin: 2%;">
-                    <div class="row">
-                        <div class="col">
-                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                                version="1.1" id="Layer_1" viewBox="0 0 496 496" xml:space="preserve"
-                                class="icon_kategori">
-                                <path style="fill:#50BB75;"
-                                    d="M416,462.4c0,19.2-12.8,33.6-32.8,33.6H112.8c-20,0-32.8-14.4-32.8-33.6V52.8  C80,33.6,92.8,16,112.8,16h269.6c20.8,0,33.6,17.6,33.6,36.8V462.4z" />
-                                <path style="fill:#0AA06E;"
-                                    d="M80,52.8C80,33.6,92.8,16,112.8,16h269.6c20.8,0,33.6,17.6,33.6,36.8v409.6  c0,19.2-14.4,33.6-35.2,33.6" />
-                                <path style="fill:#40406B;"
-                                    d="M320,36c0,3.2-4.8,4-8,4H184c-3.2,0-8-0.8-8-4V4.8c0-2.4,4.8-4.8,8-4.8h128c3.2,0,8,2.4,8,4.8V36z" />
-                                <rect x="128" y="72" style="fill:#EAEAEA;" width="240" height="376" />
-                                <polyline style="fill:#DDDDDD;" points="128,72 368,72 368,448 " />
-                                <rect x="160" y="104" style="fill:#A8A8A8;" width="56" height="56" />
-                                <g>
-                                    <rect x="152" y="184" style="fill:#C4C4C4;" width="192" height="16" />
-                                    <rect x="152" y="232" style="fill:#C4C4C4;" width="192" height="16" />
-                                    <rect x="152" y="280" style="fill:#C4C4C4;" width="192" height="16" />
-                                    <rect x="152" y="328" style="fill:#C4C4C4;" width="192" height="16" />
-                                    <rect x="152" y="376" style="fill:#C4C4C4;" width="88" height="16" />
-                                </g>
-                                <polygon style="fill:#F15249;"
-                                    points="344,376 320,376 320,360 296,360 296,376 272,376 272,400 296,400 296,424 320,424 320,400   344,400 " />
-                                <rect x="248" y="112" style="fill:#E88610;" width="96" height="32" />
-                            </svg>
-                        </div>
-                        <div class="col" style="position: relative;">
-                            <h6 class="icon_text title">IZIN</h6>
-                            <span class="">
-                                <h3 id="count_izin">
-                                    <div class="spinner-border spinner-border-sm mb-2 text-primary" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </h3>
-                            </span>
-                        </div>
-                    </div>
-                    <p style="font-size: 5pt; text-align: center; position: absolute; font-weight: bold;">
-                        (Sakit&nbsp;&&nbsp;Tidak&nbsp;Masuk)</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-6">
-            <div class="card"
-                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                <div class="card-body" style="padding: 5%; margin: 2%;">
-                    <div class="row">
-                        <div class="col">
-                            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                                class="icon_kategori" version="1.1" id="Capa_1" viewBox="0 0 512 512"
-                                xml:space="preserve">
-                                <path style="fill:#F5CDB3;"
-                                    d="M65.782,447.977c-26.082,0.131-47.724-20.174-49.271-46.224L0.089,125.22  C-0.69,112.118,3.68,99.498,12.394,89.682c8.714-9.815,20.729-15.649,33.832-16.426l197.075-11.705  c27.292-1.634,50.364,19.195,51.964,46.14l16.424,276.531c1.608,27.046-19.092,50.358-46.137,51.965L68.477,447.889  C67.576,447.943,66.674,447.973,65.782,447.977z" />
-                                <path style="fill:#F0A479;"
-                                    d="M295.266,107.69c-1.6-26.944-24.672-47.774-51.964-46.14l-96.81,5.75l21.531,374.677l97.531-5.793  c27.046-1.607,47.744-24.918,46.137-51.965L295.266,107.69z" />
-                                <path style="fill:#707070;"
-                                    d="M101.305,139.914c-18.99,0-34.673-14.861-35.705-33.832l-1.902-35.013  C62.63,51.372,77.783,34.477,97.477,33.406l92.497-5.026c19.821-1.088,36.597,14.159,37.663,33.78l1.902,35.012  c1.07,19.695-14.083,36.59-33.78,37.661l-92.497,5.026C102.608,139.896,101.954,139.914,101.305,139.914z" />
-                                <path style="fill:#FF8546;"
-                                    d="M169.37,477.637c-6.666,0-12.984-3.967-15.663-10.518L87.734,305.73  c-3.535-8.647,0.61-18.522,9.257-22.057c8.647-3.533,18.521,0.61,22.057,9.257l65.974,161.388  c3.535,8.647-0.609,18.522-9.257,22.057C173.67,477.232,171.502,477.637,169.37,477.637z" />
-                                <path style="fill:#CCF7F5;"
-                                    d="M481.427,483.674H238.523c-16.858,0-30.573-13.715-30.573-30.574V223.803  c0-4.487,1.783-8.789,4.955-11.959l98.892-98.892c3.172-3.172,7.474-4.955,11.961-4.955h157.669  c16.858,0,30.573,13.715,30.573,30.574V453.1C512,469.958,498.285,483.674,481.427,483.674z" />
-                                <g>
-                                    <path style="fill:#74D6D0;"
-                                        d="M481.427,106.913H357.978v375.676h123.449c16.858,0,30.573-13.715,30.573-30.574V137.488   C512,120.629,498.285,106.913,481.427,106.913z" />
-                                    <path style="fill:#74D6D0;"
-                                        d="M481.427,106.913H371.144v375.676h110.283c16.858,0,30.573-13.715,30.573-30.574V137.488   C512,120.629,498.285,106.913,481.427,106.913z" />
-                                </g>
-                                <path style="fill:#F4F4F4;"
-                                    d="M334.673,110.29c-2.9-2.952-6.935-4.788-11.399-4.788c-0.024,0-0.344,0.017-0.344,0.017  c-4.178,0.09-7.958,1.776-10.755,4.48l-0.005-0.006L211.646,210.605l0.001,0.001c-2.307,2.771-3.696,6.332-3.696,10.22  c0,8.828,7.157,15.986,15.985,15.986c0.198,0,0.39-0.023,0.586-0.029c0.196,0.008,0.388,0.029,0.586,0.029h97.847  c9.242,0,16.735-7.493,16.735-16.735v-97.847C339.689,117.551,337.766,113.328,334.673,110.29z" />
-                                <path style="fill:#E0E0E0;"
-                                    d="M334.673,110.29c-2.9-2.952-6.935-4.788-11.399-4.788c-0.024,0-0.344,0.017-0.344,0.017  c-4.178,0.09-7.958,1.776-10.755,4.48l-0.005-0.006l-55.835,55.883v70.934h66.619c9.242,0,16.735-7.493,16.735-16.735v-97.847  C339.689,117.551,337.766,113.328,334.673,110.29z" />
-                                <g>
-                                    <path style="fill:#575757;"
-                                        d="M451.012,300.21H303.723c-9.341,0-16.914-7.573-16.914-16.914c0-9.341,7.573-16.914,16.914-16.914   h147.289c9.341,0,16.914,7.573,16.914,16.914C467.926,292.637,460.353,300.21,451.012,300.21z" />
-                                    <path style="fill:#575757;"
-                                        d="M451.012,350.529H303.723c-9.341,0-16.914-7.573-16.914-16.914c0-9.341,7.573-16.914,16.914-16.914   h147.289c9.341,0,16.914,7.573,16.914,16.914C467.926,342.956,460.353,350.529,451.012,350.529z" />
-                                    <path style="fill:#575757;"
-                                        d="M451.012,400.848H303.723c-9.341,0-16.914-7.573-16.914-16.914c0-9.341,7.573-16.914,16.914-16.914   h147.289c9.341,0,16.914,7.573,16.914,16.914C467.926,393.275,460.353,400.848,451.012,400.848z" />
-                                </g>
-                            </svg>
-                        </div>
-
-                        <div class="col">
-                            <h6 class="icon_text title"><a href="javascript:void(0);">CUTI</a></h6>
-                            <span class="">
-                                <h3 id="count_sakit">
-                                    <div class="spinner-border spinner-border-sm mb-2 text-primary" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </h3>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-6">
-            <div class="card"
-                style="box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
-                <div class="card-body" style="padding: 5%; margin: 2%;">
-                    <div class="row">
-                        <div class="col">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon_kategori"
-                                viewBox="-10.98 0 84.878 84.878">
-                                <g id="time_cronometer" data-name="time cronometer"
-                                    transform="translate(-873.556 -236.194)">
-                                    <path id="Path_120" data-name="Path 120"
-                                        d="M905.016,262.253a27.362,27.362,0,1,0,27.358,27.358A27.357,27.357,0,0,0,905.016,262.253Z"
-                                        fill="#f4f4f4" />
-                                    <path id="Path_121" data-name="Path 121"
-                                        d="M905.016,236.194a10.863,10.863,0,1,0,10.859,10.862A10.869,10.869,0,0,0,905.016,236.194Zm0,19.774a8.912,8.912,0,1,1,8.91-8.912A8.91,8.91,0,0,1,905.016,255.968Z"
-                                        fill="#163844" />
-                                    <path id="Path_122" data-name="Path 122"
-                                        d="M930.582,289.611a25.571,25.571,0,1,1-25.566-25.566A25.564,25.564,0,0,1,930.582,289.611Z"
-                                        fill="#27b7ff" />
-                                    <path id="Path_123" data-name="Path 123"
-                                        d="M905.016,258.151a31.46,31.46,0,1,0,31.461,31.46A31.455,31.455,0,0,0,905.016,258.151Zm0,58.826a27.362,27.362,0,1,1,27.358-27.366A27.36,27.36,0,0,1,905.016,316.977Z"
-                                        fill="#163844" />
-                                    <path id="Path_124" data-name="Path 124"
-                                        d="M879.871,257.257l-3.808,3.8a1.841,1.841,0,0,0,0,2.605l5.26,5.261a31.625,31.625,0,0,1,6.9-5.917l-5.751-5.752A1.841,1.841,0,0,0,879.871,257.257Zm54.093,3.8-3.8-3.8a1.846,1.846,0,0,0-2.609,0l-5.752,5.752a31.718,31.718,0,0,1,6.9,5.917l5.26-5.257A1.849,1.849,0,0,0,933.964,261.06Z"
-                                        fill="#576d78" />
-                                    <path id="Path_125" data-name="Path 125"
-                                        d="M887.755,274.2,902.1,288.652l3.706,1.891.482.434,2.3,4.731,1.314-1.462h0l1.909-2.13-5.255-1.767-2.573-3.774Z"
-                                        fill="#163844" />
-                                    <path id="Path_126" data-name="Path 126"
-                                        d="M909.315,289.611a4.3,4.3,0,1,1-4.3-4.3A4.306,4.306,0,0,1,909.315,289.611Z"
-                                        fill="#f4f4f4" />
-                                    <path id="Path_127" data-name="Path 127"
-                                        d="M908.809,251.808h-7.585a1.841,1.841,0,0,0-1.843,1.845v5.031a30.054,30.054,0,0,1,11.27,0v-5.031A1.848,1.848,0,0,0,908.809,251.808Z"
-                                        fill="#576d78" />
-                                </g>
-                            </svg>
-                        </div>
-                        <div class="col">
-                            <h6 class="icon_text title"><a href="javascript:void(0);">TELAT</a></h6>
-                            <span class="">
-                                <h3 id="count_telat">
-                                    <div class="spinner-border spinner-border-sm mb-2 text-primary" role="status">
-                                        <span class="sr-only">Loading...</span>
-                                    </div>
-                                </h3>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<hr style="margin: 0;">
-<!-- Categorie -->
-<div class="categorie-section">
-    <div class="title-bar">
-        <h5 class="dz-title">1 Minggu Terakhir</h5>
-    </div>
-    <div class="card">
-        <div class="table-responsive">
-            <table class="table" id="datatableHome" style="width:100%;">
-                <thead class="table-primary">
-                    <tr>
-                        <th scope="col">Tanggal</th>
-                        <th scope="col">Masuk</th>
-                        <th scope="col">Pulang</th>
-                        <th scope="col">Keterangan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Categorie End -->
-@endsection
-@section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
-<script type="text/javascript">
-    window.addEventListener("pageshow", function(event) {
-        if (event.persisted) {
-            // Reinitialize JS
-            Swal.close();
-        }
-    });
-    $(document).ready(function() {
-        // Swal.close();
-        load_data();
-        load_absensi();
-
-        function load_data(filter_month = '') {
-            // console.log(filter_month);
-            var table1 = $('#datatableHome').DataTable({
-                processing: true,
-                serverSide: true,
-                responsive: true,
-                scrollX: true,
-                "bPaginate": false,
-                searching: false,
-                ajax: {
-                    url: "{{ route('datatableHome') }}",
-                    data: {
-                        filter_month: filter_month,
-                    }
-                },
-                columns: [{
-                        data: 'tanggal_masuk',
-                        name: 'tanggal_masuk'
-                    },
-                    {
-                        data: 'jam_absen',
-                        name: 'jam_absen'
-                    },
-                    {
-                        data: 'jam_pulang',
-                        name: 'jam_pulang'
-                    },
-                    {
-                        data: 'keterangan',
-                        name: 'keterangan'
-                    },
-                ],
-                order: [
-                    [0, 'DESC']
-                ]
-            });
-        }
-
-        function load_absensi(filter_month = '') {
-            $.ajax({
-                url: "{{ route('get_count_absensi_home') }}",
-                data: {
-                    filter_month: filter_month,
-                },
-                type: "GET",
-                error: function() {
-                    alert('Something is wrong');
-                },
-                success: function(data) {
-                    // console.log(data.count_absen_hadir)
-                    $('#count_absen_hadir').html(data.count_absen_hadir);
-                    $('#count_telat').html(data.count_telat);
-                    $('#count_izin').html(data.count_izin);
-                    $('#count_sakit').html(data.count_sakit);
-                }
-            });
-        }
-        $('#month').change(function() {
-            filter_month = $(this).val();
-            // console.log(filter_month);
-            $('#datatableHome').DataTable().destroy();
-            load_data(filter_month);
-            load_absensi(filter_month);
-
-
-        })
-        var offcanvasEl = document.getElementById('home_index')
-        oke();
-
-        function oke() {
-            // e.preventDefault();
-            // console.log($('#home_index').val());
-            if ($('#home_index').val() == '1') {
-                console.log('hidden')
-                window.scrollTo(0, 50);
+        @media (max-width: 480px) {
+            .absensi-list .absensi-item {
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .absensi-list .attendance-times {
+                gap: 8px;
+            }
+
+            .absensi-list .attendance-time-value {
+                font-size: 13px;
             }
         }
+    </style>
+@endsection
+@section('alert')
+    <div class="alert_quick_panel"></div>
+@endsection
+@section('content_top')
+    <div class="info-card">
+        <div class="info-left">
+            <div class="icon-badge">
+                <i class="fa-regular fa-building"></i>
+            </div>
+            <div class="info-text">
+                <span class="label">Penempatan</span>
+                <strong class="value" id="penempatan">
 
-        $(document).on('click', '.btn_klik', function(e) {
-            console.log('oke');
-            Swal.fire({
-                allowOutsideClick: false,
-                background: 'transparent',
-                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-                showCancelButton: false,
-                showConfirmButton: false,
+                </strong>
+            </div>
+        </div>
 
-            });
+        <div class="info-right">
+            <div class="icon-badge clock">
+                <i class="fa-regular fa-clock"></i>
+            </div>
+            <div class="info-text text-end">
+                <span class="label">Jam Kerja</span>
+                <strong class="value" id="jam_kerja">
+
+                </strong>
+            </div>
+        </div>
+    </div>
+@endsection
+@section('absensi')
+    <!-- ABSENSI -->
+    <div class="row g-3">
+        <div class="col-6">
+            <button class="btn-absen masuk">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <div>
+                    <strong>Masuk</strong>
+                    <br>
+                    <strong id="absen_masuk"></strong>
+                </div>
+            </button>
+        </div>
+
+        <div class="col-6">
+            <button class="btn-absen pulang">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <div>
+                    <strong>Pulang</strong>
+                    <br>
+                    <strong id="absen_pulang"></strong>
+                </div>
+            </button>
+        </div>
+    </div>
+@endsection
+@section('content')
+    <div class="offcanvas offcanvas-bottom rounded-top-5" tabindex="-1" id="detailAbsensi"
+        style="height: auto; min-height: 40vh;">
+        <div class="offcanvas-header pb-0 justify-content-center">
+            <div style="width: 40px; height: 5px; background: #e2e8f0; border-radius: 10px;"></div>
+        </div>
+        <div class="offcanvas-body pt-4" id="detailContent">
+        </div>
+    </div>
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+        <div class="offcanvas-body text-center small">
+            <h6 class="title">KONFIRMASI</h6>
+            <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
+            <form method="POST" action="{{ route('logout_user') }}">
+                @csrf
+                <a onclick="event.preventDefault(); this.closest('form').submit();"
+                    class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    &nbsp;Logout
+                </a>
+                <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                    aria-label="Close">Batal</a>
+            </form>
+        </div>
+    </div>
+    <!-- {{ Auth::user()->id }} -->
+    <!-- Features -->
+    @include('sweetalert::alert')
+    <!-- <div class="features-box">
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div> -->
+    <!-- Categorie -->
+    <div class="categorie-section" style="margin-bottom: 5%; padding: 0%;">
+        <h6 class="section-title accent-inline">
+            <span>Menu Utama</span>
+        </h6>
+        <div class="mini-menu-grid">
+            @php
+                // Palet warna yang lebih soft dan modern
+                $color_main = [
+                    'icon-soft-purple',
+                    'icon-soft-blue',
+                    'icon-soft-green',
+                    'icon-soft-red',
+                    'icon-soft-yellow',
+                    'icon-soft-skyblue',
+                    'icon-soft-pink',
+                ];
+            @endphp
+
+            @foreach ($all_menu_main as $index => $main)
+                @if ($main->Menu != null)
+                    @php
+                        // Memilih warna berdasarkan urutan agar distribusi warna merata
+                        $selectedColor = $color_main[$index % count($color_main)];
+                    @endphp
+
+                    <a href="{{ url($main->Menu->url . '/' . $main->Menu->id) }}" class="mini-menu-item btn_klik">
+                        <div class="mini-icon {{ $selectedColor }}">
+                            @php($menuIcon = trim($main->Menu->icon ?? ''))
+                            @if (str_starts_with($menuIcon, '<'))
+                                {!! $menuIcon !!}
+                            @else
+                                <i class="{{ $menuIcon }}"></i>
+                            @endif
+                        </div>
+                        <span class="mini-label">{!! $main->Menu->name !!}</span>
+                    </a>
+                @endif
+            @endforeach
+        </div>
+    </div>
+    <!-- Categorie End -->
+
+    <div class="approval-panel mt-2">
+
+    </div>
+    <!-- Features End -->
+    <div class="categorie-section mt-3">
+        <div class="row">
+            <div class="col-12 mb-3">
+                <div class="month-nav mx-auto d-flex align-items-center justify-content-between">
+                    <button id="prevMonth" class="btn-nav">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+
+                    <span id="currentMonth" class="month-text"></span>
+
+                    <button id="nextMonth" class="btn-nav">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card stat-card hadir">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+
+                        <div class="stat-content text-end">
+                            <h6 class="stat-title">HADIR</h6>
+                            <h3 id="count_absen_hadir" class="stat-value">
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card stat-card izin">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-file-signature"></i>
+                        </div>
+
+                        <div class="stat-content text-end">
+                            <h6 class="stat-title">SAKIT</h6>
+                            <h3 id="count_absen_izin" class="stat-value">
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card stat-card cuti">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+
+                        <div class="stat-content text-end">
+                            <h6 class="stat-title">CUTI</h6>
+                            <h3 id="count_absen_cuti" class="stat-value">
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card stat-card telat">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div class="stat-icon">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+
+                        <div class="stat-content text-end">
+                            <h6 class="stat-title">TELAT</h6>
+                            <h3 id="count_absen_telat" class="stat-value">
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categorie -->
+    <div class="categorie-section">
+        <h6 class="section-title accent-inline">
+            <span>1 Minggu Terakhir</span>
+        </h6>
+        <div class="card p-1 absensi-list">
+
+        </div>
+    </div>
+
+
+    <!-- Categorie End -->
+@endsection
+@section('js')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script type="text/javascript">
+        window.addEventListener("pageshow", function(event) {
+            if (event.persisted) {
+                // Reinitialize JS
+                Swal.close();
+            }
         });
+        $(document).ready(function() {
+            // Swal.close();
+            // load_data();
 
-        // console.log('ok');
-        setTimeout(function() {
-            // console.log('ok1');
-            $("#alert_kontrak_kerja_null").remove();
-            $("#alert_jabatan_null").remove();
-            $("#alert_absen_tidak_masuk").remove();
-            $("#alert_absen_tidak_masuk1").remove();
-            $("#alert_absenpulangsuccess").remove();
-            $("#alert_approve_cuti_success").remove();
-            $("#alert_approve_cuti_not_approve").remove();
-            $("#alert_approve_izin_success").remove();
-            $("#alert_approve_izin_not_approve").remove();
-            $("#alert_login_success").remove();
-            $("#alert_approve_penugasan_sukses").remove();
-            $("#alert_lokasikerjanull").remove();
-            $("#alert_latlongnull").remove();
-            $("#alert_absenkeluarerror").remove();
-            $("#alert_absen_masuk_success").remove();
-            $("#alert_absen_masuk_error").remove();
-            $("#alert_absenpulangoutradius").remove();
-            $("#alert_absenmasukoutradius").remove();
-            $("#alert_jam_kerja_libur").remove();
-            $("#alert_simpanface_danger").remove();
-            $("#alert_simpanface_success").remove();
-        }, 7000); // 7 secs
+            const message = localStorage.getItem('success_message');
+            // console.log(message);
+            if (message) {
+                $('.alert_quick_panel').stop(true, true).hide().html(
+                    '<div class="alert alert-success light alert-lg alert-dismissible fade show">' + message +
+                    '</div>').fadeIn(100);
 
-        function get_notif() {
-            $.ajax({
-                type: "GET",
-                url: "{{ url('home/get_notif') }}",
-                success: function(data) {
-                    $("#notif_izin").empty();
-                    $("#notif_cuti").empty();
-                    $("#notif_penugasan").empty();
-                    if (data.count_izin == 0) {
-                        $("#notif_izin").empty();
-                    } else {
-                        $("#notif_izin").html(data.count_izin);
-                    }
-                    if (data.count_cuti == 0) {
-                        $("#notif_izin").empty();
-                    } else {
-                        $("#notif_izin").html(data.count_cuti);
-                    }
-                    if (data.count_penugasan == 0) {
-                        $("#notif_izin").empty();
-                    } else {
-                        $("#notif_izin").html(data.count_penugasan);
-                    }
+                setTimeout(function() {
+                    $('.alert_quick_panel').fadeOut('slow');
+                    localStorage.removeItem('success_message');
+                }, 8000);
+            }
+
+            let currentDate = new Date();
+
+            const monthNames = [
+                "Januari",
+                "Februari",
+                "Maret",
+                "April",
+                "Mei",
+                "Juni",
+                "Juli",
+                "Agustus",
+                "September",
+                "Oktober",
+                "November",
+                "Desember"
+            ];
+
+            function renderMonth() {
+                const today = new Date(currentDate);
+                const year = today.getFullYear();
+                const month = today.getMonth(); // 0-11
+                const day = today.getDate();
+
+                let startDate, endDate;
+
+                if (day <= 20) {
+                    // Periode: 21 bulan lalu - 20 bulan ini
+                    startDate = new Date(year, month - 1, 21);
+                    endDate = new Date(year, month, 20);
+                } else {
+                    // Periode: 21 bulan ini - 20 bulan depan
+                    startDate = new Date(year, month, 21);
+                    endDate = new Date(year, month + 1, 20);
                 }
+
+                // Format untuk ditampilkan
+                const formatDisplay = (date) => {
+                    return `${date.getDate()} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+                };
+
+                document.getElementById('currentMonth').innerText =
+                    `${formatDisplay(startDate)} - ${formatDisplay(endDate)}`;
+
+                // Format untuk dikirim ke backend
+                const formatSend = (date) => {
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                };
+
+                loadAbsensiData(formatSend(startDate), formatSend(endDate));
+            }
+
+            function showSkeleton(selector) {
+                $(selector).each(function() {
+                    const el = $(this);
+
+                    if (!el.data('original-content')) {
+                        el.data('original-content', el.html());
+                    }
+
+                    const child = el.children().first();
+                    const actualWidth = child.length ? child.width() : el.width();
+
+                    const finalWidth = actualWidth > 0 ? actualWidth : 100; // Fallback jika 0
+
+                    // PERUBAHAN: Ubah display menjadi "block" dan tambahkan margin-bottom
+                    el.html(
+                        `<span class="skeleton" style="width: ${finalWidth}px; height: 1em; display: block; margin-bottom: 8px; border-radius: 4px;"></span>`
+                    );
+                });
+            }
+
+            function formatDay(date) {
+                const d = new Date(date);
+                return d.toLocaleDateString('id-ID', {
+                    day: '2-digit',
+                });
+            }
+
+            function formatMonth(date) {
+                const d = new Date(date);
+                return d.toLocaleDateString('id-ID', {
+                    month: 'short'
+                });
+            }
+            var swiper = new Swiper(".approvalSwiper", {
+                slidesPerView: "auto",
+                spaceBetween: 14,
+                grabCursor: true,
+                freeMode: true,
             });
-        }
-        setInterval(get_notif, 2000);
-    });
-    // window.addEventListener("beforeunload", function() {
-    //     Swal.close();
-    // });
-</script>
+            loadDataApproval();
+
+            function formatDate(dateString) {
+                if (!dateString) return '';
+
+                var date = new Date(dateString);
+
+                if (isNaN(date)) return '';
+
+                var day = String(date.getDate()).padStart(2, '0');
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var year = date.getFullYear();
+
+                return day + '-' + month + '-' + year;
+            }
+
+            function loadDataApproval() {
+                $.ajax({
+                    url: "{{ route('getdata_quick_approval') }}",
+                    type: "GET",
+                    beforeSend: function() {
+                        showSkeleton('.approval-panel');
+                    },
+                    success: function(data) {
+                        // console.log(data);
+                        $('.approval-panel').empty();
+                        let approval = '';
+                        let approval_panel = '';
+
+                        if (data.code == 200) {
+                            if (data.data.length == 0) {
+                                approval_panel += ``;
+                            } else {
+                                approval_panel += ` <h6 class="section-title accent-inline">
+                                         <span>Approval</span>
+                                       </h6>
+                                    <div class="swiper approvalSwiper">
+                                        <div class="swiper-wrapper list_quick_approval">
+                                        </div>
+                                    </div>`;
+                            }
+                            data.data.forEach(function(item) {
+                                var tanggal_mulai = '';
+                                var tanggal_selesai = '';
+                                var tanggal = '';
+                                var created = '';
+                                if (item.quick_type == 'cuti') {
+                                    if (item.cuti != null) {
+                                        var start = new Date(item.cuti.tanggal_mulai.replace(
+                                            ' ', 'T'));
+                                        var end = new Date(item.cuti.tanggal_selesai.replace(
+                                            ' ', 'T'));
+                                        tanggal_mulai += formatDate(item.cuti.tanggal_mulai);
+                                        tanggal_selesai += formatDate(item.cuti
+                                            .tanggal_selesai);
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${tanggal_mulai} - ${tanggal_selesai}
+                                            <br>`;
+                                    } else {
+                                        tanggal += '-';
+                                    }
+                                } else if (item.quick_type == 'izin_terlambat') {
+
+                                    if (item.izin_terlambat != null) {
+                                        console.log(item);
+
+                                        created += formatDate(item.izin_terlambat
+                                            .tanggal_terlambat);
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${created}
+                                            <br>
+                                            <i class="fa-solid fa-clock"></i>${item.izin_terlambat.jam_terlambat}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'izin_pulang') {
+
+                                    if (item.izin_pulang != null) {
+                                        // console.log(item);
+
+                                        created += formatDate(item.izin_pulang.created_at);
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${created}
+                                            <br>
+                                            <i class="fa-solid fa-clock"></i>${item.izin_pulang.jam_pulang}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'izin_keluar') {
+
+                                    if (item.izin_keluar != null) {
+                                        // console.log(item);
+
+                                        created += formatDate(item.izin_keluar.created_at);
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${created}
+                                            <br>
+                                            <i class="fa-solid fa-clock"></i>${item.izin_keluar.jam_keluar} - ${item.izin_keluar.jam_kembali} 
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'izin_libur') {
+
+                                    // console.log(item);
+                                    if (item.izin_libur != null) {
+
+                                        // created += formatDate(item.izin_libur.tanggal_libur);
+                                        // tukar += formatDate(item.izin_libur.tanggal_libur);
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${formatDate(item.izin_libur.tanggal_libur)}
+                                            <br>
+                                            <i class="fa-solid fa-retweet"></i>${formatDate(item.izin_libur.tanggal_tukar)}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'izin_sakit') {
+                                    // console.log(data.izin_sakit);
+
+                                    if (item.izin_sakit != null) {
+                                        // console.log(item);
+
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${item.izin_sakit.tanggal_sakit}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'izin_tidak_masuk') {
+                                    // console.log(data.izin_tidak_masuk);
+
+                                    if (item.izin_tidak_masuk != null) {
+                                        // console.log(item);
+
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${item.izin_tidak_masuk.tanggal_tidak_masuk}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'izin_tidak_masuk') {
+                                    // console.log(data.izin_tidak_masuk);
+
+                                    if (item.izin_tidak_masuk != null) {
+                                        // console.log(item);
+
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${item.izin_tidak_masuk.tanggal_tidak_masuk}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'lembur') {
+
+                                    if (item.lembur != null) {
+                                        // console.log(item);
+
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${item.lembur.tanggal_lembur}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                } else if (item.quick_type == 'perdin') {
+
+                                    if (item.perdin != null) {
+                                        // console.log(item);
+
+                                        tanggal +=
+                                            `<br>
+                                            <i class="fa-regular fa-calendar"></i> ${item.perdin.tanggal_mulai} - ${item.perdin.tanggal_selesai}
+                                            `;
+                                    } else {
+                                        tanggal += '-';
+
+                                    }
+                                }
+
+                                approval += `
+                                 <div class="swiper-slide">
+                                 <a href="{{ url('/quick/approve') }}/${item.id_quick}">
+                        <div class="approval-card">
+
+                            <div class="approval-header">
+                                <strong>${item.title_quick}</strong>
+                            </div>
+                            <div class="approval-body">
+                                <div>
+                                <span>${item.message_quick}</span>
+                                
+                                    ${tanggal}
+                                </div>
+                                
+                            </div>
+
+                            <!-- <div class="approval-action">
+                                <button class="btn-approve">Approve</button>
+                                <button class="btn-reject">Reject</button>
+                            </div> -->
+
+                        </div>
+                        </a>
+                    </div>`;
+                            });
+
+                            $('.approval-panel').html(approval_panel).fadeIn(100);
+                            $('.list_quick_approval').html(approval).fadeIn(100);
+                            // 🔥 INIT SWIPER SETELAH HTML TERPASANG
+                            setTimeout(function() {
+
+                                if (window.quickSwiper) {
+                                    window.quickSwiper.destroy(true, true);
+                                }
+
+                                window.quickSwiper = new Swiper(".approvalSwiper", {
+                                    slidesPerView: 1.2,
+                                    spaceBetween: 14,
+                                    grabCursor: true,
+                                });
+
+                            }, 1000);
+                        }
+                    }
+                });
+            }
+            $(document).on('click', '.absensi-item', function() {
+                // 1. Ambil data dari atribut data-
+                const data = {
+                    detail_masuk: $(this).data('detailmasuk'),
+                    detail_pulang: $(this).data('detailpulang'),
+                    tanggal: $(this).data('tanggal'),
+                    masuk: $(this).data('masuk'),
+                    pulang: $(this).data('pulang'),
+                    shift: $(this).data('shift'),
+                    status: $(this).data('status'),
+                    type: $(this).data('type')
+                };
+                let raw_detailmasuk = $(this).data('detailmasuk');
+                let raw_detailpulang = $(this).data('detailpulang');
+                let allValues = Object.values(raw_detailmasuk);
+                let allValues_pulang = Object.values(raw_detailpulang);
+                let uniqueValues = [...new Set(allValues)];
+                let uniqueValues_pulang = [...new Set(allValues_pulang)];
+
+                // console.log(raw_detailmasuk, raw_detailpulang);
+
+                // 3. Render ke Offcanvas
+                let htmlDetail = uniqueValues.map(val => `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2 text-primary"></i>
+                    <span class="text-success small">${val}</span>
+                </div>
+            `).join('');
+                let htmlDetail_pulang = uniqueValues_pulang.map(val => `
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-info-circle me-2 text-primary"></i>
+                    <span class="text-success small">${val}</span>
+                </div>
+            `).join('');
+                // console.log(data.type);
+                // 2. Isi konten Offcanvas secara dinamis
+                if (data.type == 'is_calendar') {
+                    const content = `
+                <div class="text-center mb-3">
+                    <h6 class="tex-primary mb-1">${moment(data.tanggal).format('dddd, D MMMM YYYY')}</h6>
+                    <span class="status rounded-pill p-2 px-3 ${data.status.replace(/\s+/g, '')}">${data.status}</span>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-in-right"></i> Jam Masuk</small>
+                            <span class="fw-bold fs-5 text-dark">${data.masuk ? data.masuk : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail}</small>
+                            </div>
+                            </div>
+                            <div class="col-6">
+                            <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-left"></i> Jam Pulang</small>
+                            <span class="fw-bold fs-5 text-dark">${data.pulang ? data.pulang : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail_pulang}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 row rounded-4 d-flex text-center mb-2">
+                   <button class="btn btn-sm light btn-danger py-3 fw-bold">
+                   <i class="fa-solid fa-download me-2"></i>
+                   Unduh Pemberitahuan
+                   </button>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-primary w-100 rounded-pill py-3 fw-bold" data-bs-dismiss="offcanvas">
+                    Tutup
+                </button>`;
+                    $('#detailContent').html(content);
+                } else {
+                    const content = `
+                <div class="text-center mb-3">
+                    <h6 class="tex-primary mb-1">${moment(data.tanggal).format('dddd, D MMMM YYYY')}</h6>
+                    <span class="status rounded-pill p-2 px-3 ${data.status.replace(/\s+/g, '')}">${data.status}</span>
+                </div>
+                
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-in-right"></i> Jam Masuk</small>
+                            <span class="fw-bold fs-5 text-dark">${data.masuk ? data.masuk : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail}</small>
+                            </div>
+                            </div>
+                            <div class="col-6">
+                            <div class="detail-card text-center p-3 rounded-4 bg-light">
+                            <small class="text-muted d-block mb-1"><i class="bi bi-box-arrow-left"></i> Jam Pulang</small>
+                            <span class="fw-bold fs-5 text-dark">${data.pulang ? data.pulang : '-'}</span>
+                            <small class="text-muted d-block mb-1">${htmlDetail_pulang}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 rounded-4 bg-light d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-person-badge me-2 text-primary"></i>
+                        <span class="text-muted">Shift Kerja</span>
+                    </div>
+                    <span class="fw-bold">${data.shift ? data.shift : '-'}</span>
+                </div>
+
+                <button type="button" class="btn btn-sm btn-primary w-100 rounded-pill py-3 fw-bold" data-bs-dismiss="offcanvas">
+                    Tutup
+                </button>`;
+                    $('#detailContent').html(content);
+                }
+
+                // 3. Masukkan ke container detail dan munculkan
+
+                // Trigger Bootstrap Offcanvas
+                var myOffcanvas = document.getElementById('detailAbsensi');
+                var bsOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(myOffcanvas);
+                bsOffcanvas.show();
+            });
+
+            function loadAbsensiData(startDate, endDate) {
+                // 🔥 Contoh AJAX
+                var karyawan = '';
+                $.ajax({
+                    url: "{{ route('get_count_absensi_home') }}",
+                    data: {
+                        start_date: startDate,
+                        end_date: endDate
+                    },
+                    type: "GET",
+                    beforeSend: function() {
+                        $('.absensi-list').empty();
+                        karyawan = `<div class="absensi-item">
+                        <div class="absensi-box">
+                            <span class="day"></span>
+                            <span class="month"></span>
+                        </div>
+                        <div class="absensi-info">
+                        </div>
+                    </div>
+                    <div class="absensi-item">
+                        <div class="absensi-box">
+                            <span class="day"></span>
+                            <span class="month"></span>
+                        </div>
+                        <div class="absensi-info">
+                        </div>
+                    </div>
+                    <div class="absensi-item">
+                        <div class="absensi-box">
+                            <span class="day"></span>
+                            <span class="month"></span>
+                        </div>
+                        <div class="absensi-info">
+                        </div>
+                        <div class="status"></div>
+                    </div>`;
+                        $('.absensi-list').html(karyawan);
+                        showSkeleton('#count_absen_hadir');
+                        showSkeleton('#count_absen_izin');
+                        showSkeleton('#count_absen_cuti');
+                        showSkeleton('#count_absen_telat');
+                        showSkeleton('#penempatan');
+                        showSkeleton('#absen_masuk');
+                        showSkeleton('#absen_pulang');
+                        showSkeleton('#jam_kerja');
+                        showSkeleton('.absensi-box .day');
+                        showSkeleton('.absensi-box .month');
+                        showSkeleton('.absensi-info');
+                    },
+                    success: function(res) {
+                        // console.log(res);
+
+                        if (res.code == 200) {
+
+                            $('#count_absen_hadir').text(res.count_absen_hadir);
+                            $('#count_absen_izin').text(res.count_izin);
+                            $('#count_absen_cuti').text(res.count_cuti);
+                            $('#count_absen_telat').text(res.count_telat);
+                            if (res.jam_kerja == null || res.jam_kerja == '') {
+                                var jam_kerja = '__ - __';
+                            } else if (res.jam_kerja == 'LIBUR') {
+                                var jam_kerja = 'LIBUR';
+                            } else {
+                                var jam_kerja = res.jam_kerja;
+                            }
+                            if (res.checkIn == null || res.checkIn == '') {
+                                var checkIn = '-';
+                            } else {
+                                var checkIn = res.checkIn;
+                            }
+                            if (res.checkOut == null || res.checkOut == '') {
+                                var checkOut = '-';
+                            } else {
+                                var checkOut = res.checkOut;
+                            }
+                            if (res.penempatan != null || res.penempatan != '') {
+                                var penempatan = res.penempatan.site_name;
+                            } else {
+                                var penempatan = '-';
+                            }
+                            $('#penempatan').html(penempatan);
+                            $('#absen_masuk').html(checkIn);
+                            $('#absen_pulang').html(checkOut);
+                            $('#jam_kerja').html(jam_kerja);
+                            $('.absensi-list').empty();
+                            karyawan = '';
+                            res.data_absensi.forEach(function(item) {
+                                const detail_masuk = JSON.stringify(item.detail_masuk);
+                                const detail_pulang = JSON.stringify(item.detail_pulang);
+                                karyawan += `
+                        <div class="absensi-item" data-detailmasuk='${detail_masuk}' data-detailpulang='${detail_pulang}' data-tanggal="${item.tanggal}" data-masuk="${item.masuk}" data-pulang="${item.pulang}" data-shift="${item.shift}" data-status="${item.status}" data-type="${item.type}">
+                           <div class="date-box">
+                                <span class="day">${formatDay(item.tanggal)}</span>
+                                <span class="month">${formatMonth(item.tanggal)}</span>
+                            </div>
+                            <div class="absensi-info">
+                                <div class="attendance-times">
+                                    <div class="attendance-time">
+                                        <span class="attendance-time-label">Masuk</span>
+                                        <span class="attendance-time-value">${item.masuk || '-'}</span>
+                                    </div>
+                                    <div class="attendance-time">
+                                        <span class="attendance-time-label">Pulang</span>
+                                        <span class="attendance-time-value">${item.pulang || '-'}</span>
+                                    </div>
+                                </div>
+                                <small class="attendance-shift text-muted">${item.shift || '-'}</small>
+                                <div class="status ${item.status.replace(/\s+/g, '')}">${item.status}</div>
+                            </div>
+                        </div>`;
+                            });
+                            $('.absensi-list').html(karyawan);
+                        } else if (res.code == 500) {
+                            $('.absensi-list').empty();
+                            $('#count_absen_hadir').html('<span class="text-danger">Error!</span>');
+                            $('#count_absen_izin').html('<span class="text-danger">Error!</span>');
+                            $('#count_absen_cuti').html('<span class="text-danger">Error!</span>');
+                            $('#count_absen_telat').html('<span class="text-danger">Error!</span>');
+                            $('#absen_masuk').html('<span class="text-danger">Error!</span>');
+                            $('#absen_pulang').html('<span class="text-danger">Error!</span>');
+                            $('#jam_kerja').html('<span class="text-danger">Error!</span>');
+                            $('#penempatan').html('<span class="text-danger">Error!</span>');
+                            $('.alert_quick_panel').stop(true, true).hide().html(
+                                '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                                res.error + '</div>').fadeIn(100);
+                            setTimeout(function() {
+                                $('.alert_quick_panel').fadeOut('slow');
+                            }, 100000);
+                        }
+                    },
+                    error: function(err) {
+                        console.error('Error fetching data:', err);
+                    }
+                });
+
+            }
+
+            document.getElementById('prevMonth').onclick = function() {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderMonth();
+            };
+
+            document.getElementById('nextMonth').onclick = function() {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderMonth();
+            };
+
+            // INIT
+            renderMonth();
+            var offcanvasEl = document.getElementById('home_index')
+
+
+            $(document).on('click', '.btn_klik', function(e) {
+                // console.log('oke');
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+
+                });
+            });
+
+
+            // setInterval(get_notif, 2000);
+            window.onbeforeunload = function() {
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    onBeforeOpen: () => {
+                        // Swal.showLoading()
+                    },
+                });
+            };
+        });
+    </script>
 @endsection

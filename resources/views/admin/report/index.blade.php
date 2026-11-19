@@ -137,7 +137,7 @@
             // console.log(colspan);
 
             var filter_month = $('#filter_month').val();
-            var url = "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/report/get_columns') }}@else{{ url('report/get_columns') }}@endif" + "/" + holding;
+            var url = "{{ url('report/get_columns') }}" + "/" + holding;
             // console.log(url);
             var start_date = $('#start_date').val();
             var end_date = $('#end_date').val();

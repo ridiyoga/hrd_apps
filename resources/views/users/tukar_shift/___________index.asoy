@@ -1,0 +1,372 @@
+@extends('users.layouts.main')
+@section('title')
+    APPS | KARYAWAN - SP
+@endsection
+@section('css')
+    <style>
+        @media (max-width: 768px) {
+            .daterangepicker {
+                position: fixed !important;
+                top: 10% !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                width: 90% !important;
+                margin: 0 auto !important;
+                z-index: 9999 !important;
+            }
+
+            .daterangepicker .drp-calendar {
+                float: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            .daterangepicker .drp-buttons {
+                text-align: center !important;
+            }
+        }
+
+        .modal-backdrop.show:nth-of-type(even) {
+            z-index: 1051 !important;
+        }
+
+        .user-card {
+            width: 100%;
+            border: 2px solid transparent;
+            background-color: #ffffffff;
+            border-radius: 10px;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .user-card:hover {
+            border-color: #fffefeff;
+        }
+
+        .user-checkbox:checked+label .user-card {
+            border-color: #673ab7ff;
+            background-color: #e7e8ffff;
+            box-shadow: 0 0 10px rgba(97, 13, 253, 0.42);
+        }
+
+        .user-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-info {
+            font-size: 13px;
+        }
+
+        /* Kartu modal */
+        .modal-content {
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+
+
+        .modal-title {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        .input-group .form-control[readonly] {
+            background-color: #f1f1f1;
+            /* font-weight: 600;
+                                                                                            width: 150px; */
+            border-right: none;
+            text-align: center;
+        }
+
+        .input-group select,
+        .input-group input:not([readonly]) {
+            border-left: none;
+            font-weight: 600;
+        }
+
+        .table th {
+            background-color: #0d6efd !important;
+            color: white !important;
+            text-align: center;
+        }
+
+        .table td {
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .futuristic-header {
+            padding: 28px 20px 18px;
+        }
+
+        .futuristic-header h5 {
+            color: --primary();
+            font-weight: 600;
+        }
+
+        .futuristic-header small {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .futuristic-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+        }
+
+        /* Legend status shift */
+        .shift-legend {
+            font-size: clamp(11px, 1.6vw, 14px);
+        }
+
+        .shift-legend .dot {
+            width: clamp(8px, 1.5vw, 10px);
+            height: clamp(8px, 1.5vw, 10px);
+            border-radius: 50%;
+        }
+
+        .shift-legend p {
+            margin: 0;
+            line-height: 1.3;
+        }
+
+        .coworker-card {
+            background: linear-gradient(135deg, #f5edff, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card-history {
+            background: linear-gradient(135deg, #cffbd1, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(111, 66, 193, 0.18);
+        }
+
+        .avatar-wrapper img {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #e6d9ff;
+        }
+
+        .icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(111, 66, 193, .1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6f42c1;
+            font-size: 14px;
+        }
+
+        .icon-box-history {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(50, 153, 84, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3aac48;
+            font-size: 14px;
+        }
+
+        .skeleton {
+            display: inline-block;
+            background: linear-gradient(90deg,
+                    #ede9fe 25%,
+                    #f5f3ff 37%,
+                    #ede9fe 63%);
+            background-size: 400% 100%;
+            animation: pulse 1.4s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        .skeleton-number {
+            display: inline-block;
+            /* ⬅️ WAJIB */
+            width: 2ch;
+            height: 30px;
+            /* ⬅️ samakan dengan h3 */
+            vertical-align: middle;
+            /* ⬅️ penting */
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: .5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* Style Signature Pad */
+        .kbw-signature {
+            width: 100%;
+            height: 160px;
+            border: 1px solid #f3e8ff !important;
+            background: #ffffff;
+        }
+
+        #sig canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .border-dashed {
+            border: 2px dashed #d8b4fe !important;
+        }
+
+        .opacity-75 {
+            opacity: 0.75;
+        }
+
+        /* Agar tulisan di dalam kotak otorisasi rapi */
+        .bg-light small {
+            letter-spacing: 0.5px;
+        }
+    </style>
+@endsection
+@section('content_top')
+    @if (session()->has('mappingshiftsuccess'))
+        <div id="alert_addmappingsuccess" class="alert alert-success light alert-lg alert-dismissible fade show">
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
+                stroke-linecap="round" stroke-linejoin="round" class="me-2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                <line x1="15" y1="9" x2="15.01" y2="9"></line>
+            </svg>
+            <strong>Success!</strong> Anda Berhasil Menyimpan Data
+            <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    @elseif(session()->has('tambahmappingerror'))
+        <div id="alert_statusmappingeditsuccess" class="alert alert-danger light alert-lg alert-dismissible fade show">
+
+            <strong> <i class="fa-solid fa-triangle-exclamation"></i>&nbsp;Error!</strong>&nbsp;Error Memuat Laman Tambah
+            Jadwal
+            <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="offcanvas offcanvas-bottom pwa-offcanvas">
+            <div class="container">
+                <div class="offcanvas-body small text-center">
+                    <img src="{{ asset('assets/assets_users/images/icon_error.gif') }}" width="50" height="50"
+                        alt="">
+                    <div>{{ session()->get('tambahmappingerror') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="offcanvas-backdrop pwa-backdrop"></div>
+    @endif
+    <div id="shift-skeleton" class="card">
+        {{-- Header --}}
+        <div class="futuristic-header text-center">
+            <div class="futuristic-icon">
+                <i class="fa-solid fa-user-clock"></i>
+            </div>
+            <h5 class="mt-3 mb-1">Jadwal Shift</h5>
+            <small class="text-muted">Informasi Jadwal Shift</small>
+        </div>
+        @foreach ($mapping_shift as $ss)
+            <div class="card stat-card hadir" style="background-color: #F0F8FF;">
+                <div class="card-body d-flex">
+                    <div class="stat-icon p-1 rounded">
+                        <i class="fa-solid fa-user fa-4x" style="color: #6495ED;"></i>
+                    </div>
+                    <div class="text mx-4">
+                        <small class="text-muted" style="color: #FFFF;">Waktu :
+                            hehe</small>
+                        <p class="stat-title mb-0" style="color: #6495ED;">
+
+                        </p>
+
+                        <small class="text-muted" style="color: #FFFF;">
+                            <span class="badge bg-info">Belum Dilihat HRD</span>
+
+                        </small>
+                    </div>
+
+                    <div class="stat-content text-end">
+                        {{-- <div class="stat-icon p-2 rounded" style="background-color: #008B8B;">
+                                            <i class="fa-regular fa-pen-to-square fa-1x" style="color: #7FFFD4;"></i>
+                                        </div> --}}
+                    </div>
+                </div>
+            </div>
+        @endforeach
+
+    </div>
+@endsection
+@section('content')
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+        <div class="offcanvas-body text-center small">
+            <h5 class="title">KONFIRMASI LOGOUT APP</h5>
+            <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
+            <form method="POST" action="{{ route('logout_user') }}">
+                @csrf
+                <a onclick="event.preventDefault(); this.closest('form').submit();"
+                    class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                        fill="none">
+                        <path
+                            d="M5.46967 12.5303C5.17678 12.2374 5.17678 11.7626 5.46967 11.4697L7.46967 9.46967C7.76257 9.17678 8.23744 9.17678 8.53033 9.46967C8.82323 9.76256 8.82323 10.2374 8.53033 10.5303L7.81066 11.25L15 11.25C15.4142 11.25 15.75 11.5858 15.75 12C15.75 12.4142 15.4142 12.75 15 12.75L7.81066 12.75L8.53033 13.4697C8.82323 13.7626 8.82323 14.2374 8.53033 14.5303C8.23744 14.8232 7.76257 14.8232 7.46967 14.5303L5.46967 12.5303Z"
+                            fill="#1C274C" />
+                        <path fill-rule="evenodd" clip-rule="evenodd"
+                            d="M13.9453 1.25H15.0551C16.4227 1.24998 17.525 1.24996 18.392 1.36652C19.2921 1.48754 20.05 1.74643 20.6519 2.34835C21.2538 2.95027 21.5127 3.70814 21.6337 4.60825C21.7503 5.47522 21.7502 6.57754 21.7502 7.94513V16.0549C21.7502 17.4225 21.7503 18.5248 21.6337 19.3918C21.5127 20.2919 21.2538 21.0497 20.6519 21.6517C20.05 22.2536 19.2921 22.5125 18.392 22.6335C17.525 22.75 16.4227 22.75 15.0551 22.75H13.9453C12.5778 22.75 11.4754 22.75 10.6085 22.6335C9.70836 22.5125 8.95048 22.2536 8.34857 21.6517C7.94963 21.2527 7.70068 20.7844 7.54305 20.2498C6.59168 20.2486 5.79906 20.2381 5.15689 20.1518C4.39294 20.0491 3.7306 19.8268 3.20191 19.2981C2.67321 18.7694 2.45093 18.1071 2.34822 17.3431C2.24996 16.6123 2.24998 15.6865 2.25 14.5537V9.44631C2.24998 8.31349 2.24996 7.38774 2.34822 6.65689C2.45093 5.89294 2.67321 5.2306 3.20191 4.7019C3.7306 4.17321 4.39294 3.95093 5.15689 3.84822C5.79906 3.76188 6.59168 3.75142 7.54305 3.75017C7.70068 3.21562 7.94963 2.74729 8.34857 2.34835C8.95048 1.74643 9.70836 1.48754 10.6085 1.36652C11.4754 1.24996 12.5778 1.24998 13.9453 1.25ZM7.25197 17.0042C7.25555 17.6487 7.2662 18.2293 7.30285 18.7491C6.46836 18.7459 5.848 18.7312 5.35676 18.6652C4.75914 18.5848 4.46611 18.441 4.26257 18.2374C4.05903 18.0339 3.91519 17.7409 3.83484 17.1432C3.7516 16.5241 3.75 15.6997 3.75 14.5V9.5C3.75 8.30029 3.7516 7.47595 3.83484 6.85676C3.91519 6.25914 4.05903 5.9661 4.26257 5.76256C4.46611 5.55902 4.75914 5.41519 5.35676 5.33484C5.848 5.2688 6.46836 5.25415 7.30285 5.25091C7.2662 5.77073 7.25555 6.35129 7.25197 6.99583C7.24966 7.41003 7.58357 7.74768 7.99778 7.74999C8.41199 7.7523 8.74964 7.41838 8.75194 7.00418C8.75803 5.91068 8.78643 5.1356 8.89448 4.54735C8.9986 3.98054 9.16577 3.65246 9.40923 3.40901C9.68599 3.13225 10.0746 2.9518 10.8083 2.85315C11.5637 2.75159 12.5648 2.75 14.0002 2.75H15.0002C16.4356 2.75 17.4367 2.75159 18.1921 2.85315C18.9259 2.9518 19.3144 3.13225 19.5912 3.40901C19.868 3.68577 20.0484 4.07435 20.1471 4.80812C20.2486 5.56347 20.2502 6.56459 20.2502 8V16C20.2502 17.4354 20.2486 18.4365 20.1471 19.1919C20.0484 19.9257 19.868 20.3142 19.5912 20.591C19.3144 20.8678 18.9259 21.0482 18.1921 21.1469C17.4367 21.2484 16.4356 21.25 15.0002 21.25H14.0002C12.5648 21.25 11.5637 21.2484 10.8083 21.1469C10.0746 21.0482 9.68599 20.8678 9.40923 20.591C9.16577 20.3475 8.9986 20.0195 8.89448 19.4527C8.78643 18.8644 8.75803 18.0893 8.75194 16.9958C8.74964 16.5816 8.41199 16.2477 7.99778 16.25C7.58357 16.2523 7.24966 16.59 7.25197 17.0042Z"
+                            fill="#1C274C" />
+                    </svg>
+                    &nbsp;Logout
+                </a>
+                <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                    aria-label="Close">Batal</a>
+            </form>
+        </div>
+    </div>
+@endsection
+@section('js')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@endsection

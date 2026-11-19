@@ -6,7 +6,9 @@ use App\Traits\UuidTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\App;
 use maliklibs\Zkteco\Lib\Helper\Attendance;
 
 class Karyawan extends Model
@@ -15,11 +17,16 @@ class Karyawan extends Model
     // protected $primaryKey = null;
     public $incrementing = false;
     protected $keyType = 'string';
+    protected $casts = [
+        'tgl_terbit_kk' => 'date',
+        'tgl_join' => 'date',
+    ];
     protected $fillable = [
         'id',
         'nomor_identitas_karyawan',
         'name',
         'nik',
+        'ktp',
         'status_npwp',
         'nama_pemilik_npwp',
         'npwp',
@@ -31,7 +38,7 @@ class Karyawan extends Model
         'status_nomor',
         'nomor_wa',
         'foto_karyawan',
-        'email',
+        'no_kantor',
         'telepon',
         'tempat_lahir',
         'tgl_lahir',
@@ -57,6 +64,7 @@ class Karyawan extends Model
         'desa',
         'rt',
         'rw',
+        'kode_pos',
         'detail_alamat',
         'alamat',
         'status_alamat',
@@ -66,6 +74,7 @@ class Karyawan extends Model
         'desa_domisili',
         'rt_domisili',
         'rw_domisili',
+        'kode_pos_domisili',
         'detail_alamat_domisili',
         'alamat_domisili',
         'kategori_jabatan',
@@ -100,7 +109,14 @@ class Karyawan extends Model
         'face_id',
         'status_aktif',
         'tanggal_nonactive',
-        'alasan_nonactive'
+        'alasan_nonactive',
+        'no_kk',
+        'tgl_terbit_kk',
+        'kk',
+        'ijazah',
+        'transkrip_nilai',
+        'email_kantor',
+        'nomor_wa_kantor',
     ];
 
 
@@ -110,7 +126,7 @@ class Karyawan extends Model
     }
     public function Absensi()
     {
-        return $this->hasMany(AttendanceLog::class, 'EnrollNumber', 'nomor_identitas_karyawan');
+        return $this->hasMany(AttendanceLog::class, 'EnrollNumber', 'id_finger');
     }
 
     public function Sip()
@@ -118,18 +134,17 @@ class Karyawan extends Model
         return $this->hasMany(Sip::class);
     }
 
-    public function Lembur()
-    {
-        return $this->hasMany(Lembur::class);
-    }
-
     public function Cuti()
     {
-        return $this->hasMany(Cuti::class, 'user_id', 'id');
+        return $this->hasMany(Cuti::class, 'karyawan_id', 'id');
+    }
+    public function KuotaCuti(): hasOne
+    {
+        return $this->hasOne(KuotaCutiKaryawan::class, 'karyawan_id', 'id')->where('status', '1');
     }
     public function Izin()
     {
-        return $this->hasMany(Izin::class, 'user_id', 'id');
+        return $this->hasMany(Izin::class, 'karyawan_id', 'id');
     }
 
     public function PenempatanKerja(): BelongsTo
@@ -203,19 +218,19 @@ class Karyawan extends Model
     }
     public function Provinsi(): BelongsTo
     {
-        return $this->belongsTo(Provincies::class, 'code', 'provinsi');
+        return $this->belongsTo(Provincies::class, 'provinsi', 'code');
     }
     public function Kabupaten(): BelongsTo
     {
-        return $this->belongsTo(Cities::class, 'code', 'kabupaten');
+        return $this->belongsTo(Cities::class, 'kabupaten', 'code');
     }
     public function Kecamatan(): BelongsTo
     {
-        return $this->belongsTo(District::class, 'code', 'kecamatan');
+        return $this->belongsTo(District::class, 'kecamatan', 'code');
     }
     public function Desa(): BelongsTo
     {
-        return $this->belongsTo(Village::class, 'code', 'desa');
+        return $this->belongsTo(Village::class,  'desa', 'code');
     }
     public function karyawanKesehatan(): HasOne
     {
@@ -236,5 +251,113 @@ class Karyawan extends Model
     public function karyawanKesehatanKecelakaan(): HasOne
     {
         return $this->hasOne(KaryawanKesehatanKecelakaan::class, 'id_karyawan', 'id');
+    }
+    public function ApprovalUser(): HasMany
+    {
+        return $this->hasMany(ApprovalUser::class, 'karyawan_id', 'id');
+    }
+    public function KaryawanJabatan(): HasMany
+    {
+        return $this->hasMany(KaryawanJabatan::class, 'karyawan_id', 'id');
+    }
+    public function KaryawanJabatanOne(): HasOne
+    {
+        return $this->hasOne(KaryawanJabatan::class, 'karyawan_id', 'id')->where('main', 1);
+    }
+    public function KaryawanKontrak(): HasMany
+    {
+        return $this->hasMany(KaryawanKontrak::class, 'karyawan_id', 'id');
+    }
+    public function KaryawanPendidikanOne(): HasOne
+    {
+        return $this->hasOne(KaryawanPendidikan::class, 'id_karyawan', 'id')
+            ->latestOfMany('tanggal_masuk');
+    }
+    public function KaryawanKontrakOne(): HasOne
+    {
+        return $this->hasOne(KaryawanKontrak::class, 'karyawan_id', 'id')
+            ->latestOfMany('tanggal_selesai');
+    }
+    public function provinsiKTP(): BelongsTo
+    {
+        return $this->belongsTo(Provincies::class, 'provinsi', 'code');
+    }
+    public function kabupatenKTP(): BelongsTo
+    {
+        return $this->belongsTo(Cities::class, 'kabupaten', 'code');
+    }
+    public function kecamatanKTP(): BelongsTo
+    {
+        return $this->belongsTo(District::class, 'kecamatan', 'code');
+    }
+    public function desaKTP(): BelongsTo
+    {
+        return $this->belongsTo(Village::class, 'desa', 'code');
+    }
+    // End Alamat User sesuai KTP
+    // Alamat User sekarang
+    public function provinsiNOW(): BelongsTo
+    {
+        return $this->belongsTo(Provincies::class, 'provinsi_domisili', 'code');
+    }
+    public function kabupatenNOW(): BelongsTo
+    {
+        return $this->belongsTo(Cities::class, 'kabupaten_domisili', 'code');
+    }
+    public function kecamatanNOW(): BelongsTo
+    {
+        return $this->belongsTo(District::class, 'kecamatan_domisili', 'code');
+    }
+    public function desaNOW(): BelongsTo
+    {
+        return $this->belongsTo(Village::class, 'desa_domisili', 'code');
+    }
+    public function Sertifikat()
+    {
+        return $this->hasMany(KaryawanKeahlian::class,  'id_karyawan', 'id')->whereNotNull('file_keahlian');
+    }
+    public function cutiDetail(): HasMany
+    {
+        return $this->hasMany(CutiDetail::class, 'id_karyawan', 'id');
+    }
+    public function IzinTerlambat(): HasMany
+    {
+        return $this->hasMany(IzinTerlambat::class, 'karyawan_id', 'id');
+    }
+    public function IzinPulang(): HasMany
+    {
+        return $this->hasMany(IzinPulang::class, 'karyawan_id', 'id');
+    }
+    public function IzinKeluar(): HasMany
+    {
+        return $this->hasMany(IzinKeluar::class, 'karyawan_id', 'id');
+    }
+    public function IzinLibur(): HasMany
+    {
+        return $this->hasMany(IzinLibur::class, 'karyawan_id', 'id');
+    }
+    public function IzinLiburMinggu(): HasMany
+    {
+        return $this->hasMany(IzinLibur::class, 'karyawan_id', 'id');
+    }
+    public function IzinSakitDetail(): HasMany
+    {
+        return $this->hasMany(IzinSakitDetail::class, 'id_karyawan', 'id');
+    }
+    public function IzinTidakMasukDetail(): HasMany
+    {
+        return $this->hasMany(IzinTidakMasukDetail::class, 'id_karyawan', 'id');
+    }
+    public function LemburDetail(): HasMany
+    {
+        return $this->hasMany(LemburDetail::class, 'id_karyawan', 'id');
+    }
+    public function PresensiFoto(): HasMany
+    {
+        return $this->hasMany(PresensiFoto::class, 'karyawan_id', 'id');
+    }
+    public function PerdinDetail(): HasMany
+    {
+        return $this->hasMany(PerdinDetail::class, 'id_karyawan', 'id');
     }
 }

@@ -176,7 +176,7 @@ class KaryawanRiwayatController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -220,13 +220,6 @@ class KaryawanRiwayatController extends Controller
             } else {
                 $surat_keterangan = $request->old_file;
             }
-            // $file->move($destinationPath, $filename);
-            // if ($request->surat_keterangan != NULL || $request->surat_keterangan != '') {
-            //     if (File::exist($oldImagePath)) {
-            //         File::delete($oldImagePath);
-            //     }
-            // }
-
             $riwayat = KaryawanRiwayat::where('id_riwayat', $request->id_riwayat)->first();
             // dd($riwayat);
             $riwayat->nama_perusahaan = $request->nama_perusahaan;
@@ -253,7 +246,7 @@ class KaryawanRiwayatController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -280,7 +273,7 @@ class KaryawanRiwayatController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }

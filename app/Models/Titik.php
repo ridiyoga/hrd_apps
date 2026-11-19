@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class Titik extends Model
 {
     use HasFactory, UuidTrait;
+    protected $keyType = 'string';
     public $incrementing = false;
     // protected $table = 'data_titik';
     protected $guarded = ['id'];

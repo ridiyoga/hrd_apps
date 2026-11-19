@@ -83,6 +83,27 @@ return [
             'visibility' => 'public',
             'throw' => false,
         ],
+        'kk' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/kk'),
+            'url' => env('APP_URL') . '/storage/app/public/kk',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+        'file_kontrak' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/file_kontrak'),
+            'url' => env('APP_URL') . '/storage/app/public/file_kontrak',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+        'holding_image' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/holding_image'),
+            'url' => env('APP_URL') . '/storage/app/public/holding_image',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -92,6 +113,28 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+        ],
+        'surat_dokter' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/surat_dokter'),
+            'url' => env('APP_URL') . '/storage/app/public/surat_dokter',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+
+        'foto_presensi' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/foto_presensi'),
+            'url' => env('APP_URL') . '/storage/app/public/foto_presensi',
+            'visibility' => 'public',
+            'throw' => false,
+        ],
+        'foto_inventaris' => [
+            'driver' => 'local',
+            'root' => storage_path('app/public/foto_inventaris'),
+            'url' => env('APP_URL') . '/storage/app/public/foto_inventaris',
+            'visibility' => 'public',
+            'throw' => false,
         ],
 
     ],

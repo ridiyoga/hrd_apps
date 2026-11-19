@@ -3,18 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Imports\DivisiImport;
+use App\Models\ActivityLog;
 use App\Models\Bagian;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Holding;
 use App\Models\Jabatan;
 use App\Models\Karyawan;
+use App\Models\KaryawanJabatan;
 use App\Models\Menu;
 use App\Models\RoleUsers;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Facades\Excel;
 use Ramsey\Uuid\Uuid;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -22,8 +25,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class DivisiController extends Controller
 {
-    public function index($holding)
+    public function index($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $get_holding = Holding::where('holding_code', $holding)->first();
         // dd($get_holding);
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
@@ -74,14 +81,11 @@ class DivisiController extends Controller
         $table =  Divisi::with(['Departemen' => function ($query) {
             $query->orderBy('nama_departemen', 'ASC');
         }])
-            ->with(['Karyawan' => function ($query) {
-                $query->where('status_aktif', 'AKTIF');
-            }])
             ->with(['Bagian' => function ($query) use ($holding) {
                 $query->where('holding', $holding->id);
             }])
             ->where('holding', $holding->id)
-            ->orderBy('nama_divisi', 'ASC')
+            // ->orderBy('nama_divisi', 'ASC')
             ->get();
         if (request()->ajax()) {
             return DataTables::of($table)
@@ -100,75 +104,43 @@ class DivisiController extends Controller
                     }
                     return $jumlah_bagian;
                 })
-                ->addColumn('jumlah_karyawan', function ($row) use ($holding) {
-                    $cek_karyawan = $row->Karyawan->count();
-                    if ($cek_karyawan == 0) {
-                        $jumlah_karyawan = $cek_karyawan;
-                    } else {
-                        $jumlah_karyawan = $cek_karyawan . '&nbsp; <button id="btn_lihat_karyawan" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-info">
-                        <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
-                      </button>';
-                    }
-                    return $jumlah_karyawan;
+                ->addColumn('jumlah_bagian_excel', function ($row) use ($holding) {
+                    $cek_bagian = $row->Bagian->count();
+                    $jumlah_bagian = $cek_bagian;
+                    return $jumlah_bagian;
                 })
                 ->addColumn('option', function ($row) use ($holding) {
                     $btn = '<button id="btn_edit_divisi" data-id="' . $row->id . '" data-dept="' . $row->dept_id . '" data-divisi="' . $row->nama_divisi . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-icon btn-warning waves-effect waves-light"><span class="tf-icons mdi mdi-pencil-outline"></span></button>';
                     $btn = $btn . '<button type="button" id="btn_delete_divisi" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" class="btn btn-icon btn-danger waves-effect waves-light"><span class="tf-icons mdi mdi-delete-outline"></span></button>';
                     return $btn;
                 })
-                ->rawColumns(['nama_departemen', 'jumlah_bagian', 'jumlah_karyawan', 'option'])
+                ->rawColumns([
+                    'nama_departemen',
+                    'jumlah_bagian',
+                    'jumlah_bagian_excel',
+                    'option'
+                ])
                 ->make(true);
         }
     }
     public function bagian_datatable($id, $holding)
     {
         $holding = Holding::where('holding_code', $holding)->first();
-        $table =  Bagian::with(['Karyawan' => function ($query) use ($holding) {
-            $query->where('status_aktif', 'AKTIF')
-                ->where('kontrak_kerja', $holding->id);
-        }])
-            ->where('divisi_id', $id)
+        $table =  Bagian::where('divisi_id', $id)
             ->where('holding', $holding->id)
             ->get();
         // dd($table);
         if (request()->ajax()) {
             return DataTables::of($table)
-                ->addColumn('jumlah_karyawan', function ($row) use ($holding) {
-                    $karyawan = $row->Karyawan->count();
-                    return $karyawan;
-                })
-                ->rawColumns(['jumlah_karyawan'])
                 ->make(true);
         }
     }
-    public function karyawandivisi_datatable($id, $holding)
+    public function create($holding, Request $request)
     {
-        $holding = Holding::where('holding_code', $holding)->first();
-        $table =   Karyawan::where('divisi_id', $id)
-            ->leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-            ->where('b.is_admin', 'user')
-            ->where('kontrak_kerja', $holding->id)
-            ->where('status_aktif', 'AKTIF')
-            ->get();
-        // dd($table);
-        if (request()->ajax()) {
-            return DataTables::of($table)
-                ->addColumn('nama_bagian', function ($row) use ($holding) {
-                    $bagian = Bagian::where('holding', $holding->id)->where('id', $row->bagian_id)->value('nama_bagian');
-
-                    return $bagian;
-                })
-                ->addColumn('nama_jabatan', function ($row) use ($holding, $id) {
-                    $jabatan = Jabatan::where('holding', $holding->id)->where('id', $row->jabatan_id)->value('nama_jabatan');
-
-                    return $jabatan;
-                })
-                ->rawColumns(['nama_jabatan', 'nama_bagian'])
-                ->make(true);
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
         }
-    }
-    public function create($holding)
-    {
         $holding = Holding::where('holding_code', $holding)->first();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
@@ -200,107 +172,180 @@ class DivisiController extends Controller
 
     public function insert(Request $request, $holding)
     {
+        // dd($request->all());
         $holding = Holding::where('holding_code', $holding)->first();
-        $validatedData = $request->validate([
-            'nama_divisi' => 'required|max:255',
-            'nama_departemen' => 'required',
-        ]);
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_departemen' => 'required|max:255',
+                'nama_divisi' => 'required|max:255',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
         try {
+            $id_divsi = Uuid::uuid4();
             Divisi::create(
                 [
-                    'id' => Uuid::uuid4(),
+                    'id' => $id_divsi,
                     'holding' => $holding->id,
-                    'nama_divisi' => $validatedData['nama_divisi'],
-                    'dept_id' => Departemen::where('id', $validatedData['nama_departemen'])->value('id'),
+                    'nama_divisi' => $request->nama_divisi,
+                    'dept_id' => Departemen::where('id', $request->nama_departemen)->value('id'),
                 ]
             );
-            Alert::success('Sukses', 'data berhasil ditambahkan');
-            return redirect('/divisi/' . $holding->holding_code)->with('success', 'data berhasil ditambahkan');
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            $departemen = Departemen::where('id', $request->nama_departemen)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_divsi,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'divisi',
+                'activity' => 'create',
+                'description' => 'Menambahkan divisi baru ' . $request->nama_divisi . ' di departemen ' .  $departemen->nama_departemen,
+                'keterangan' => 'Success',
+            ]);
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Disimpan',
+            ]);
         } catch (QueryException $e) {
-            Alert::error('Error', $e->getMessage());
-            return redirect('/divisi/' . $holding->holding_code)->with('Error', $e->getMessage()); // bisa disembunyikan di production
-
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
-    }
-
-
-    public function edit($id, $holding)
-    {
-        $holding = Holding::where('holding_code', $holding)->first();
-        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
-        // dd($get_role);
-        if (count($get_role) == 0) {
-            $roleId = null;
-        } else {
-            $roleId = $get_role;
-        }
-        if ($roleId == null) {
-            $menus = collect();
-        } else {
-            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-                $query->select('menu_id')
-                    ->from('role_menus')
-                    ->whereIn('role_id', $roleId);
-            })
-                ->whereNull('parent_id') // menu utama
-                ->with('children')
-                ->where('kategori', 'web')      // load submenunya
-                ->orderBy('sort_order')
-                ->get();
-        }
-        return view('divisi.edit', [
-            'title' => 'Edit Data Divisi',
-            'holding' => $holding,
-            'data_departemen' => Departemen::all(),
-            'data_divisi' => Divisi::with('Departemen')->findOrFail($id)
-        ]);
     }
 
     public function update(Request $request, $holding)
     {
+        // dd($request->all());
         $holding = Holding::where('holding_code', $holding)->first();
-        $validatedData = $request->validate([
-            'nama_divisi_update' => 'required|max:255',
-            'nama_departemen_update' => 'required',
-        ]);
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_divisi' => 'required|max:255',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
         try {
             Divisi::where('id', $request->id_divisi)->update(
                 [
-                    'holding' => $holding->id,
-                    'nama_divisi' => $validatedData['nama_divisi_update'],
-                    'dept_id' => Departemen::where('id', $validatedData['nama_departemen_update'])->value('id'),
+                    'nama_divisi' => $request->nama_divisi,
+                    'dept_id' => $request->nama_departemen,
                 ]
             );
 
-            Alert::success('Sukses', 'Data Berhasil Diupdate');
-            return redirect('/divisi/' . $holding->holding_code)->with('success', 'Data Berhasil Diupdate');
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id_divisi,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'divisi',
+                'activity' => 'update',
+                'description' => 'mengedit nama divisi ' . $request->nama_divisi,
+                'keterangan' => 'Success',
+            ]);
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Disimpan',
+            ]);
         } catch (QueryException $e) {
-            Alert::error('Error', $e->getMessage());
-            return redirect('/divisi/' . $holding->holding_code)->with('Error', $e->getMessage()); // bisa disembunyikan di production
-
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
     }
 
-    public function delete($id, $holding)
+    public function delete($id, $holding, $menu_id)
     {
 
         $holding = Holding::where('holding_code', $holding)->first();
         $cek_bagian = Bagian::where('divisi_id', $id)->where('holding', $holding->id)->count();
+        $divisi = Divisi::where('id', $id)->first();
+        $nama_menu = Menu::where('id', $menu_id)->first();
+        $user_name = User::where('id', Auth::user()->id)->first();
         if ($cek_bagian == 0) {
-            $cek_karyawan = Karyawan::where('bagian_id', $id)->where('kontrak_kerja', $holding->id)->where('status_aktif', 'AKTIF')->count();
+            $cek_karyawan = KaryawanJabatan::where('divisi_id', $id)->where('is_active', '1')->count();
             if ($cek_karyawan == 0) {
                 try {
-                    $divisi = Divisi::where('id', $id)->delete();
                 } catch (QueryException $e) {
                     Alert::error('Error', $e->getMessage());
                     return response()->json(['status' => 0]);
                 }
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $id,
+                    'holding_id' => $holding->id,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'divisi',
+                    'activity' => 'delete',
+                    'description' => 'menghapus divisi ' . $divisi->nama_divisi,
+                    'keterangan' => 'Success',
+                ]);
 
+                $divisi->delete();
                 return response()->json(['status' => 1]);
             } else {
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $id,
+                    'holding_id' => $holding->id,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'divisi',
+                    'activity' => 'delete',
+                    'description' => 'Gagal menghapus divisi karena sudah memiliki relasi karyawan ' . $divisi->nama_divisi,
+                    'keterangan' => 'Failed',
+                ]);
                 return response()->json(['status' => 2]);
             }
         } else {
+            ActivityLog::create([
+                'user_id' => Auth::user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'divisi',
+                'activity' => 'delete',
+                'description' => 'Gagal menghapus divisi karena sudah memiliki relasi bagian ' . $divisi->nama_divisi,
+                'keterangan' => 'Failed',
+            ]);
             return response()->json(['status' => 0]);
         }
     }

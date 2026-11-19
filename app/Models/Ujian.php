@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ujian extends Model
 {
-    public $table = 'ujian';
     use HasFactory;
+    public $table = 'ujian';
+    public $incrementing = true;
+    protected $keyType = 'int';
     protected $guarded = ['id'];
     protected $with = ['detailujian'];
 

@@ -1,0 +1,103 @@
+/* Gaya Kartu Utama */
+.orgchart .node {
+    width: 220px !important; /* Lebar kartu lebih proporsional */
+    background: transparent !important;
+    border: none !important;
+}
+
+.modern-card {
+    background: #ffffff;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* Soft shadow mewah */
+    border: 1px solid rgba(0,0,0,0.05);
+    font-family: 'Plus Jakarta Sans', sans-serif; /* Sesuai preferensi Anda */
+    transition: transform 0.3s ease;
+}
+
+.modern-card:hover {
+    transform: translateY(-5px);
+}
+
+/* Header dengan Gradasi */
+.card-header-gradient {
+    height: 40px;
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe); /* Warna ungu mewah */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 15px;
+}
+
+.role-badge {
+    font-size: 9px;
+    font-weight: 800;
+    color: white;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+}
+
+/* Bagian Foto & Nama */
+.card-chart {
+    padding: 15px;
+    text-align: center;
+    position: relative;
+    margin-top: -25px; /* Menaikkan foto profil ke header */
+}
+
+.avatar-wrapper {
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    border: 3px solid white;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.emp-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2d3436;
+}
+
+.emp-title {
+    font-size: 11px;
+    color: #636e72;
+    margin-top: 2px;
+}
+
+/* Tombol Aksi */
+.card-actions {
+    display: flex;
+    border-top: 1px solid #f1f2f6;
+    background: #fcfcfc;
+}
+
+.action-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #b2bec3;
+}
+
+.btn-add:hover { color: #6c5ce7; background: #f0eeff; }
+.btn-edit:hover { color: #00b894; background: #e6fffb; }
+.btn-delete:hover { color: #ff7675; background: #fff1f0; }
+
+/* Rapikan Garis Orgchart */
+.orgchart .lines .downLine { background-color: #dcdde1 !important; }
+.orgchart .lines .rightLine { border-right: 1px solid #dcdde1 !important; }
+.orgchart .lines .leftLine { border-left: 1px solid #dcdde1 !important; }
+.orgchart .lines .topLine { border-top: 2px solid #dcdde1 !important; }

@@ -23,6 +23,7 @@
                         <div class="card-header">
                             <div class="d-flex align-items-center justify-content-between">
                                 <h5 class="card-title m-0 me-2">DATA UJIAN</h5>
+                                <input type="hidden" name="menu_id" id="menu_id_add">
                             </div>
                         </div>
                         <div class="card-body">
@@ -396,6 +397,10 @@
 
     <script>
         $(document).ready(function() {
+            var menu_id = $('#asoy').val();
+            // console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
             function uploadImage(e, o) {
                 var a = new FormData;
                 a.append("image", e), $.ajax({

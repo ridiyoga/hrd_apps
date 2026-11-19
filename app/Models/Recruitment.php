@@ -6,12 +6,14 @@ use App\Traits\UuidTrait;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Recruitment extends Model
 {
     use HasFactory;
     protected $table = 'recruitment_admin';
     public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = [
         'id',
         'legal_number',
@@ -50,5 +52,13 @@ class Recruitment extends Model
     public function recruitmentUser(): BelongsTo
     {
         return $this->belongsTo(RecruitmentUser::class, 'id', 'recruitment_admin_id');
+    }
+    public function jumlahPelamar(): HasMany
+    {
+        return $this->hasMany(RecruitmentUser::class, 'recruitment_admin_id', 'id');
+    }
+    public function jumlahRanking(): HasMany
+    {
+        return $this->hasMany(RecruitmentUser::class, 'recruitment_admin_id', 'id');
     }
 }

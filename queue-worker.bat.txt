@@ -1,0 +1,20 @@
+@echo off
+setlocal
+
+REM ==========================================
+REM Laravel Queue Worker
+REM Windows Task Scheduler
+REM ==========================================
+
+REM Laravel application directory
+cd /d "D:\Program\app-publichost\hrd_apps_server"
+
+REM Start Laravel Queue Worker
+"D:\Program\php\php.exe" artisan queue:work database ^
+    --sleep=3 ^
+    --tries=3 ^
+    --timeout=60 ^
+    --backoff=10,30,60 ^
+    --max-time=3600
+
+endlocal

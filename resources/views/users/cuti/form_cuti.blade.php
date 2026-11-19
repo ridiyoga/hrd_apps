@@ -1,157 +1,402 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 
 <head>
-    <title>FORM PERMINTAAN CUTI</title>
-    <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous"> -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <link rel="stylesheet" href="{{asset('public/kpi/bower_components/font-awesome/css/font-awesome.min.css')}}">
+    <meta charset="UTF-8">
+    <title>FORM CUTI | HRD APP</title>
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Dekorasi Abstrak */
+        .abstract-bg {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #6610f2 0%, #6f42c1 100%);
+            clip-path: circle(50% at 70% 20%);
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .container-fluid {
+            padding: 40px;
+            position: relative;
+        }
+
+        .header-table {
+            width: 100%;
+            border-bottom: 2px solid #6f42c1;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .header-table td {
+            vertical-align: middle;
+        }
+
+        .no-doc {
+            background: #6f42c1;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .title {
+            text-align: center;
+        }
+
+        .title h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #4b2c85;
+        }
+
+        /* Card Style Sections */
+        .section-title {
+            background: #f1edff;
+            color: #5a32a3;
+            padding: 2px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            border-left: 5px solid #6f42c1;
+        }
+
+        .info-table {
+            width: 100%;
+            /* margin-bottom: 30px; */
+        }
+
+        .info-table th {
+            width: 30%;
+            text-align: left;
+            color: #777;
+            font-weight: 400;
+            padding: 2px 0;
+        }
+
+        .info-table td {
+            font-weight: 600;
+            color: #222;
+            padding: 0px 0;
+        }
+
+
+
+        .highlight-purple {
+            color: #6f42c1;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        /* Keterangan Box */
+        .note-box {
+            background: #fdfbff;
+            border: 1px dashed #6f42c1;
+            border-radius: 10px;
+            padding: 1px;
+            margin: 25px 0;
+        }
+
+        .note-box label {
+            display: block;
+            font-weight: 700;
+            color: #6f42c1;
+            margin-bottom: 5px;
+        }
+
+        /* Table Pengesahan */
+        .approval-table {
+            margin-top: 25px;
+            border: none !important;
+        }
+
+        .approval-table th {
+            background-color: #f1edff !important;
+            color: #6f42c1 !important;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+        }
+
+        .approval-card {
+            text-align: center;
+            padding: 15px;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid #eee;
+        }
+
+        .text-success {
+            color: #198754 !important;
+        }
+
+        footer {
+            color: #9c9c9c;
+        }
+
+        .signature-img {
+            max-height: 80px;
+            object-fit: contain;
+            margin: 10px auto;
+        }
+
+        .name-label {
+            font-weight: 600;
+            text-decoration: underline;
+            margin: 0;
+        }
+
+        .tgl-label {
+            margin: 0;
+        }
+
+        /* Badge untuk Tipe Cuti */
+        .badge-cuti {
+            display: inline-block;
+            background: #e6e0f8;
+            color: #6f42c1;
+            border-radius: 10px;
+            font-size: 0.85rem;
+        }
+
+        .signature-area {
+            height: 100px;
+            /* tinggi area tanda tangan tetap */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .signature-area img {
+            max-height: 100px;
+            max-width: 120px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+    </style>
 </head>
 
-
 <body>
-    <div style="float: right; margin-top: -30px; margin-right: -10px; width:250px; height: auto;border: 1px solid black; box-sizing: border-box;">
-        <h5 style="text-align: right;">
-            {{$data_cuti->no_form_cuti}}&nbsp;
-        </h5>
+    <div class="abstract-bg"></div>
+
+    <div class="container-fluid">
+        <table class="header-table">
+            <tr>
+                <td width="20%">
+                    {{-- <img src="{{ $logo }}" style="max-width:100px; height:auto;"> --}}
+                    <img src="{{ storage_path('app/public/holding_image/' . basename((string) $holding->holding_image)) }}"
+                        style="max-width:80px; height:auto;">
+                </td>
+                <td width="50%" class="title">
+                    <h2>FORMULIR CUTI KARYAWAN</h2>
+                    <small>Tanggal Pengajuan:
+                        {{ \Carbon\Carbon::parse($data_cuti->tanggal_pengajuan)->translatedFormat('d F Y') }}
+                    </small>
+                </td>
+                <td width="30%" align="right">
+                    <div class="no-doc">
+                        {{ $data_cuti->no_form_cuti }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 50%; vertical-align: top;">
+                    <div class="section-title">Informasi Karyawan</div>
+                    <table class="info-table" style="font-size: 11px;">
+                        <tr>
+                            <th>NIK</th>
+                            <td>: {{ $user_karyawan->nomor_identitas_karyawan }}</td>
+                        </tr>
+                        <tr>
+                            <th>Nama Lengkap</th>
+                            <td>: {{ $user_karyawan->name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Departemen / Divisi</th>
+                            <td>: {{ $karyawan_jabatan->Departemen->nama_departemen ?? '-' }} /
+                                {{ $karyawan_jabatan->Divisi->nama_divisi ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Jabatan</th>
+                            <td>: {{ $karyawan_jabatan->Jabatan->nama_jabatan ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Lokasi Kerja</th>
+                            <td>: {{ $user_karyawan->PenempatanKerja->site_name }}</td>
+                        </tr>
+                    </table>
+                </td>
+
+                <td style="width: 50%; vertical-align: top;">
+                    <div class="section-title">Detail Pengajuan</div>
+                    <table class="info-table" style="font-size: 11px;">
+                        <tr>
+                            <td>
+                                <small class="text-muted d-block">Nama Cuti:</small>
+                                <br>
+                                <span class="badge-cuti">{{ $data_cuti->nama_cuti }}</span>
+                            </td>
+                            <td align="right">
+                                <small class="text-muted d-block">Durasi:</small>
+                                <br>
+                                <span class="h4 highlight-purple">{{ $jumlah_hari }}
+                                    Hari</span>
+                            </td>
+                        </tr>
+                    </table>
+                    <hr>
+                    <table class="info-table" style="font-size: 11px;">
+                        <tr>
+                            <td>
+                                <small class="text-muted d-block">Mulai:</small>
+                                <br>
+                                <strong>{{ \Carbon\Carbon::parse($data_cuti->tanggal_mulai)->translatedFormat('d/m/Y') }}</strong>
+                            </td>
+                            <td>
+                                <small class="text-muted d-block">Berakhir:</small>
+                                <br>
+                                <strong>{{ \Carbon\Carbon::parse($data_cuti->tanggal_selesai)->translatedFormat('d/m/Y') }}</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <small class="text-muted d-block">Kembali Bekerja:</small>
+                                <br>
+                                @php
+                                    $tanggalKembali = \Carbon\Carbon::parse($data_cuti->tanggal_selesai)->addDay();
+                                    if ($user_karyawan->shift = 'NON SHIFT') {
+                                        # code...
+                                        if ($tanggalKembali->isSunday()) {
+                                            $tanggalKembali->addDay();
+                                        }
+                                    }
+                                @endphp
+
+                                <strong class="text-success">
+                                    {{ $tanggalKembali->translatedFormat('d F Y') }}
+                                </strong>
+                            </td>
+                            <td>
+                                <small class="text-muted">Karyawan Pengganti:</small>
+                                <br>
+                                <strong
+                                    class="font-weight-bold">{{ $data_cuti->KaryawanPengganti ? $data_cuti->KaryawanPengganti->name : '-' }}</strong>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <div class="note-box">
+            <label><i class="fa fa-info-circle"></i> Alasan / Keterangan Cuti:</label>
+            <p class="m-0 text-dark">{{ $data_cuti->keterangan_cuti ?: 'Tidak ada keterangan.' }}</p>
+        </div>
+
+        <div class="section-title text-center">Lembar Pengesahan</div>
+        <table class="table table-bordered approval-table" style="font-size: 11px;">
+            <thead>
+                <tr>
+                    <th width="33.3%">Pemohon</th>
+                    <th width="33.3%">Atasan Langsung</th>
+                    <th width="33.3%">Atasan 2</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="approval-card">
+                            <small class="text-muted">Diajukan</small>
+                            {{-- <img src="{{ $ttd_user }}" class="signature-img"> --}}
+                            <div class="signature-area">
+                                @if ($data_cuti->ttd_user)
+                                    <img src="{{ storage_path('app/public/signatures/' . basename((string) $data_cuti->ttd_user)) }}"
+                                        style="max-width:180px; height:auto;">
+                                @endif
+                            </div>
+                            <div class="footer-ttd-user">
+                                <p class="name-label">
+                                    {{ $user_karyawan ? $user_karyawan->name : '........................' }}</p>
+                                <p class="tgl-label">Tgl :
+                                    {{ \Carbon\Carbon::parse($data_cuti->tanggal_pengajuan)->translatedFormat('d F Y') }}
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="approval-card">
+                            <small class="text-muted">Disahkan Oleh-1</small>
+
+                            <div class="signature-area">
+                                @if ($data_cuti->ttd_atasan)
+                                    <img src="{{ storage_path('app/public/signatures/' . basename((string) $data_cuti->ttd_atasan)) }}"
+                                        style="max-width:180px; height:auto;">
+                                @endif
+                            </div>
+
+                            <div class="footer-ttd-user">
+                                <p class="name-label">
+                                    {{ $data_cuti->Atasan1 ? $data_cuti->Atasan1->name : '........................' }}
+                                </p>
+                                <p class="tgl-label">
+                                    Tgl :
+                                    {{ \Carbon\Carbon::parse($data_cuti->waktu_approve)->translatedFormat('d F Y') }}
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="approval-card">
+                            <small class="text-muted">Disahkan Oleh-2</small>
+
+                            <div class="signature-area">
+                                @if ($data_cuti->ttd_atasan2)
+                                    <img src="{{ storage_path('app/public/signatures/' . basename((string) $data_cuti->ttd_atasan2)) }}"
+                                        style="max-width:180px; height:auto;">
+                                @endif
+                            </div>
+
+                            <div class="footer-ttd-user">
+                                <p class="name-label">
+                                    {{ $data_cuti->Atasan2 ? $data_cuti->Atasan2->name : '........................' }}
+                                </p>
+                                <p class="tgl-label">
+                                    Tgl :
+                                    {{ \Carbon\Carbon::parse($data_cuti->waktu_approve2)->translatedFormat('d F Y') }}
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <footer style="text-align:center; vertical-align: bottom; margin-top: 15px;">
+            <small class="text-muted">Dokumen ini dibuat secara otomatis oleh Sistem HRD-APPS &copy; 2026</small>
+        </footer>
     </div>
-    <table border="0" style="margin-top: 3px;" class="kop" width="100%">
-        <tr>
-            @if($data_cuti->User->kontrak_kerja=='SP')
-            <td style="width:25%;"> <img src="{{ url('public/holding/assets/img/logosp.png') }}" width="100px" class="images"> </td>
-            @elseif($data_cuti->User->kontrak_kerja=='SPS')
-            <td style="width:25%;"> <img src="{{ url('public/holding/assets/img/logosps.png') }}" width="100px" class="images"> </td>
-            @else
-            <td style="width:25%;"> <img src="{{ url('public/holding/assets/img/logosip.png') }}" width="100px" class="images"> </td>
-            @endif
-            <td>
-                <h4 style="text-align: center;">FORMULIR<br>PERMINTAAN CUTI</h4>
-            </td>
-            <td style="width: 40px;">
-            </td>
-            <td>
-            </td>
-        </tr>
-    </table>
-    <table style="margin-top: 10px; border-bottom: black;">
-        <tbody>
-            <tr>
-                <td>Tanggal&nbsp;</td>
-                <td>&nbsp;:&nbsp;{{ \Carbon\Carbon::parse($data_cuti->tanggal)->format('d-m-Y')}}&nbsp;</td>
-            </tr>
-        </tbody>
-    </table>
-    <table style="margin-top: 0%;" width="100%">
-        <thead style="background-color:#E6E6FA;">
-            <th colspan="2" style="text-align: center;">DATA KARYAWAN</th>
-        </thead>
-        <tbody>
-            <tr>
-                <th>Nomor Induk Karyawan</th>
-                <td>:&nbsp;{{$data_cuti->User->nomor_identitas_karyawan}}</td>
-            </tr>
-            <tr>
-                <th>Nama Karyawan</th>
-                <td>:&nbsp;{{$data_cuti->User->name}}</td>
-            </tr>
-            <tr>
-                <th>Departemen</th>
-                <td>:&nbsp;{{$departemen->nama_departemen}}</td>
-            </tr>
-            <tr>
-                <th>Divisi</th>
-                <td>:&nbsp;@foreach($divisi as $divisi){{$divisi->nama_divisi}} @endforeach</td>
-            </tr>
-            <tr>
-                <th>Jabatan</th>
-                <td>:&nbsp;@foreach($jabatan as $jabatan){{$jabatan->nama_jabatan}} @endforeach</td>
-            </tr>
-            <tr>
-                <th>Lokasi Kerja</th>
-                <td>:&nbsp;{{$data_cuti->User->penempatan_kerja}}</td>
-            </tr>
-            <tr>
-                <th>Telepon</th>
-                <td>:&nbsp;{{$data_cuti->User->telepon}}</td>
-            </tr>
-        </tbody>
-    </table>
-    <table style="margin-top: 5%;" width="100%">
-        <thead style="background-color:#E6E6FA;">
-            <th colspan="1" style="text-align: center;">JENIS CUTI</th>
-            <th colspan="2" style="text-align: center;">PERIODE CUTI</th>
-        </thead>
-        <tbody>
-            <tr>
-                <th>
-                    <ul>
-                        <li>
-                            {{$data_cuti->nama_cuti}}
-                        </li>
-                    </ul>
-                </th>
-                <th>Tanggal Awal Cuti</th>
-                <td>:&nbsp;{{ \Carbon\Carbon::parse($data_cuti->tanggal_mulai)->format('d-m-Y')}}</td>
-            </tr>
-            <tr>
-                <td style="text-align: center;">@if($data_cuti->nama_cuti=='Diluar Cuti Tahunan')<i>({{$data_cuti->KategoriCuti->nama_cuti}})</i> @else @endif</td>
-                <th>Tanggal Terakhir Cuti</th>
-                <td>:&nbsp;{{ \Carbon\Carbon::parse($data_cuti->tanggal_selesai)->format('d-m-Y')}}</td>
-            </tr>
-            <tr>
-                <td></td>
-                <th>Total Hari</th>
-                <td>:&nbsp;{{$data_cuti->total_cuti}} Hari</td>
-            </tr>
-            <tr>
-                <td></td>
-                <th>Tanggal Kembali ke Kantor</th>
-                <td>:&nbsp;{{ \Carbon\Carbon::parse($data_cuti->tanggal_selesai)->addDays(1)->format('d-m-Y')}}</td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr>
-                <th></th>
-                <th style="background-color:#F2F3F4 ;">Nama Pengganti<i>(Jika Ada)</i></th>
-                <td style="background-color:#F2F3F4 ;">:&nbsp;@if($pengganti==null) @else {{$pengganti->name}} @endif</td>
-            </tr>
-        </tfoot>
-    </table>
-    <div style="float: left; margin-top: 15px; margin-bottom:5%; width:100%; height: 100px;border: 1px solid #E6E6FA; box-sizing: border-box; border-radius: 7px;">
-        <h5 style="text-align: left; padding-left: 3px;">
-            Keterangan : <br>
-            {{$data_cuti->keterangan_cuti}}&nbsp;
-        </h5>
-    </div>
-    <h5>Pengesahan</h5>
-    <table class="table table-bordered" style="margin-top: 2%;" width="100%">
-        <thead>
-            <tr style="text-align: center;">
-                <th>Diajukan Oleh :</th>
-                <th>Disahkan Oleh - 1 :</th>
-                <th>Disahkan Oleh - 2 :</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr style="font-weight: bold;">
-                <td style="text-align: center;">
-                    <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/cuti/'.$data_cuti->ttd_user.'.png') }}" width="100%" alt="">
-                    <p>{{$user_karyawan->name}}</p>
-                </td>
-                <td style="text-align: center;">
-                    <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/cuti/'.$data_cuti->ttd_atasan.'.png') }}" width="100%" alt="">
-                    <p style="margin-bottom: -10px;">{{$data_cuti->approve_atasan}}</p>
-                </td>
-                <td style="text-align: center;">
-                    <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/cuti/'.$data_cuti->ttd_atasan2.'.png') }}" width="100%" alt="">
-                    <p>{{$data_cuti->approve_atasan2}}</p>
-                </td>
-            </tr>
-        </tbody>
-    </table>
 </body>
-<!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script> -->
 
 </html>

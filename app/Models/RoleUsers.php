@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RoleUsers extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $fillable = ['role_menu_id', 'role_user_id'];
 
 

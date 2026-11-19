@@ -15,6 +15,7 @@ class RecruitmentUser extends Model
     protected $table = 'recruitment_user';
     public $incrementing = false;
     public $timestamps = false;
+    protected $keyType = 'string';
     protected $fillable = [
         'id',
         'holding',
@@ -26,10 +27,17 @@ class RecruitmentUser extends Model
         'nama_belakang',
         'tanggal_wawancara',
         'nik',
+        'tanggal_konfirmasi_manager',
         'file_kk',
         'file_ktp',
         'status_recruitmentuser',
+        'id_manager',
+        'nama_manager',
     ];
+    public function Holding(): BelongsTo
+    {
+        return $this->belongsTo(Holding::class, 'holding', 'id');
+    }
 
     public function Jabatan(): BelongsTo
     {

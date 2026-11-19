@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MappingShift extends Model
 {
-    use HasFactory;
-    protected $guarded = ['id'];
+    // use HasFactory;
+    protected $primaryKey = 'id';
+    protected $keyType = 'int';
     public $incrementing = true;
+    protected $table = 'mapping_shifts';
     protected $fillable = [
         'karyawan_id',
         'input_by',
@@ -19,9 +22,9 @@ class MappingShift extends Model
         'nama_karyawan',
         'shift_id',
         'nama_shift',
-        'approve_by',
+        'approved_by',
         'status_approved',
-        'lokasi_bekerja',
+        'approved_at',
         'tanggal_masuk',
         'jam_absen',
         'telat',
@@ -46,10 +49,18 @@ class MappingShift extends Model
         'kelengkapan_absensi',
         'izin_id',
         'cuti_id',
+        'approved_signature',
+        'pengajuan_signature',
         'penugasaan_id',
         'keterangan_izin',
         'keterangan_cuti',
-        'keterangan_dinas'
+        'keterangan_dinas',
+        'mapping_group',
+        'is_active',
+        'id_tukar_shift_detail',
+        'id_head',
+        'created_at',
+        'updated_at'
     ];
 
     public function User(): BelongsTo
@@ -61,9 +72,18 @@ class MappingShift extends Model
         return $this->belongsTo(Karyawan::class, 'koordinator_id', 'id');
     }
 
+    public function Karyawan(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'karyawan_id', 'id');
+    }
     public function Shift()
     {
-        return $this->belongsTo(Shift::class);
+        return $this->belongsTo(Shift::class, 'shift_id', 'id');
+    }
+
+    public function AttendanceLog()
+    {
+        return $this->hasMany(AttendanceLog::class, 'EnrollNumber', 'nomor_identitas_karyawan');
     }
     public function Izin()
     {
@@ -72,5 +92,13 @@ class MappingShift extends Model
     public function Cuti()
     {
         return $this->belongsTo(Cuti::class, 'cuti_id', 'id');
+    }
+    public function KaryawanInput(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'input_by', 'id');
+    }
+    public function KaryawanApproved(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'approved_by', 'id');
     }
 }

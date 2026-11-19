@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Holding;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
@@ -22,15 +23,14 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-    public function index()
+    public function index(Request $request)
     {
         // dd('ok');
-        if (!auth()->check()) {
-            return view('auth.login', [
-                "title" => "Log In"
-            ]);
+        if (Auth::check() == false) {
+            $request->session()->flash('session_timeout', 'Silahkan login terlebih dahulu.');
+            return redirect()->route('login');
         } else {
-            if (auth()->user()->is_admin == 'admin') {
+            if (Auth::user()->is_admin == 'admin') {
                 $holding = Holding::all();
                 return redirect('dashboard/holding', compact('holding'));
             } else {

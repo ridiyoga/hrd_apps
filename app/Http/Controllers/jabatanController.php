@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Imports\JabatanImport;
+use App\Models\ActivityLog;
 use App\Models\Bagian;
 use App\Models\Divisi;
 use App\Models\Holding;
 use App\Models\Jabatan;
+use App\Models\JabatanMaster;
 use App\Models\Karyawan;
+use App\Models\KaryawanJabatan;
 use App\Models\LevelJabatan;
 use App\Models\Menu;
 use App\Models\RoleUsers;
@@ -17,11 +20,19 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Facades\Excel;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Validator;
+use Ramsey\Uuid\Uuid;
+
+
 
 class jabatanController extends Controller
 {
-    public function index($holding)
+    public function index($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holding = Holding::where('holding_code', $holding)->first();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
@@ -60,6 +71,7 @@ class jabatanController extends Controller
             ->where('holding', $holding->id)->get();
 
         $level = LevelJabatan::orderBy('level_jabatan', 'ASC')->get();
+        // dd($level);
         // dd($holding);
         return view('admin.jabatan.index', [
             'title' => 'Master Jabatan',
@@ -87,8 +99,12 @@ class jabatanController extends Controller
 
         return redirect('/jabatan/' . $holding)->with('success', 'Import Jabatan Sukses');
     }
-    public function detail_jabatan($id, $holding)
+    public function detail_jabatan($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holding = Holding::where('holding_code', $holding)->first();
         $data_divisi = Divisi::with(['Departemen' => function ($query) {
             $query->orderBy('nama_departemen', 'ASC');
@@ -135,6 +151,7 @@ class jabatanController extends Controller
                 ->orderBy('sort_order')
                 ->get();
         }
+        $jabatan_master = JabatanMaster::orderBy('jabatan_name', 'asc')->get();
         $level = LevelJabatan::orderBy('level_jabatan', 'ASC')->get();
         return view('admin.jabatan.detail_jabatan', [
             'title' => 'Master Jabatan',
@@ -144,6 +161,7 @@ class jabatanController extends Controller
             'divisi' => $divisi,
             'data_jabatan' => $data_jabatan,
             'data_bagian' => $data_bagian,
+            'jabatan_master' => $jabatan_master,
             'get_level' => $level,
         ]);
     }
@@ -176,103 +194,36 @@ class jabatanController extends Controller
                     return $atasan;
                 })
                 ->addColumn('jumlah_karyawan', function ($row) use ($holding) {
-                    $karyawan = Karyawan::leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-                        ->where('status_aktif', 'AKTIF')
-                        ->where('jabatan_id', $row->id)
-                        ->orWhere('jabatan1_id', $row->id)
-                        ->orWhere('jabatan2_id', $row->id)
-                        // ->orWhere('jabatan3_id', $row->id)
-                        // ->orWhere('jabatan4_id', $row->id)
-                        ->where('b.is_admin', 'user')
-                        ->count();
-                    if ($karyawan == 0) {
-                        $karyawan = $karyawan;
-                    } else {
-                        $karyawan = $karyawan . '&nbsp; <button id="btn_lihat_karyawan" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-primary">
-                    <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
-                  </button>';
-                    }
-                    return $karyawan;
-                })
-                ->addColumn('jumlah_bawahan', function ($row) use ($holding) {
-                    $bawahan = Jabatan::where('atasan_id', $row->id)
-                        ->orWhere('atasan2_id', $row->id)
-                        ->where('holding', $holding->id)
-                        ->count();
-                    if ($bawahan == 0) {
-                        $bawahan = $bawahan;
-                    } else {
-                        $bawahan = $bawahan . '&nbsp; <button id="btn_lihat_bawahan" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-info">
-                            <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
-                          </button>';
-                    }
-                    return $bawahan;
-                })
-                ->addColumn('lintas_departemen', function ($row) {
-                    if ($row->lintas_departemen == NULL) {
-                        $lintas_departemen = '<span class="badge bg-label-secondary">OFF</span>';
-                    } else {
-                        $lintas_departemen = '<span class="badge bg-label-success">ON</span>';
-                    }
-                    return $lintas_departemen;
+                    //     $karyawan = Karyawan::leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
+                    //         ->where('status_aktif', 'AKTIF')
+                    //         ->where('jabatan_id', $row->id)
+                    //         ->orWhere('jabatan1_id', $row->id)
+                    //         ->orWhere('jabatan2_id', $row->id)
+                    //         // ->orWhere('jabatan3_id', $row->id)
+                    //         // ->orWhere('jabatan4_id', $row->id)
+                    //         ->where('b.is_admin', 'user')
+                    //         ->count();
+                    //     if ($karyawan == 0) {
+                    //         $karyawan = $karyawan;
+                    //     } else {
+                    //         $karyawan = $karyawan . '&nbsp; <button id="btn_lihat_karyawan" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-sm btn-outline-primary">
+                    //     <span class="tf-icons mdi mdi-eye-circle-outline me-1"></span>Lihat
+                    //   </button>';
+                    //     }
+                    // return $karyawan;
+                    return '-';
                 })
                 ->addColumn('option', function ($row) use ($holding) {
-                    $btn = '<button id="btn_edit_jabatan" data-atasan="' . $row->atasan_id . '" data-lintas="' . $row->lintas_departemen . '" data-id="' . $row->id . '" data-jabatan="' . $row->nama_jabatan . '" data-departemen="' . $row->dept_id . '" data-divisi="' . $row->nama_divisi . '" data-bagian="' . $row->bagian_id . '" data-level="' . LevelJabatan::where('id', $row->level_id)->value('level_jabatan') . '" data-holding="' . $holding->holding_code . '" type="button" class="btn btn-icon btn-warning waves-effect waves-light"><span class="tf-icons mdi mdi-pencil-outline"></span></button>';
+                    $btn = '<button id="btn_edit_jabatan" 
+                            data-id="' . $row->id . '" 
+                            data-jabatan="' . $row->nama_jabatan . '" 
+                            data-bagian="' . $row->bagian_id . '" 
+                            data-divisi="' . $row->Divisi->nama_divisi . '" 
+                            type="button" class="btn btn-icon btn-warning waves-effect waves-light"><span class="tf-icons mdi mdi-pencil-outline"></span></button>';
                     $btn = $btn . '<button type="button" id="btn_delete_jabatan" data-id="' . $row->id . '" data-holding="' . $holding->holding_code . '" class="btn btn-icon btn-danger waves-effect waves-light"><span class="tf-icons mdi mdi-delete-outline"></span></button>';
                     return $btn;
                 })
                 ->rawColumns(['jabatan_atasan', 'jumlah_bawahan', 'lintas_departemen', 'nama_bagian', 'jumlah_karyawan', 'option'])
-                ->make(true);
-        }
-    }
-    public function bawahan_datatable($id, $holding)
-    {
-        $holding = Holding::where('holding_code', $holding)->first();
-        $table =  Jabatan::Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-            ->where('jabatans.atasan_id', $id)
-            ->orWhere('jabatans.atasan2_id', $id)
-            ->where('jabatans.holding', $holding->id)
-            ->select('jabatans.*', 'bagians.nama_bagian')
-            ->get();
-        // dd($table);
-        if (request()->ajax()) {
-            return DataTables::of($table)
-                ->addColumn('jabatan_atasan', function ($row) use ($holding) {
-                    $get_atasan = Jabatan::With('Bagian')->where('holding', $holding->id)->where('id', $row->atasan_id)->first();
-                    if ($get_atasan == NULL || $get_atasan == '') {
-                        $atasan = NULL;
-                    } else {
-                        if ($get_atasan->Bagian == NULL) {
-
-                            $atasan  = $get_atasan->nama_jabatan;
-                        } else {
-                            $atasan = $get_atasan->nama_jabatan . ' (' . $get_atasan->Bagian->nama_bagian . ')';
-                        }
-                    }
-                    return $atasan;
-                })
-                ->addColumn('jumlah_karyawan', function ($row) use ($holding) {
-                    $karyawan = Karyawan::leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-                        ->where('status_aktif', 'AKTIF')
-                        ->where('jabatan_id', $row->id)
-                        ->orWhere('jabatan1_id', $row->id)
-                        ->orWhere('jabatan2_id', $row->id)
-                        // ->orWhere('jabatan3_id', $row->id)
-                        // ->orWhere('jabatan4_id', $row->id)
-                        ->where('b.is_admin', 'user')
-                        ->count();
-
-                    return $karyawan;
-                })
-                ->addColumn('lintas_departemen', function ($row) {
-                    if ($row->lintas_departemen == NULL) {
-                        $lintas_departemen = '<span class="badge bg-label-secondary">OFF</span>';
-                    } else {
-                        $lintas_departemen = '<span class="badge bg-label-success">ON</span>';
-                    }
-                    return $lintas_departemen;
-                })
-                ->rawColumns(['lintas_departemen', 'jumlah_karyawan',])
                 ->make(true);
         }
     }
@@ -320,251 +271,13 @@ class jabatanController extends Controller
             echo "<option value='$bagian->id'>$bagian->nama_bagian</option>";
         }
     }
-    public function get_atasan(Request $request)
+
+    public function create($holding, Request $request)
     {
-        // dd($request->all());
-        $dept = Divisi::where('nama_divisi', $request->id_divisi)->where('holding', $request->holding)->first();
-        // dd($dept);
-        if ($request->level == 0) {
-            $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('level_jabatans.level_jabatan', '=', $request->level)
-                ->where('jabatans.nama_jabatan', '=', 'DIREKTUR UTAMA')
-                ->where('jabatans.holding', '=', $request->holding)
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->get();
-            $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('level_jabatans.level_jabatan', '=', $request->level)
-                ->where('jabatans.nama_jabatan', '=', 'DIREKTUR UTAMA')
-                ->where('jabatans.holding', '=', $request->holding)
-                ->where('jabatans.lintas_departemen', 'on')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->get();
-        } else if ($request->level <= 4) {
-            // dd('ok');
-            $getatasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->where('divisis.dept_id', $dept->dept_id)
-                ->where('level_jabatans.level_jabatan', '<', $request->level)
-                ->where('jabatans.holding', '=', $request->holding)
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->first();
-            if ($getatasan == '' || $getatasan == NULL) {
-                $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->where('jabatans.lintas_departemen', NULL)
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->get();
-                $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->where('jabatans.lintas_departemen', 'on')
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->get();
-            } else {
-                $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('divisis.dept_id', $dept->dept_id)
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('jabatans.lintas_departemen', NULL)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->get();
-                $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->where('jabatans.lintas_departemen', 'on')
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->get();
-            }
-        } else {
-            // dd($request->holding);
-            $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('divisis.id', $dept->id)
-                ->where('divisis.holding', '=', $request->holding)
-                ->where('jabatans.holding', '=', $request->holding)
-                ->where('jabatans.lintas_departemen', NULL)
-                ->where('level_jabatans.level_jabatan', '<', $request->level)
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->get();
-            // dd($get_atasan);
-            $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('jabatans.holding', '=', $request->holding)
-                ->where('level_jabatans.level_jabatan', '<', $request->level)
-                ->where('jabatans.lintas_departemen', 'on')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->get();
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
         }
-        echo "<option value=''>Pilih Jabatan Atasan...</option>";
-        if (count($get_atasan_lintas) == 0) {
-        } else {
-            echo "<optgroup label='Lintas Departemen'>";
-            foreach ($get_atasan_lintas as $atasan1) {
-                echo "<option value='$atasan1->id'>$atasan1->nama_jabatan | $atasan1->nama_bagian</option>";
-            }
-            echo "</optgroup>";
-        }
-        if (count($get_atasan) == 0) {
-        } else {
-            echo "<optgroup label='Atasan'>";
-            foreach ($get_atasan as $atasan) {
-                echo "<option value='$atasan->id'>$atasan->nama_jabatan | $atasan->nama_bagian</option>";
-            }
-            echo "</optgroup>";
-        }
-    }
-    public function get_atasan_edit(Request $request)
-    {
-        // dd($request->all());
-        $dept = Divisi::where('nama_divisi', $request->id_divisi)->where('holding', $request->holding)->first();
-        if ($request->level == 0) {
-            $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('level_jabatans.level_jabatan', '=', $request->level)
-                ->where('jabatans.id', '!=', $request->id)
-                ->where('jabatans.nama_jabatan', '=', 'DIREKTUR UTAMA')
-                ->where('jabatans.holding', '=', $request->holding)
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->get();
-            $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('level_jabatans.level_jabatan', '=', $request->level)
-                ->where('jabatans.id', '!=', $request->id)
-                ->where('jabatans.nama_jabatan', '=', 'DIREKTUR UTAMA')
-                ->where('jabatans.holding', '=', $request->holding)
-                ->where('jabatans.lintas_departemen', 'on')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->get();
-        } else if ($request->level <= 4) {
-            $getatasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->where('divisis.dept_id', $dept->dept_id)
-                ->where('level_jabatans.level_jabatan', '<', $request->level)
-                ->where('jabatans.holding', '=', $request->holding)
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->first();
-            if ($getatasan == '' || $getatasan == NULL) {
-                $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('jabatans.lintas_departemen', NULL)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->get();
-                $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->where('jabatans.lintas_departemen', 'on')
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->get();
-            } else {
-                $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('divisis.id', $dept->id)
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('jabatans.lintas_departemen', NULL)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->get();
-                $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                    ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                    ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                    ->where('jabatans.holding', '=', $request->holding)
-                    ->where('level_jabatans.level_jabatan', '<', $request->level)
-                    ->where('jabatans.lintas_departemen', 'on')
-                    ->orderBy('jabatans.nama_jabatan', 'ASC')
-                    ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                    ->get();
-            }
-        } else {
-            // dd('ok');
-            $get_atasan = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('divisis.dept_id', $dept->dept_id)
-                // ->where('divisis.id', $request->id_divisi)
-                ->where('jabatans.holding', '=', $request->holding)
-                ->where('level_jabatans.level_jabatan', '<', $request->level)
-                ->where('jabatans.lintas_departemen', NULL)
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->get();
-            $get_atasan_lintas = Jabatan::Join('divisis', 'divisis.id', 'jabatans.divisi_id')
-                ->Join('level_jabatans', 'level_jabatans.id', 'jabatans.level_id')
-                ->Join('bagians', 'bagians.id', 'jabatans.bagian_id')
-                ->where('jabatans.holding', '=', $request->holding)
-                ->where('level_jabatans.level_jabatan', '<', $request->level)
-                ->where('jabatans.lintas_departemen', 'on')
-                ->orderBy('jabatans.nama_jabatan', 'ASC')
-                ->select('jabatans.*', 'divisis.nama_divisi', 'level_jabatans.level_jabatan', 'bagians.nama_bagian')
-                ->get();
-        }
-        echo "<option value=''>Pilih Jabatan Atasan...</option>";
-        if (count($get_atasan_lintas) == 0) {
-        } else {
-            echo "<optgroup label='Lintas Departemen'>";
-            foreach ($get_atasan_lintas as $atasan1) {
-                if ($atasan1->id == $request->atasan) {
-                    echo "<option value='$atasan1->id' selected >$atasan1->nama_jabatan | $atasan1->nama_bagian</option>";
-                } else {
-                    echo "<option value='$atasan1->id'>$atasan1->nama_jabatan | $atasan1->nama_bagian</option>";
-                }
-            }
-            echo "</optgroup>";
-        }
-        if (count($get_atasan) == 0) {
-        } else {
-            echo "<optgroup label='Atasan'>";
-            foreach ($get_atasan as $atasan) {
-                if ($atasan->id == $request->atasan) {
-                    echo "<option value='$atasan->id' selected >$atasan->nama_jabatan | $atasan->nama_bagian</option>";
-                } else {
-                    echo "<option value='$atasan->id'>$atasan->nama_jabatan | $atasan->nama_bagian</option>";
-                }
-            }
-            echo "</optgroup>";
-        }
-    }
-    public function create()
-    {
         $holding = Holding::where('holding_code', $holding)->first();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
@@ -600,141 +313,374 @@ class jabatanController extends Controller
     {
         // dd($request->all());
         $holding = Holding::where('holding_code', $holding)->first();
-        $validatedData = $request->validate([
-            'nama_divisi' => 'required',
-            'nama_jabatan' => 'required|max:255',
-            'level_jabatan' => 'required',
-        ]);
-
-        Jabatan::create(
+        $validator = Validator::make(
+            $request->all(),
             [
-                'holding' => $holding->id,
-                'divisi_id' => Divisi::where('nama_divisi', $validatedData['nama_divisi'])->where('holding', $holding->id)->value('id'),
-                'bagian_id' => Bagian::where('id', $request['nama_bagian'])->where('holding', $holding->id)->value('id'),
-                'nama_jabatan' => $validatedData['nama_jabatan'],
-                'atasan_id' => $request['nama_jabatan_atasan'],
-                'lintas_departemen' => $request['lintas_departemen'],
-                'level_id' => LevelJabatan::where('level_jabatan', $validatedData['level_jabatan'])->value('id'),
+                'nama_divisi' => 'required',
+                'nama_jabatan' => 'required|max:255',
+                'nama_bagian' => 'required',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
             ]
         );
-        return redirect()->back()->with('success', 'data berhasil ditambahkan');
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
+        try {
+            // dd($request->all());
+            $divisi = Divisi::where('id', $request->nama_divisi)->where('holding', $holding->id)->first();
+            $bagian = Bagian::where('id', $request->nama_bagian)->where('holding', $holding->id)->first();
+            $jabatan = JabatanMaster::where('id', $request->nama_jabatan)->first();
+            Jabatan::create(
+                [
+                    'holding' => $holding->id,
+                    'divisi_id' => $divisi->id,
+                    'bagian_id' => $bagian->id,
+                    'nama_jabatan' => $jabatan->jabatan_name,
+                    'level_id' => $jabatan->level_id,
+                ]
+            );
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => $holding->id,
+                'holding_category' => $holding->holding_category,
+                'table' => 'jabatan',
+                'activity' => 'create',
+                'description' => 'menambah jabatan ' . $jabatan->jabatan_name . ' divisi ' . $divisi->nama_divisi,
+                'keterangan' => 'Success',
+            ]);
+            // $first_image = Carousel::limit('1', 'asc')->first();
+            // $get_data = Carousel::limit('1', 'asc')->get();
+
+            return response()->json([
+                'code' => 200,
+                // 'data2' => $get_data2,
+                'message' => 'Data Berhasil Diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
     }
 
-    public function edit($id, $holding)
+    public function update(Request $request)
     {
-        $holding = Holding::where('holding_code', $holding)->first();
-        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
-        // dd($get_role);
-        if (count($get_role) == 0) {
-            $roleId = null;
-        } else {
-            $roleId = $get_role;
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_bagian' => 'required',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
         }
-        if ($roleId == null) {
-            $menus = collect();
-        } else {
-            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-                $query->select('menu_id')
-                    ->from('role_menus')
-                    ->whereIn('role_id', $roleId);
-            })
-                ->whereNull('parent_id') // menu utama
-                ->with('children')
-                ->where('kategori', 'web')      // load submenunya
-                ->orderBy('sort_order')
-                ->get();
+        try {
+            // dd($request->all());
+            Jabatan::where('id', $request->id)->update(
+                [
+                    'bagian_id' => $request->nama_bagian,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]
+            );
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            $jabatan = Jabatan::where('id', $request->id)->first();
+            $holding = Holding::where('id', $jabatan->holding)->first();
+            $bagian = Bagian::where('id', $jabatan->bagian_id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => $jabatan->holding,
+                'holding_category' => $holding->holding_category,
+                'table' => 'jabatan',
+                'activity' => 'update',
+                'description' => 'mengedit jabatan ' . $jabatan->nama_jabatan . ' bagian ' . $bagian->nama_divisi,
+                'keterangan' => 'Success',
+            ]);
+            // $first_image = Carousel::limit('1', 'asc')->first();
+            // $get_data = Carousel::limit('1', 'asc')->get();
+
+            return response()->json([
+                'code' => 200,
+                // 'data2' => $get_data2,
+                'message' => 'Data Berhasil Diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
-        return view('jabatan.edit', [
-            'title' => 'Edit Data Jabatan',
-            'get_bagian' => Bagian::get(),
-            'holding' => $holding,
-            'menus' => $menus,
-            'get_level' => LevelJabatan::get(),
-            'data_jabatan' => Jabatan::with('Bagian')->with('LevelJabatan')->findOrFail($id)
-        ]);
     }
 
-    public function update(Request $request, $holding)
+    public function delete(Request $request)
     {
-        $holding = Holding::where('holding_code', $holding)->first();
         // dd($request->all());
-        if ($request['nama_jabatan_atasan_update'] == NULL || $request['nama_jabatan_atasan_update'] == '') {
-            // dd('ok');
-            $get_atasan = NULL;
-            $get_atasan2 = NULL;
-        } else {
-            $cek_atasan = Jabatan::where('id', $request['nama_jabatan_atasan_update'])->first();
-            // dd($request['nama_jabatan_atasan_update'], $get_atasan->atasan_id);
-            if ($cek_atasan == NULL || $cek_atasan == '') {
-                $get_atasan = Jabatan::where('id', $request['nama_jabatan_atasan_update'])->where('holding', $holding->id)->value('id');
-                $get_atasan2 = NULL;
+        $cek_karyawan_jabatan = KaryawanJabatan::where('jabatan_id', $request->id)->count();
+        // dd($cek_karyawan_jabatan);
+        $delete = Jabatan::where('id', $request->id)->first();
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        $holding = Holding::where('id', $delete->holding)->first();
+        try {
+            // dd($cek_karyawan_jabatan);
+            if ($cek_karyawan_jabatan == 0) {
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $delete->holding,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'jabatan',
+                    'activity' => 'delete',
+                    'description' => 'menghapus jabatan ' . $delete->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
+                $delete->delete();
+                Jabatan::where('id', $request->id)->delete();
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Data Berhasil Diupdate'
+                ]);
             } else {
-                $get_atasan = Jabatan::where('id', $request['nama_jabatan_atasan_update'])->where('holding', $holding->id)->value('id');
-                $get_atasan2 = Jabatan::where('id', $cek_atasan->atasan_id)->value('id');
-                // dd($get_atasan2);
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $holding = Holding::where('id', $delete->holding)->first();
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $delete->holding,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'jabatan',
+                    'activity' => 'delete',
+                    'description' => 'menghapus jabatan gagal karena masih ada relasi karyawan ' . $delete->nama_jabatan,
+                    'keterangan' => 'Failed',
+                ]);
+                return response()->json([
+                    'code' => 500,
+                    'error' => 'Kosongkan Jabatan Karyawan terlebih dahulu',
+                ]);
             }
-        }
-        $validatedData = $request->validate([
-            'nama_divisi_update' => 'required',
-            'nama_bagian_update' => 'required',
-            'nama_jabatan_update' => 'required|max:255',
-            'level_jabatan_update' => 'required',
-        ]);
-        // dd($validatedData);
-        Jabatan::where('id', $request->id_jabatan)->update(
-            [
-                'holding' => $holding->id,
-                'bagian_id' => Bagian::where('id', $validatedData['nama_bagian_update'])->where('holding', $holding->id)->value('id'),
-                'nama_jabatan' => $validatedData['nama_jabatan_update'],
-                'lintas_departemen' => $request['lintas_departemen_update'],
-                'level_id' => LevelJabatan::where('level_jabatan', $validatedData['level_jabatan_update'])->value('id'),
-                'atasan_id' => $get_atasan,
-                'atasan2_id' => $get_atasan2,
-            ]
-        );
-        return redirect()->back()->with('success', 'data berhasil diupdate');
-    }
-
-    public function delete(Request $request, $id)
-    {
-        // dd($request->all());
-        if ($request->holding == 'sp') {
-            $cek_karyawan_jabatan = Karyawan::where('jabatan_id', $id)
-                ->leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-                ->orWhere('jabatan1_id', $id)
-                ->orWhere('jabatan2_id', $id)
-                ->orWhere('jabatan3_id', $id)
-                ->orWhere('jabatan4_id', $id)
-                ->where('status_aktif', 'AKTIF')
-                ->where('b.is_admin', 'user')
-                ->count();
-        } else if ($request->holding == 'sps') {
-            $cek_karyawan_jabatan = Karyawan::where('jabatan_id', $id)
-                ->leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-                ->orWhere('jabatan1_id', $id)
-                ->orWhere('jabatan2_id', $id)
-                ->orWhere('jabatan3_id', $id)
-                ->orWhere('jabatan4_id', $id)
-                ->where('status_aktif', 'AKTIF')
-                ->where('b.is_admin', 'user')
-                ->count();
-        } else {
-            $cek_karyawan_jabatan = Karyawan::where('jabatan_id', $id)
-                ->leftJoin('users as b', 'b.karyawan_id', 'karyawans.id')
-                ->orWhere('jabatan1_id', $id)
-                ->orWhere('jabatan2_id', $id)
-                ->orWhere('jabatan3_id', $id)
-                ->orWhere('jabatan4_id', $id)
-                ->where('status_aktif', 'AKTIF')
-                ->where('b.is_admin', 'user')
-                ->count();
-        }
-        if ($cek_karyawan_jabatan == 0) {
-            $jabatan = Jabatan::where('id', $id)->delete();
-            return response()->json(['status' => 1]);
-        } else {
-            return response()->json(['status' => 0]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
         }
         // return redirect('/jabatan/' . $holding)->with('success', 'Data Berhasil di Delete');
+    }
+    public function jabatan_master_post(Request $request)
+    {
+        // dd($request->all());
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_jabatan' => 'required',
+                'level_id' => 'required',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
+        try {
+            $riwayat = new JabatanMaster();
+            $riwayat->id = Uuid::uuid4();
+            $riwayat->jabatan_name = $request->nama_jabatan;
+            $riwayat->level_id = $request->level_id;
+            $riwayat->created_at = date('Y-m-d H:i:s');
+            $riwayat->save();
+            // $first_image = Carousel::limit('1', 'asc')->first();
+            // $get_data = Carousel::limit('1', 'asc')->get();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            $level = LevelJabatan::where('id', $request->level_id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'divisi',
+                'activity' => 'create',
+                'description' => 'menambah master jabatan ' . $request->nama_jabatan . ' dengan level ' . $level->level_jabatan,
+                'keterangan' => 'Success',
+            ]);
+
+            return response()->json([
+                'code' => 200,
+                // 'data2' => $get_data2,
+                'message' => 'Data Berhasil Diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function jabatan_master_dt()
+    {
+        $table =  JabatanMaster::with([
+            'LevelJabatan' =>  function ($query) {
+                $query;
+            },
+        ])
+            ->get();
+        // dd($table);
+        if (request()->ajax()) {
+            return DataTables::of($table)
+
+                ->addColumn('level_name', function ($row) {
+
+                    return $row->LevelJabatan->level_name ?? '-';
+                })
+                ->addColumn('level_jabatan', function ($row) {
+
+                    return $row->LevelJabatan->level_jabatan ?? '-';
+                })
+                ->addColumn('option', function ($row) {
+
+                    $btn = '<button id="btn_edit_jabatan" 
+                    data-id="' . $row->id . '"
+                    data-jabatan_name="' . $row->jabatan_name . '"
+                    data-level_id="' . $row->level_id . '"
+                    type="button" class="btn btn-icon btn-warning waves-effect waves-light"><span class="tf-icons mdi mdi-pencil-outline"></span></button>';
+                    $btn = $btn . '<button type="button" id="btn_delete_jabatan" 
+                    data-id="' . $row->id . '" 
+                    class="btn btn-icon btn-danger waves-effect waves-light"><span class="tf-icons mdi mdi-delete-outline"></span></button>';
+                    return $btn;
+                })
+                ->rawColumns(['option'])
+                ->make(true);
+        }
+    }
+    public function jabatan_master_update(Request $request)
+    {
+        // dd($request->all());
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'nama_jabatan' => 'required',
+                'level_id' => 'required',
+            ],
+            [
+                'required' => ':attribute Tidak boleh kosong!',
+            ]
+        );
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
+        }
+        try {
+            $riwayat = JabatanMaster::where('id', $request->id)->first();
+            $riwayat->jabatan_name = $request->nama_jabatan;
+            $riwayat->level_id = $request->level_id;
+            $riwayat->updated_at = date('Y-m-d H:i:s');
+            $riwayat->update();
+
+
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            $level = LevelJabatan::where('id', $request->level_id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'divisi',
+                'activity' => 'update',
+                'description' => 'mengedit master jabatan ' . $request->nama_jabatan . ' dengan level ' . $level->level_jabatan,
+                'keterangan' => 'Success',
+            ]);
+            // $first_image = Carousel::limit('1', 'asc')->first();
+            // $get_data = Carousel::limit('1', 'asc')->get();
+
+            return response()->json([
+                'code' => 200,
+                // 'data2' => $get_data2,
+                'message' => 'Data Berhasil Diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function jabatan_master_delete(Request $request)
+    {
+        try {
+            // dd($request->id_riwayat);
+            $delete = JabatanMaster::where('id', $request->id)->first();
+
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'divisi',
+                'activity' => 'update',
+                'description' => 'menghapus master jabatan ' . $delete->nama_jabatan,
+                'keterangan' => 'Success',
+            ]);
+            $delete->delete();
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
     }
 }

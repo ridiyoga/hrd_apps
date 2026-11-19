@@ -1,0 +1,316 @@
+/* =====================
+   BASE
+===================== */
+body {
+    background: #f2f2f4;
+}
+
+.container {
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+p {
+    margin: 0;
+}
+
+/* =====================
+   HEADER INFO
+===================== */
+.penempatan-row {
+    min-height: 48px;
+}
+
+.penempatan_text,
+.jamkerja_text,
+.jamkerja_text_main {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.jamkerja_text_main {
+    color: #111827;
+}
+
+.garis.vl {
+    width: 1px;
+    height: 26px;
+    background: #e5e7eb;
+}
+
+/* =====================
+   ABSENSI CARD
+===================== */
+.card-bx {
+    border-radius: 14px;
+    border: none;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.absen_masuk_icon,
+.absen_pulang_icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.absen_masuk_context,
+.absen_pulang_context {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.absen_masuk_text,
+.absen_pulang_text {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+/* =====================
+   STAT CARD
+===================== */
+.stat-card {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon {
+    width: 45px;
+    height: 45px;
+    min-width: 42px;
+    min-height: 42px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    /* Squircle tumpul */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    margin-bottom: 6px;
+    background: #f1f5f9;
+    /* Warna dasar default */
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.03),
+        0 2px 2px rgba(0, 0, 0, 0.02);
+    /* box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.8); */
+    /* Memberikan aksen cahaya di pinggir */
+    transition: transform 0.2s ease;
+}
+
+.stat-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* Warna status */
+.stat-card.hadir .stat-icon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+.stat-card.izin .stat-icon {
+    background: #fef9c3;
+    color: #ca8a04;
+}
+.stat-card.cuti .stat-icon {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+.stat-card.telat .stat-icon {
+    background: #ffedd5;
+    color: #ea580c;
+}
+
+/* =====================
+   MONTH NAV
+===================== */
+.month-nav {
+    padding: 10px 16px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.month-text {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.btn-nav {
+    border: none;
+    background: transparent;
+    color: #6b7280;
+}
+
+/* =====================
+   ABSENSI LIST
+===================== */
+.absensi-list {
+    border-radius: 18px;
+    background: #fff;
+}
+
+.absensi-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.absensi-item:last-child {
+    border-bottom: none;
+}
+
+/* Date box */
+.date-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.date-box .day {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.date-box .month {
+    font-size: 10px;
+}
+/* INFO */
+.absensi-info {
+    flex: 1;
+}
+
+.absensi-info .time {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.absensi-info .divider {
+    margin: 0 6px;
+    color: #9ca3af;
+}
+/* Status badge */
+.status {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+}
+.skeleton {
+    background: linear-gradient(
+        90deg,
+        #ede9fe 25%,
+        /* purple-100 */ #f5f3ff 37%,
+        /* purple-50  */ #ede9fe 63%
+    ); /* Warna dasar abu-abu terang */
+    overflow: hidden;
+    position: relative;
+    border-radius: 4px;
+}
+
+/* Membuat elemen semu untuk efek kilauan */
+.skeleton::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(
+        90deg,
+        #ede9fe 25%,
+        /* purple-100 */ #f5f3ff 37%,
+        /* purple-50  */ #ede9fe 63%
+    );
+    animation: shimmerSmooth 1.5s linear infinite;
+}
+
+/* Mendefinisikan animasi kilauan yang bergerak ke kanan */
+@keyframes shimmerSmooth {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.skeleton-number {
+    width: 48px;
+    height: 22px;
+}
+
+.status.TIDAKHADIR {
+    background: #fff7ed;
+    color: #ea1b0c;
+}
+.status.BELUMDIJADWALKAN {
+    background: #fff7ed;
+    color: #ea1b0c;
+}
+.status.HADIR {
+    background: #ecfdf5;
+    color: #059669;
+}
+.status.TEPATWAKTU {
+    background: #ecfdf5;
+    color: #059669;
+}
+.status.TELAT {
+    background: #fff7ed;
+    color: #ea580c;
+}
+.status.IZIN {
+    background: #eef2ff;
+    color: #4f46e5;
+}
+.status.DATANGLEBIHAWAL {
+    background: #eef2ff;
+    color: #4f46e5;
+}
+.status.CUTI {
+    background: #fdf4ff;
+    color: #a21caf;
+}
+.status {
+    background: #eef2ff;
+    color: #4f46e5;
+}
+
+/* =====================
+   MOBILE OPTIMIZATION
+===================== */
+@media (max-width: 375px) {
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .absen_masuk_icon,
+    .absen_pulang_icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .penempatan_text,
+    .jamkerja_text {
+        font-size: 0.6rem;
+    }
+}

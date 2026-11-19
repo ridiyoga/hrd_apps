@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Menu extends Model
 {
-    protected $fillable = ['name', 'icon', 'url', 'parent_id', 'sort_order', 'is_active'];
+    protected $table = 'menus';
+    public $incrementing = true;
+    protected $keyType = 'int';
+    protected $guarded = ['id'];
+    protected $fillable = ['name', 'icon', 'url', 'parent_id', 'sort_order', 'is_active', 'main', 'kategori'];
 
     public function children()
     {

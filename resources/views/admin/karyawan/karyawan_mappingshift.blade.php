@@ -108,6 +108,78 @@
         color: var(--bs-primary);
         /* Warna icon berubah menjadi biru */
     }
+
+    .mapping-shift-filter {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .mapping-shift-filter-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .mapping-shift-filter-actions {
+        display: grid;
+        grid-template-columns: minmax(280px, 2fr) minmax(180px, 1fr);
+        gap: 1rem;
+        align-items: stretch;
+        max-width: 74%;
+    }
+
+    .mapping-shift-filter-field,
+    .mapping-shift-filter-date,
+    .mapping-shift-filter-button {
+        min-width: 0;
+    }
+
+    .mapping-shift-filter .select2-container {
+        width: 100% !important;
+    }
+
+    .mapping-shift-filter .select2-container--bootstrap-5 .select2-selection {
+        width: 100%;
+        min-height: 38px;
+    }
+
+    .mapping-shift-filter .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .mapping-shift-filter-date #filterrange,
+    .mapping-shift-filter-date .btn,
+    .mapping-shift-filter-button .btn {
+        width: 100%;
+        height: 38px;
+    }
+
+    .mapping-shift-filter-date .btn {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    @media (max-width: 1199.98px) {
+        .mapping-shift-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .mapping-shift-filter-actions {
+            max-width: 100%;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .mapping-shift-filter-grid,
+        .mapping-shift-filter-actions {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 @endsection
 @section('isi')
@@ -126,8 +198,9 @@
                     <div id="collapseFilterWrapper" class="sticky-top bg-white" style="z-index: 1020;">
                         <div class="card-body">
 
-                            <div class="row gy-4 mb-4">
-                                <div class="col-lg-3 col-md-6 col-sm-6">
+                            <div class="mapping-shift-filter">
+                                <div class="mapping-shift-filter-grid">
+                                <div class="mapping-shift-filter-field">
                                     <div class="form-floating form-floating-outline">
                                         <select type="text" class="form-control" name="departemen_filter[]" id="departemen_filter" multiple>
                                             <option disabled value="">-Pilih Departemen-</option>
@@ -137,31 +210,31 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="mapping-shift-filter-field">
                                     <div class="form-floating form-floating-outline">
                                         <select type="text" class="form-control" name="divisi_filter[]" id="divisi_filter" multiple>
                                             <option selected disabled value="">-- Pilih Divisi --</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="mapping-shift-filter-field">
                                     <div class="form-floating form-floating-outline">
                                         <select type="text" class="form-control" name="bagian_filter[]" id="bagian_filter" multiple>
                                             <option selected disabled value="">-- Pilih Bagian --</option>
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="mapping-shift-filter-field">
                                     <div class="form-floating form-floating-outline">
                                         <select type="text" class="form-control" name="jabatan_filter[]" id="jabatan_filter" multiple>
                                             <option selected disabled value="">-- Pilih Jabatan --</option>
                                         </select>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
 
-                            <div class="row gy-4 align-items-end">
-                                <div class="col-lg-6 col-md-6col-sm-6">
+                                <div class="mapping-shift-filter-actions">
+                                <div class="mapping-shift-filter-date">
                                     <div class="form-floating form-floating-outline">
                                         <div id="filterrange" style="white-space: nowrap;">
                                             <button class="btn btn-outline-secondary w-100 ">
@@ -174,10 +247,11 @@
                                     </div>
                                 </div>
 
-                                <div class="col-lg-3 col-md-3 col-sm-3 d-flex justify-content-end">
+                                <div class="mapping-shift-filter-button">
                                     <button type="button" class="btn btn-block w-100" id="btn_filter">
                                         <i class="mdi mdi-filter-outline text-primary"></i><span class="text-primary">&nbsp;Filter</span>
                                     </button>
+                                </div>
                                 </div>
                             </div>
 
@@ -418,7 +492,7 @@
             // console.log(start_date, end_date);
             //console.log(lstart, lend, departemen_filter, divisi_filter, bagian_filter, jabatan_filter, start, end);
             $.ajax({
-                url: "@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/mapping_shift/get_columns') }}@else{{ url('/mapping_shift/get_columns') }}@endif" + '/' + holding,
+                url: "{{ url('/mapping_shift/get_columns') }}" + '/' + holding,
                 method: "get",
                 data: {
                     start_date: start_date,
@@ -494,7 +568,7 @@
         $('#departemen_filter').change(function(e) {
             departemen_filter_dept = $(this).val() || '';
             // $('#table_mapping_shift').DataTable().destroy();
-            var url = "@if(Auth::user()->is_admin=='hrd'){{url('hrd/report_kedisiplinan/get_divisi')}}@else{{url('report_kedisiplinan/get_divisi')}}@endif" + '/' + holding_id;
+            var url = "{{url('report/absensi/kedisiplinan/get_divisi')}}" + '/' + holding_id;
             // console.log(departemen_filter_dept, divisi_filter_dept, bagian_filter_dept, jabatan_filter_dept);
             $.ajax({
                 type: 'GET',
@@ -517,17 +591,20 @@
                     $('#divisi_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Divisi...",
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                     $('#bagian_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Divisi...",
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                     $('#jabatan_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Divisi...",
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                     // langsung pilih opsi pertama kalau ada
                     let firstOpt = $('#divisi_filter option:eq(0)').val();
@@ -560,7 +637,7 @@
             // $('#table_mapping_shift').DataTable().destroy();
             $.ajax({
                 type: 'GET',
-                url: "@if(Auth::user()->is_admin=='hrd'){{url('hrd/report_kedisiplinan/get_bagian')}}@else{{url('report_kedisiplinan/get_bagian')}}@endif" + '/' + holding_id,
+                url: "{{url('report/absensi/kedisiplinan/get_bagian')}}" + '/' + holding_id,
                 data: {
                     holding: holding_id,
                     divisi_filter: divisi_filter,
@@ -576,12 +653,14 @@
                     $('#bagian_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Bagian...",
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                     $('#jabatan_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Bagian...",
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
 
                     // langsung pilih opsi pertama kalau ada
@@ -613,7 +692,7 @@
             // $('#table_mapping_shift').DataTable().destroy();
             $.ajax({
                 type: 'GET',
-                url: "{{url('report_kedisiplinan/get_jabatan')}}" + '/' + holding_id,
+                url: "{{url('report/absensi/kedisiplinan/get_jabatan')}}" + '/' + holding_id,
                 data: {
                     holding: holding_id,
                     bagian_filter: bagian_filter
@@ -628,7 +707,8 @@
                     $('#jabatan_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Jabatan...",
-                        allowClear: true
+                        allowClear: true,
+                        width: '100%'
                     });
                     // langsung pilih opsi pertama kalau ada
                     let firstOpt = $('#jabatan_filter option:eq(0)').val();
@@ -656,22 +736,26 @@
         $('#departemen_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Departemen",
-            allowClear: true
+            allowClear: true,
+            width: '100%'
         });
         $('#divisi_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Divisi",
-            allowClear: true
+            allowClear: true,
+            width: '100%'
         });
         $('#bagian_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Bagian",
-            allowClear: true
+            allowClear: true,
+            width: '100%'
         });
         $('#jabatan_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Jabatan",
-            allowClear: true
+            allowClear: true,
+            width: '100%'
         });
 
 
@@ -781,7 +865,7 @@
                 ],
 
                 ajax: {
-                    url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/mapping_shift_datatable') }}@else {{ url('karyawan/mapping_shift_datatable') }}@endif" + '/' + holding,
+                    url: "{{ url('karyawan/mapping_shift_datatable') }}" + '/' + holding,
                     data: {
                         start_date: start_date,
                         end_date: end_date,
@@ -816,7 +900,7 @@
                 }
             });
             $.ajax({
-                url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/get_karyawan_mapping') }}@else {{ url('karyawan/get_karyawan_mapping') }}@endif" + '/' + holding,
+                url: "{{ url('karyawan/get_karyawan_mapping') }}" + '/' + holding,
                 method: "get",
                 data: {
                     departemen_filter: departemen_filter,
@@ -984,7 +1068,7 @@
         });
         $(document).on("click", "#btn_change_shift", function(e) {
             e.preventDefault();
-            var url = "@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/karyawan/mapping_shift/prosesEditMappingShift/'.$holding->holding_code) }}@else{{ url('/karyawan/mapping_shift/prosesEditMappingShift/'.$holding->holding_code) }}@endif";
+            var url = "{{ url('/karyawan/mapping_shift/prosesEditMappingShift/'.$holding->holding_code) }}";
             Swal.fire({
                 title: 'Memproses...',
                 html: 'Mohon menunggu.',
@@ -1035,7 +1119,7 @@
             })
         });
         $(document).on("click", "#btn_tambah_shift", function(e) {
-            var url = "@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/karyawan/mapping_shift/prosesAddMappingShift/'.$holding->holding_code) }}@else{{ url('/karyawan/mapping_shift/prosesAddMappingShift/'.$holding->holding_code) }}@endif";
+            var url = "{{ url('/karyawan/mapping_shift/prosesAddMappingShift/'.$holding->holding_code) }}";
             Swal.fire({
                 title: 'Memproses...',
                 html: 'Mohon menunggu.',

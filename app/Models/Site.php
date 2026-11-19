@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Site extends Model
 {
     use HasFactory, UuidTrait;
+    protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = ['id'];
     protected $fillable = [
@@ -17,6 +18,7 @@ class Site extends Model
         'site_holding_category',
         'site_status',
         'site_alamat',
+        'gm_link',
         'site_lat',
         'site_long',
         'site_radius'

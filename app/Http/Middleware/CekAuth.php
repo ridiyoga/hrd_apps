@@ -19,7 +19,7 @@ class CekAuth
         // 1. Harus login
         // dd(Auth::user());
         if (!Auth::check()) {
-            return redirect('/gagal')->with('error', 'Silakan login dulu.');
+            return redirect('/login')->with('error', 'Silakan login dulu.');
         } else {
             // dd(Auth::check());
             return $next($request);

@@ -15,36 +15,34 @@
     <div class="row">
         <div class="col-md-12">
             <div class="card mb-4">
-                <h4 class="card-header"><a href="@if(Auth::user()->is_admin=='hrd'){{url('hrd/users/'.$holding)}}@else{{url('users/'.$holding)}}@endif"><i class="mdi mdi-arrow-left-bold"></i></a>&nbsp;Profil Karyawan</h4>
+                <h4 class="card-header"><a href="{{url('users/'.$holding)}}"><i class="mdi mdi-arrow-left-bold"></i></a>&nbsp;Profil Karyawan</h4>
                 <!-- Account -->
                 <div class="card-body">
-                    <form method="post" action="@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/users/edit-password-proses/'.$karyawan->id.'/'.$holding) }}@else{{ url('/users/edit-password-proses/'.$karyawan->id.'/'.$holding) }}@endif">
+                    <form method="post" action="{{ url('/users/edit-password-proses/'.$data_karyawan->id.'/'.$holding) }}">
                         @csrf
                         <div class="d-flex align-items-start align-items-sm-center gap-4">
-                            @if($karyawan->foto_karyawan == null)
+                            @if($data_karyawan->Karyawan == null)
                             <img src="{{asset('admin/assets/img/avatars/1.png')}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
                             @else
-                            <img src="https://hrd.sumberpangan.store:4430/storage/app/public/foto_karyawan/{{$karyawan->foto_karyawan}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                            @if($data_karyawan->Karyawan->foto_karyawan == null)
+                            <img src="{{asset('admin/assets/img/avatars/1.png')}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                            @else
+                            <img src="https://hrd.sumberpangan.store/storage/foto_karyawan/{{$data_karyawan->Karyawan->foto_karyawan}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                            @endif
                             @endif
                             <table>
                                 <tr>
                                     <th>Nama</th>
                                     <td>&nbsp;</td>
                                     <td>:</td>
-                                    <td>{{$karyawan->name}}</td>
+                                    <td>{{$data_karyawan->Karyawan ==null ? '-' : $data_karyawan->Karyawan->name}}</td>
                                 </tr>
                                 <tr>
                                     <th>Divisi</th>
                                     <td>&nbsp;</td>
                                     <td>:</td>
                                     <td>
-                                        @if(count($divisi_karyawan)>1)
-                                        @foreach($divisi_karyawan as $dv)
-                                        {{$no++;}}. {{$dv->nama_divisi}} <br>
-                                        @endforeach
-                                        @else
-                                        {{$karyawan->Divisi->nama_divisi}} <br>
-                                        @endif
+                                        0
                                     </td>
                                 </tr>
                                 <tr>
@@ -52,20 +50,14 @@
                                     <td>&nbsp;</td>
                                     <td>:</td>
                                     <td>
-                                        @if(count($jabatan_karyawan)>1)
-                                        @foreach($jabatan_karyawan as $jb)
-                                        {{$no1++;}}. {{$jb->nama_jabatan}} <br>
-                                        @endforeach
-                                        @else
-                                        {{$karyawan->Jabatan->nama_jabatan}} <br>
-                                        @endif
+                                        0
                                     </td>
                                 <tr>
                                     <th>Kontrak Kerja</th>
                                     <td>&nbsp;</td>
                                     <td>:</td>
                                     <td>
-                                        @if($karyawan->kontrak_kerja=='SP') CV. SUMBER PANGAN @elseif($karyawan->kontrak_kerja=='SPS') PT. SURYA PANGAN SEMESTA @endif
+                                        {{$data_karyawan->Karyawan ==null ? '-' : $data_karyawan->Karyawan->kontrak_kerja}}
                                     </td>
                                 </tr>
                                 <tr>
@@ -74,8 +66,8 @@
                                     <td>:</td>
                                     <td>
                                         <div class="input-group input-group-sm">
-                                            <input type="text" class="form-control @error('username') is-invalid @enderror" value="{{$karyawan->username}}" id="username" name="username" placeholder="Username">
-                                            <input type="hidden" name="username_old" id="username_old" value="{{$karyawan->username}}">
+                                            <input type="text" class="form-control @error('username') is-invalid @enderror" value="{{$data_karyawan->username}}" id="username" name="username" placeholder="Username">
+                                            <input type="hidden" name="username_old" id="username_old" value="{{$data_karyawan->username}}">
                                         </div>
                                     </td>
                                 </tr>
@@ -87,7 +79,7 @@
                                     <td>
                                         <div class="form-floating form-floating-outline">
                                             <div class="input-group input-group-sm">
-                                                <input type="password" class="form-control @error('password') is-invalid @enderror" value="{{$karyawan->password_show}}" id="password" name="password" placeholder="Password">
+                                                <input type="password" class="form-control @error('password') is-invalid @enderror" value="{{$data_karyawan->password_show}}" id="password" name="password" placeholder="Password">
                                                 <span class="input-group-text" onclick="password_show_hide();">
                                                     <i class="mdi mdi-eye-off-outline d-none" id="hide_eye"></i>
                                                     <i class="mdi mdi-eye-outline" id="show_eye"></i>
@@ -139,7 +131,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "@if(Auth::user()->is_admin=='hrd'){{ url('hrd/karyawan/mapping_shift_datatable') }}@else{{ url('karyawan/mapping_shift_datatable') }}@endif" + '/' + holding1 + '/' + holding2,
+            url: "{{ url('karyawan/mapping_shift_datatable') }}" + '/' + holding1 + '/' + holding2,
         },
         columns: [{
                 data: "id",
@@ -205,7 +197,7 @@
     $(document).on('click', '#btn_delete_mapping_shift', function() {
         var id = $(this).data('id');
         let holding = $(this).data("holding");
-        console.log(id);
+        // console.log(id);
         Swal.fire({
             title: 'Apakah kamu yakin?',
             text: "Kamu tidak dapat mengembalikan data ini",
@@ -217,7 +209,7 @@
         }).then((result) => {
             if (result.value) {
                 $.ajax({
-                    url: "@if(Auth::user()->is_admin=='hrd'){{ url('/hrd/karyawan/delete-shift') }}@else{{ url('/karyawan/delete-shift') }}@endif" + '/' + id + '/' + holding,
+                    url: "{{ url('/karyawan/delete-shift') }}" + '/' + id + '/' + holding,
                     type: "GET",
                     error: function() {
                         alert('Something is wrong');

@@ -1,16 +1,6 @@
 @extends('admin.layouts.dashboard')
 @section('css')
-    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
-    <style type="text/css">
-        .swal2-container {
-            z-index: 9999;
-        }
-
-
-        .nowrap {
-            white-space: nowrap;
-        }
-    </style>
+    @include('css_baru')
 @endsection
 @section('isi')
     @include('sweetalert::alert')
@@ -24,7 +14,7 @@
                             <h5 class="card-title m-0 me-2">DATA INTERVIEW ({{ $user_recruitment->Cv->nama_lengkap }})
                             </h5>
                             <div class="px-3">
-                                <a href="{{ url('/pg/pelamar-detail_pdf/' . $user_recruitment->id . '/' . $holding->holding_code) }}"
+                                <a href="{{ url('/report/rekrutmen/pelamar-detail_pdf/' . $user_recruitment->id . '/' . $holding->holding_code) }}"
                                     type="button" class="btn btn-sm btn-info" target="_blank">
                                     <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
                                     Lihat CV PDF
@@ -65,11 +55,12 @@
                         <div class="tab-pane active show" id="icon-tabpanel-0" role="tabpanel" aria-labelledby="icon-tab-0">
                             <div class="table-responsive">
                                 <table class="table" id="tabel_pg" style="width: 100%; font-size: small;">
-                                    <thead class="table-primary">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>nama&nbsp;pelamar</th>
                                             <th>nama&nbsp;kategori</th>
                                             <th>jawaban</th>
+                                            <th>pdf</th>
                                             <th>nilai</th>
                                         </tr>
                                     </thead>
@@ -81,11 +72,12 @@
                         <div class="tab-pane" id="icon-tabpanel-1" role="tabpanel" aria-labelledby="icon-tab-1">
                             <div class="table-responsive">
                                 <table class="table" id="tabel_esai" style="width: 100%; font-size: small;">
-                                    <thead class="table-primary">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>nama&nbsp;pelamar</th>
                                             <th>nama&nbsp;kategori</th>
                                             <th>jawaban</th>
+                                            <th>pdf</th>
                                             <th>nilai</th>
                                         </tr>
                                     </thead>
@@ -97,7 +89,7 @@
                         <div class="tab-pane" id="icon-tabpanel-2" role="tabpanel" aria-labelledby="icon-tab-2">
                             <div class="table-responsive">
                                 <table class="table" id="tabel_interview" style="width: 100%; font-size: small;">
-                                    <thead class="table-primary">
+                                    <thead class="table-light">
                                         <tr>
                                             <th>penilaian</th>
                                             <th>deskripsi</th>
@@ -182,6 +174,7 @@
             </div>
         </div>
         {{-- modal update nilai end --}}
+        <input type="hidden" id="menu_id_add">
 
     </div>
 @endsection
@@ -201,6 +194,9 @@
     {{-- start datatable  --}}
 
     <script>
+        var menu_id = $('#asoy').val();
+        $('#menu_id_add').val(menu_id);
+
         let holding = $('#holding_add').val();
         let id = $('#recruitment_user_id_add').val();
         // console.log(id);
@@ -224,6 +220,10 @@
                 {
                     data: 'jawaban',
                     name: 'jawaban'
+                },
+                {
+                    data: 'pdf',
+                    name: 'pdf'
                 },
                 {
                     data: 'nilai',
@@ -255,6 +255,10 @@
                 {
                     data: 'jawaban',
                     name: 'jawaban'
+                },
+                {
+                    data: 'pdf',
+                    name: 'pdf'
                 },
                 {
                     data: 'nilai',
@@ -337,6 +341,7 @@
             formData.append('_token', '{{ csrf_token() }}');
             formData.append('id', $('#id_update').val());
             formData.append('nilai', $('#nilai_update').val());
+            formData.append('menu_id', $('#menu_id_add').val());
 
             // post
             $.ajax({

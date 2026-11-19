@@ -1,0 +1,531 @@
+@extends('users.layouts.main')
+@section('title')
+APPS | KARYAWAN - SP
+@endsection
+@section('css')
+<style>
+    .futuristic-header {
+        padding: 28px 20px 18px;
+    }
+
+    .futuristic-header h5 {
+        color: --primary();
+        font-weight: 600;
+    }
+
+    .futuristic-header small {
+        color: rgba(255, 255, 255, 0.65);
+    }
+
+    /* Style Signature Pad */
+    .kbw-signature {
+        width: 100%;
+        height: 160px;
+        border: 1px solid #f3e8ff !important;
+        background: #ffffff;
+    }
+
+    #sig canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .border-dashed {
+        border: 2px dashed #d8b4fe !important;
+    }
+
+    .opacity-75 {
+        opacity: 0.75;
+    }
+
+    .futuristic-icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+        color: white;
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+    }
+
+    .table-primary-custom {
+        background: linear-gradient(135deg, #f5edff, #fcfafd);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .skeleton {
+        display: inline-block;
+        background: linear-gradient(90deg,
+                #ede9fe 25%,
+                #f5f3ff 37%,
+                #ede9fe 63%);
+        background-size: 400% 100%;
+        animation: pulse 1.4s ease-in-out infinite;
+        border-radius: 6px;
+    }
+
+    .skeleton-number {
+        display: inline-block;
+        /* ⬅️ WAJIB */
+        width: 2ch;
+        height: 50px;
+        /* ⬅️ samakan dengan h3 */
+        vertical-align: middle;
+        /* ⬅️ penting */
+    }
+
+    @keyframes pulse {
+
+        0%,
+        100% {
+            opacity: .5;
+        }
+
+        50% {
+            opacity: 1;
+        }
+    }
+</style>
+@endsection
+@section('content_top')
+<!-- Categorie -->
+<div class="card">
+    {{-- Header --}}
+    <div class="futuristic-header text-center">
+        <div class="futuristic-icon">
+            <i class="fa-solid fa-user-pen"></i>
+        </div>
+        <h5 class="mt-3 mb-1">Informasi Detail Approval</h5>
+        <small class="text-muted">Detail Approval Mapping Shift</small>
+    </div>
+    <div class="list-approval">
+    </div>
+</div>
+
+<!-- Categorie End -->
+@endsection
+@section('content')
+<div class="offcanvas offcanvas-bottom rounded-top-5" style="height: auto" data-bs-keyboard="false"
+    data-bs-backdrop="true" id="off-canvas-approved">
+
+    <div class="offcanvas-header border-bottom py-3">
+        <div class="d-flex align-items-center">
+            <div class="futuristic-icon shadow-sm me-3" style="width: 45px; height: 45px; font-size: 20px;">
+                <i class="fa-solid fa-file-signature"></i>
+            </div>
+            <div>
+                <h6 class="offcanvas-title fw-bold text-dark">Otorisasi & Pengesahan</h6>
+                <small class="text-muted">Persetujuan Pengajuan Mapping Shift </small>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <div class="offcanvas-body p-3  overflow-auto" style="overflow-y: auto !important;">
+        <input type="hidden" name="shift" id="shift" value="{{ $id }}">
+        <div class="card border-dashed bg-white rounded-4 overflow-hidden mb-3">
+            <div class="card-header bg-light border-0 py-2 text-center">
+                <input type="text" name="name" id="name" value="{{ $user_karyawan->name }}" hidden>
+                <small class="fw-bold text-uppercase" style="font-size: 10px; color: #6b21a8;" id="user_name"></small>
+            </div>
+            <div class="card-body p-2">
+                <div class="alert_signature"></div>
+                <div id="sig" class="kbw-signature rounded-3" style="width: 100%; height: 200px;">
+                    <canvas id="signature-pad"
+                        style="width:100%; touch-action: none !important; height:200px; border:1px solid #ccc;"
+                        hidden></canvas>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                    <button type="button" class="btn btn-link btn-sm text-danger text-decoration-none p-0" id="clear">
+                        <i class="fa-solid fa-eraser me-1"></i> Hapus
+                    </button>
+                    <small class="text-muted italic" style="font-size: 10px;">Tanda tangan di atas</small>
+                </div>
+                <textarea id="signature" name="signature" style="display: none"></textarea>
+            </div>
+        </div>
+        <div class="mt-3 text-center">
+            <button type="button" id="btn_save_approve" class="btn light btn-success btn-sm me-2">
+                <i class="fa-solid fa-save me-2"></i>Approve
+            </button>
+            <button type="button" id="btn-cancel" data-bs-dismiss="offcanvas" data-bs-target="#off-canvas-approved"
+                class="btn light btn-danger btn-sm">
+                Batal&nbsp;<i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <!-- <div class="dz-spinner d-flex align-items-center flex-wrap"> -->
+            <!-- </div> -->
+        </div>
+    </div>
+</div>
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+    <div class="offcanvas-body text-center small">
+        <h6 class="title">KONFIRMASI</h6>
+        <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
+        <form method="POST" action="{{ route('logout_user') }}">
+            @csrf
+            <a onclick="event.preventDefault(); this.closest('form').submit();"
+                class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                &nbsp;Logout
+            </a>
+            <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                aria-label="Close">Batal</a>
+        </form>
+    </div>
+</div>
+@endsection
+@section('js')
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script type="text/javascript">
+    window.addEventListener("pageshow", function(event) {
+        if (event.persisted) {
+            // Reinitialize JS
+            Swal.close();
+        }
+    });
+    $(document).ready(function() {
+        var shift = '{{ $id }}';
+
+
+
+        function showSkeleton(selector) {
+            const el = $(selector);
+            el.html(
+                `<span class="skeleton skeleton-number" style="width:100%"></span>`
+            );
+        }
+
+        function hideSkeleton(selector, value) {
+            $(selector)
+                .html(value);
+        }
+        load_data();
+
+
+        function load_data() {
+            $.ajax({
+                url: "{{ url('approval/get_list_approval_mapping_shift_detail') }}" + "/" + shift,
+                method: "GET",
+                beforeSend: function() {
+                    showSkeleton('.list-approval');
+                },
+                success: function(data) {
+                    console.log(data);
+                    Swal.close();
+                    $('.list-approval').empty();
+
+                    if (data.code == 200) {
+                        const signatureBaseUrl = "{{ asset('storage/signatures') }}";
+                        let html = '';
+                        let karyawan = '';
+                        const date_input = new Date(data.data_first.created_at);
+                        const date_mulai = new Date(data.data_first.tanggal_masuk);
+                        const date_selesai = new Date(data.data_last.tanggal_masuk);
+                        date_selesai.setDate(date_selesai.getDate() + 4);
+                        const date_approved = new Date(data.data_first.approved_at);
+                        const tanggal_input = date_input.toISOString().slice(0, 10).split('-')
+                            .reverse().join('-');
+                        const tanggal_mulai = date_mulai.toISOString().slice(0, 10).split('-')
+                            .reverse().join('-');
+                        const tanggal_selesai = date_selesai.toISOString().slice(0, 10).split('-')
+                            .reverse().join('-');
+                        const tanggal_approve = data.data_first.approved_at == null ? '-' :
+                            date_approved.toISOString().slice(0, 10).split('-').reverse().join('-');
+                        var ttdPengajuan = '';
+                        var ttdApproved = '';
+                        var user_from = '';
+                        var hrd_name = '';
+                        var ttd = '';
+                        if (data.data.length == 0) {
+                            html += `<center><h5>Belum ada data Detail approval</h5></center>`;
+                        } else {
+                            // console.log(data.data);
+
+                            let tbody = '';
+
+                            Object.keys(data.data).forEach(date => {
+
+                                // format date ke dd-mm-yyyy
+                                const d = new Date(date);
+                                const periodDate =
+                                    String(d.getDate()).padStart(2, '0') + '-' +
+                                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                                    d.getFullYear();
+
+                                // 🔹 header per tanggal
+                                tbody +=
+                                    `<tr class="table-primary-custom"> <td colspan="4"><strong style="font-weight: bold;">${periodDate}</strong></td> </tr> `;
+
+                                // 🔹 data mapping per tanggal
+                                data.data[date].forEach(element => {
+
+                                    let jabatan = '';
+                                    element.karyawan.karyawan_jabatan.forEach(
+                                        kj => {
+                                            jabatan +=
+                                                `<li>${kj.jabatan.nama_jabatan} (${kj.bagian.nama_bagian})</li>`;
+                                        });
+
+                                    tbody += `
+                                        <tr>
+                                            <td>${element.karyawan.name}</td>
+                                            <td><ul>${jabatan}</ul></td>
+                                            <td class="text-center">${element.nama_shift}</td>
+                                        </tr>
+                                    `;
+                                });
+
+                            });
+
+                            if (data.data_first.status_approved == 0) {
+                                btn_approve =
+                                    `<button class="btn btn-sm light btn-primary" data-id="${data.id}" data-username="${data.user_karyawan.name}" id="btn_approve">APPROVE</button>`;
+                            } else {
+                                btn_approve = '';
+                            }
+                            ttdPengajuan += data.data_first.pengajuan_signature ?
+                                `<img src="${signatureBaseUrl}/${data.data_first.pengajuan_signature}" width="150px" alt="Tanda Tangan">` :
+                                '<i class="fa-solid fa-xmark" style="color: red; font-size: 24px;"></i>';
+                            user_from += data.data_first.karyawan_input ? data.data_first
+                                .karyawan_input.name : '-';
+                            ttdApproved += data.data_first.approved_signature ?
+                                `<img src="${signatureBaseUrl}/${data.data_first.approved_signature}" width="150px" alt="Tanda Tangan">` :
+                                '<br><br><br>';
+                            hrd_name += data.user_karyawan ? data.user_karyawan.name : '-';
+
+                            ttd += `
+                                    <div class="text-center mb-3">
+                                        <span class="mb-0 fw-bold">Otorisasi & Pengesahan</span>
+                                    </div>
+                                        <div class="row g-2 d-flex align-items-stretch">
+                                        <div class="col-6">
+                                            <div class="p-2 border rounded-3 text-center opacity-75 h-100 d-flex flex-column justify-content-between">
+                                                <small class="d-block" style="font-size: 8px;">DIAJUKAN OLEH:</small>
+                                                <div class="py-2 flex-grow-1 d-flex align-items-center justify-content-center">
+                                                    ${ttdPengajuan}
+                                                </div>
+                                                <small class="fw-bold text-break" style="font-size: 9px; line-height: 1.1;" id="atasan1">${user_from}</small>
+                                                <small style="font-size: 8px; line-height: 1.1;">Tgl: ${tanggal_input}</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="p-2 border rounded-3 text-center opacity-75 h-100 d-flex flex-column justify-content-between">
+                                                <small class="d-block" style="font-size: 8px;">DISAHKAN OLEH:</small>
+                                                <div class="py-2 flex-grow-1 d-flex align-items-center justify-content-center">
+                                                    ${ttdApproved}
+                                                </div>
+                                                <small class="fw-bold text-break" style="font-size: 9px; line-height: 1.1;" id="atasan2">${hrd_name}</small>
+                                                <small style="font-size: 8px; line-height: 1.1;">Tgl: ${tanggal_approve}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    `;
+
+                            html += `
+                            <div class="card-body">
+
+                                <!-- HEADER -->
+                                <div class="text-center mb-4">
+                                    <h6 class="mb-1"><strong>MAPPING SHIFT KARYAWAN</strong></h6>
+                                    <p class="mb-0">
+                                        Nomor: <b>${data.id}</b>
+                                    </p>
+                                </div>
+
+                                <hr>
+
+                                <!-- PEMBUKA -->
+                                <p>
+                                    Sehubungan dengan pengaturan jadwal kerja karyawan, bersama ini
+                                    disampaikan daftar <strong>Mapping Shift Karyawan</strong> dengan
+                                    periode sebagai berikut:
+                                </p>
+
+                                <!-- PERIODE -->
+                                <table class="mb-3">
+                                    <tr>
+                                        <td width="160">Tanggal Mulai</td>
+                                        <td width="10">:</td>
+                                        <td>${tanggal_mulai}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tanggal Akhir</td>
+                                        <td>:</td>
+                                        <td>${tanggal_selesai}</td>
+                                    </tr>
+                                </table>
+
+                                <p>Daftar karyawan adalah sebagai berikut:</p>
+
+                                <table class="table" style="width: 100%; font-size: 8pt;">
+                               
+                                    <tbody>
+                                    ${tbody}          
+                                    </tbody>
+                                </table>
+
+                                <!-- PENUTUP -->
+                                <p class="mt-4">
+                                    Demikian surat pemberitahuan ini disampaikan untuk digunakan sebagaimana mestinya.
+                                </p>
+
+                                <!-- TTD -->
+                               ${ttd}
+                                </div>
+                                <div class="row">
+                                <div class="col-lg-12 text-center">
+                                ${btn_approve}
+                                </div>
+                                </div>`;
+                        }
+                        hideSkeleton('.list-approval', html);
+                    } else {
+                        Swal.fire({
+                            title: 'error',
+                            text: data.message,
+                            icon: 'error',
+                            timer: 6500
+                        })
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    Swal.fire({
+                        title: 'error',
+                        text: xhr.responseJSON.message,
+                        icon: 'error',
+                        timer: 6500
+                    })
+                }
+            })
+        }
+
+        var canvas = document.getElementById('signature-pad');
+        var signaturePad = new SignaturePad(canvas);
+        $(document).on('click', '#btn_approve', function(e) {
+            $('#signature-pad').attr('hidden', false);
+            $('#off-canvas-approved').offcanvas('show');
+            var id = $(this).data('id');
+            var username = $(this).data('username');
+            $('#user_name').text('Diproses oleh : ' + username);
+
+            function resizeCanvas() {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+
+                // ambil ukuran CSS asli
+                const width = canvas.offsetWidth;
+                const height = canvas.offsetHeight;
+
+                // set ukuran canvas sebenarnya
+                canvas.width = width * ratio;
+                canvas.height = height * ratio;
+
+                const ctx = canvas.getContext('2d');
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform
+                ctx.scale(ratio, ratio);
+
+                signaturePad.clear();
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            $('#clear').on('click', () => signaturePad.clear());
+
+        });
+        $('#btn_save_approve').on('click', function() {
+            // console.log(signaturePad.toDataURL);
+            if (signaturePad.isEmpty()) {
+                Swal.fire({
+                    title: "Info",
+                    text: "Tanda Tangan Tidak Boleh Kosong",
+                    icon: "warning",
+                    timer: 4500
+
+                })
+                signaturePad.clear();
+            } else {
+                var signature = $('#signature').val(signaturePad.toDataURL());
+                var shift = $('#shift').val();
+                // console.log(shift, $('#signature').val());
+                $.ajax({
+                    url: "{{ url('approval/save_approval_mapping_shift') }}" + "/" + shift,
+                    method: "POST",
+                    data: {
+                        "_token": "{{ csrf_token() }}",
+                        shift: shift,
+                        signature: $('#signature').val(),
+                    },
+                    beforeSend: function() {
+                        Swal.fire({
+                            allowOutsideClick: false,
+                            background: 'transparent',
+                            html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                            showCancelButton: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                // Swal.showLoading()
+                            }
+                        })
+                    },
+                    success: function(data) {
+                        Swal.close();
+                        if (data.code == 200) {
+                            Swal.fire({
+                                title: 'Berhasil',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 4500
+                            })
+                        } else {
+                            Swal.fire({
+                                title: 'Gagal',
+                                text: data.message,
+                                icon: 'warning',
+                                timer: 4500
+                            })
+                        }
+                        signaturePad.clear();
+                        $('#shift').val();
+                        $('#signature').val();
+                        $('#off-canvas-approved').offcanvas('hide');
+                        load_data();
+                    },
+                    error: function(data) {
+                        Swal.close();
+                        Swal.fire({
+                            title: 'Gagal',
+                            text: data.message,
+                            icon: 'warning',
+                            timer: 4500
+                        })
+                    }
+                })
+
+            }
+        });
+        $(document).on('click', '.btn_klik', function(e) {
+            Swal.fire({
+                allowOutsideClick: false,
+                background: 'transparent',
+                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                showCancelButton: false,
+                showConfirmButton: false,
+                onBeforeOpen: () => {
+                    // Swal.showLoading()
+                },
+            });
+        });
+    });
+</script>
+@endsection

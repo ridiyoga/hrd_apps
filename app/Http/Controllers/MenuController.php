@@ -2,18 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Holding;
 use App\Models\Menu;
 use App\Models\RoleMenu;
 use App\Models\RoleUsers;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class MenuController extends Controller
 {
-    public function index($holding)
+    public function index($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holding = Holding::where('holding_code', $holding)->first();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
@@ -41,6 +47,33 @@ class MenuController extends Controller
         $parenPts = Menu::whereNull('parent_id')->where('kategori', 'web')->orderBy('sort_order')->get();
         // dd($get_menus);
         return view('admin.menu.index', compact('holding', 'menus', 'get_menus', 'parenPts'));
+    }
+    public function get_parent_options($parentId, $holding)
+    {
+        $holding = Holding::where('holding_code', $holding)->first();
+        try {
+            $parentId = $parentId == 'null' ? null : $parentId;
+            $parentOptions = Menu::where('id', $parentId)->orderBy('sort_order')->get();
+            if ($parentOptions->isEmpty()) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'No parent options found'
+                ]);
+            } else {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => $parentOptions
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ]);
+        }
     }
     public function save_all_change(Request $request)
     {
@@ -84,6 +117,20 @@ class MenuController extends Controller
                 $menu->icon = $request->icon;
                 $menu->parent_id = $request->parent_id;
                 $menu->save();
+
+                $nama_menu = Menu::where('id', $request->menu_id_add)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id_add,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'table' => 'jabatan',
+                    'activity' => 'create',
+                    'description' => 'menambah menu ' . $request->name . ' pada kategori ' . $request->kategori,
+                    'keterangan' => 'Success',
+                ]);
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
@@ -119,10 +166,42 @@ class MenuController extends Controller
             }
         }
     }
-    public function delete($id)
+    function update_menu(Request $request)
+    {
+        // dd($request->menu_id);
+        try {
+            User::where('id', Auth::user()->id)->update([
+                'menu_active' => $request->menu_id
+            ]);
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Disimpan',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
+    }
+    public function delete($id, $menu_id_add)
     {
         try {
-            $delete = Menu::find($id);
+            $delete = Menu::where('id', $id)->first();
+            $nama_menu = Menu::where('id', $id)->first();
+            $user_name = User::where('id', Auth::user()->id)->first();
+            ActivityLog::create([
+                'user_id' => Auth::user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $menu_id_add,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id,
+                'table' => 'jabatan',
+                'activity' => 'create',
+                'description' => 'menghapus menu ' . $delete->name . ' pada kategori ' . $delete->kategori,
+                'keterangan' => 'Success',
+            ]);
+
             $delete->delete();
             return response()->json([
                 'code' => 200,

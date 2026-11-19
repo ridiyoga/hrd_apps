@@ -10,12 +10,13 @@ class AttendanceLog extends Model
 {
     use HasFactory;
     public $incrementing = false;
+    public $timestamps = false;
     protected $guarded = ['Id'];
     protected $casts = [
         'LogTime' => 'datetime',
     ];
     protected $fillable = [
-        'EnrollNumber ',
+        'EnrollNumber',
         'LogTime',
         'VerifyMode',
         'InOutMode',
@@ -25,5 +26,9 @@ class AttendanceLog extends Model
     public function Karyawan(): BelongsTo
     {
         return $this->belongsTo(Karyawan::class, 'EnrollNumber', 'nomor_identitas_karyawan');
+    }
+    public function MachineFinger(): BelongsTo
+    {
+        return $this->belongsTo(FingerMachine::class, 'MachineIp', 'Ip');
     }
 }

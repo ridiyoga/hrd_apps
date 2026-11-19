@@ -1,0 +1,341 @@
+@extends('admin.layouts.dashboard')
+@section('css')
+    @include('css_baru')
+    <link rel="stylesheet" type="text/css" href="http://keith-wood.name/css/jquery.signature.css">
+    <style>
+        .kbw-signature {
+            width: 100%;
+            height: 160px;
+            border: 3px solid #f3e8ff !important;
+            background: #ffffff;
+        }
+
+        #sig canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Efek saat area tanda tangan di-hover / aktif */
+        #sig {
+            transition: all 0.25s ease-in-out;
+        }
+
+        #sig:hover,
+        #sig:focus-within {
+            border-color: #2563eb !important;
+            /* Biru terang */
+            background-color: #ffffff !important;
+            /* Berubah jadi putih bersih */
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.12) !important;
+            /* Glow halus */
+        }
+    </style>
+@endsection
+@section('isi')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+    @include('sweetalert::alert')
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row gy-4">
+            <!-- Transactions -->
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0 text-dark"><i class="mdi mdi-hospital-box-outline"></i>&nbsp;LAPORAN TIDAK MASUK
+                                KARYAWAN
+                            </h5>
+                            <input type="hidden" id="menu_id_add" value="">
+
+                        </div>
+                    </div>
+                    <div class="card-body">
+
+                        <hr class="my-3">
+                        <input type="hidden" id="menu_id_add" value="">
+
+
+
+                        <div id="collapseFilterWrapper" class="sticky-top bg-white" style="z-index: 1020;">
+                            <div class="card-body">
+                                <div class="row gy-4 align-items-end">
+                                    <div class="col-lg-6 col-md-6col-sm-12">
+                                        <div class="form-floating form-floating-outline">
+                                            <div id="reportrange" style="white-space: nowrap;">
+                                                <button class="btn btn-outline-secondary w-100 ">
+                                                    <span class="fw-bold">FILTER&nbsp;DATE&nbsp;:&nbsp;</span>
+                                                    <span class="date_daterange"></span>
+                                                    <input type="date" id="start_date" name="start_date" hidden
+                                                        value="">
+                                                    <input type="date" id="end_date" name="end_date" hidden
+                                                        value="">
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-lg-2 col-md-12 col-sm-12 d-flex justify-content-end">
+                                        <button type="button" class="btn btn-info w-100" id="btn_filter">
+                                            <i class="mdi mdi-filter-outline"></i>&nbsp;Filter
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <div id="content_null">
+                            <div class="alert alert-secondary" role="alert">
+                                <div class="alert-content text-center">
+                                    <svg width="120" height="120" viewBox="0 0 120 120" fill="none"
+                                        xmlns="http://www.w3.org/2000/svg">
+
+                                        <rect x="25" y="25" width="70" height="70" rx="8" ry="8"
+                                            stroke="#CED4DA" stroke-width="2" />
+
+                                        <path d="M35 35H85" stroke="#E6E8EB" stroke-width="1.5" stroke-linecap="round" />
+                                        <path d="M35 45H75" stroke="#E6E8EB" stroke-width="1.5" stroke-linecap="round" />
+                                        <path d="M35 55H85" stroke="#E6E8EB" stroke-width="1.5" stroke-linecap="round" />
+
+                                        <path d="M40 70L80 70" stroke="#7E8A9A" stroke-width="2" stroke-dasharray="4 4"
+                                            stroke-linecap="round" />
+                                        <path d="M40 80L70 80" stroke="#7E8A9A" stroke-width="2" stroke-dasharray="4 4"
+                                            stroke-linecap="round" />
+
+                                    </svg>
+                                    <h4 class="alert-heading text-center">Tidak Ada Data</h4>
+                                    <p class="text-center">Filter Data Terlebih Dahulu</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="table_riwayat_div">
+                            <table class="table table-hover" id="table_riwayat" style="width: 100%; font-size: smaller;">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>No.</th>
+                                        <th>NAMA KARYAWAN</th>
+                                        <th>JABATAN KARYAWAN</th>
+                                        <th>TANGGAL TIDAK MASUK</th>
+                                        <th>STATUS</th>
+                                        <th>KETERANGAN</th>
+                                        <th>NAMA ATASAN&nbsp;1</th>
+                                        <th>JABATAN ATASAN&nbsp;1</th>
+                                        <th>NAMA ATASAN&nbsp;2</th>
+                                        <th>JABATAN ATASAN&nbsp;2</th>
+                                        <th>KARYAWAN PENGGANTI</th>
+                                        <th>HRD</th>
+                                        <th>JABATAN HRD</th>
+                                        <th>FORM IZIN TIDAK MASUK</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table-border-bottom-0 small">
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+@section('js')
+    <script src="https://cdn.datatables.net/2.0.5/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.0.5/js/dataTables.bootstrap5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+    {{-- <script type="text/javascript" src="http://keith-wood.name/js/jquery.signature.js"></script> --}}
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script>
+        let holding = '{{ $holding->holding_code }}';
+
+
+
+
+
+
+
+        // Filter Table End
+
+        $(document).ready(function() {
+            var menu_id = $('#asoy').val();
+            // console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
+            var formData = new FormData();
+
+            //ambil data dari form
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('menu_id', menu_id);
+            // console.log(formData);
+
+            $.ajax({
+                type: "POST",
+
+                url: "{{ url('/recruitment/update_menu') }}",
+                data: formData,
+                contentType: false,
+                processData: false,
+                error: function() {
+                    alert('Something is wrong!');
+                    // console.log(formData);
+                },
+            });
+        })
+
+        // Filter table Per tanggal
+        var start = moment().startOf('month');
+        var end = moment().endOf('month');
+        // var start = moment('2025-07-21');
+        // var end = moment('2025-08-21');
+        var lstart, lend;
+
+
+        function cb(start, end) {
+            lstart = start.format('YYYY-MM-DD');
+            lend = end.format('YYYY-MM-DD');
+            $('#start_date').val(lstart);
+            $('#end_date').val(lend);
+            $('#reportrange .date_daterange').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
+            // console.log(start, end);
+
+        }
+
+        $('#reportrange').daterangepicker({
+            startDate: start,
+            endDate: end,
+            ranges: {
+                'Today': [moment(), moment()],
+                'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                'This Month': [moment().startOf('month'), moment().endOf('month')],
+                'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1,
+                    'month').endOf('month')]
+            }
+        }, cb);
+
+        cb(start, end);
+        $('#table_riwayat_div').hide();
+        $('#btn_filter').click(function(e) {
+
+            $('#table_riwayat_div').show();
+            $('#content_null').empty();
+            table3.ajax.reload(null, true);
+
+
+        });
+        var start_date = $('#start_date').val() || '';
+        var end_date = $('#end_date').val() || '';
+        var table3 = $('#table_riwayat').DataTable({
+            responsive: true,
+            "scrollY": true,
+            "scrollX": true,
+            processing: true,
+            serverSide: true,
+            paginate: false,
+            filter: true,
+            info: false,
+            dom: 'Bfrtip',
+            ajax: {
+                url: "{{ url('/dt_tidak_masuk_report') }}" + "/" + holding,
+                data: function(d) {
+                    d.start_date = $('#start_date').val();
+                    d.end_date = $('#end_date').val();
+                }
+            },
+            buttons: [{
+
+                extend: 'excelHtml5',
+                className: 'btn btn-sm btn-success',
+                text: '<i class="menu-icon tf-icons mdi mdi-file-excel"></i>Excel',
+                titleAttr: 'Excel',
+                title: 'LAPORAN IZIN TIDAK MASUK',
+                messageTop: 'LAPORAN IZIN TIDAK MASUK',
+                exportOptions: {
+                    columns: ':not(:first-child)',
+                },
+                filename: function() {
+                    var d = new Date();
+                    var l = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d
+                        .getDate();
+                    var n = d.getHours() + ':' + d.getMinutes() + ':' + d
+                        .getSeconds();
+                    return 'LAPORAN_TIDAK MASUK_KARYAWAN ' +
+                        start_date + ' - ' + end_date;
+                },
+            }],
+            columns: [{
+                    data: "id",
+
+                    render: function(data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                }, {
+                    data: 'nama_karyawan',
+                    name: 'nama_karyawan'
+                },
+
+                {
+                    data: 'jabatan_pengaju',
+                    name: 'jabatan_pengaju'
+                },
+
+                {
+                    data: 'tanggal_tidak_masuk',
+                    name: 'tanggal_tidak_masuk'
+                },
+                {
+                    data: 'status_tidak_masuk',
+                    name: 'status_tidak_masuk'
+                },
+                {
+                    data: 'keterangan_tidak_masuk',
+                    name: 'keterangan_tidak_masuk'
+                },
+                {
+                    data: 'nama_atasan',
+                    name: 'nama_atasan'
+                },
+                {
+                    data: 'jabatan_atasan1',
+                    name: 'jabatan_atasan1'
+                },
+                {
+                    data: 'nama_atasan2',
+                    name: 'nama_atasan2'
+                },
+                {
+                    data: 'jabatan_atasan2',
+                    name: 'jabatan_atasan2'
+                },
+                {
+                    data: 'nama_karyawan_pengganti',
+                    name: 'nama_karyawan_pengganti'
+                },
+                {
+                    data: 'nama_hrd',
+                    name: 'nama_hrd'
+                },
+
+                {
+                    data: 'jabatan_hrd',
+                    name: 'jabatan_hrd'
+                },
+                {
+                    data: 'form_tidak_masuk',
+                    name: 'form_tidak_masuk'
+                },
+            ],
+            order: [
+                [1, 'desc']
+            ]
+        });
+    </script>
+@endsection

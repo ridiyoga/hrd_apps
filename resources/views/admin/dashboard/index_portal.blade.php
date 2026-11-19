@@ -89,7 +89,7 @@
                                         @endif </span><span>Total : {{ $count_karyawan_habis_kontrak }}
                                         Orang
                                         <a
-                                            href=" @if (Auth::user()->is_admin == 'hrd') {{ url('hrd/karyawan/karyawan_masa_tenggang_kontrak/' . $holding->holding_code) }}@else{{ url('karyawan/karyawan_masa_tenggang_kontrak/' . $holding->holding_code) }} @endif">&nbsp;Lihat&nbsp;Semua&nbsp;.
+                                            href=" @if (Auth::user()->is_admin == 'hrd') {{ url('hrd/karyawan/masa_tenggang_kontrak/' . $holding->holding_code) }}@else{{ url('karyawan/masa_tenggang_kontrak/' . $holding->holding_code) }} @endif">&nbsp;Lihat&nbsp;Semua&nbsp;.
                                             .</a>
                                     </span>
 
@@ -313,7 +313,7 @@
                                     </div>
                                     <div style="float: right; margin-right: 2px; margin-top: 2px;" class="float-right">
                                         <a
-                                            href="@if (Auth::user()->is_admin == 'hrd') {{ url('hrd/karyawan/karyawan_masa_tenggang_kontrak/' . $holding->holding_code) }}@else {{ url('karyawan/karyawan_masa_tenggang_kontrak/' . $holding->holding_code) }} @endif"><span
+                                            href="@if (Auth::user()->is_admin == 'hrd') {{ url('hrd/karyawan/masa_tenggang_kontrak/' . $holding->holding_code) }}@else {{ url('karyawan/masa_tenggang_kontrak/' . $holding->holding_code) }} @endif"><span
                                                 class="badge bg-label-success">Lihat&nbsp;Semua&nbsp;<i
                                                     class="mdi mdi-chevron-double-right"></i></span></a>
                                     </div>
@@ -1013,7 +1013,7 @@
                     var url =
                         "@if (Auth::user()->is_admin == 'hrd'){{ url('hrd/get_grafik_absensi_karyawan') }}@else {{ url('get_grafik_absensi_karyawan') }}@endif" +
                         "/" + get_holding;
-                    console.log(url);
+                    // console.log(url);
                     // console.log(get_holding);
                     $.ajax({
                         url: url,
@@ -1023,7 +1023,7 @@
                         method: "GET",
                         dataType: "json",
                         success: function(data) {
-                            console.log(data);
+                            // console.log(data);
                             var label_absensi = data.label_absensi;
                             var data_absensi_masuk = data.data_absensi_masuk;
                             var data_absensi_pulang = data.data_absensi_pulang;

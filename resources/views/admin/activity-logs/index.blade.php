@@ -118,7 +118,7 @@
         }
         $('#btn_filter').click(function() {
             var activity = $('#activity').val();
-            console.log(activity);
+            // console.log(activity);
             if (activity != '') {
                 $('#table_activity').DataTable().destroy();
                 // table.ajax.reload(from_date, to_date);

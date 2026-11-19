@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceLog;
 use App\Models\Bagian;
+use App\Models\Calendar;
+use App\Models\Cuti;
+use App\Models\CutiDetail;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\FingerMachine;
@@ -11,6 +14,7 @@ use App\Models\FingerUser;
 use App\Models\Holding;
 use App\Models\Jabatan;
 use App\Models\Karyawan;
+use App\Models\KaryawanJabatan;
 use App\Models\MappingShift;
 use App\Models\Menu;
 use App\Models\RoleUsers;
@@ -27,6 +31,7 @@ use ParagonIE\Sodium\Core\Curve25519\H;
 use RealRashid\SweetAlert\Facades\Alert;
 use Jmrashed\Zkteco\Lib\ZKTeco;
 use Yajra\DataTables\Facades\DataTables;
+use PDF;
 
 class ReportController extends Controller
 {
@@ -166,16 +171,26 @@ class ReportController extends Controller
         $datacolumn = str_replace(["'searchable'"], 'searchable', $data_columns4);
         $roleId = Auth::user();
         // dd($roleId);
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.report.index', [
             'holding' => $holding,
             // 'data_finger' => $data_finger,
@@ -191,6 +206,10 @@ class ReportController extends Controller
     }
     public function index_kedisiplinan(Request $request, $holding)
     {
+        if (Auth::check() == false) {
+            $request->session()->flash('session_timeout', 'Silahkan login terlebih dahulu.');
+            return redirect()->route('login');
+        }
         $holding = Holding::where('holding_code', $holding)->first();
         if ($holding == '' || $holding == null) {
             Alert::error('Error', 'Get Holding Error', 5000);
@@ -248,7 +267,7 @@ class ReportController extends Controller
             'tanggal_akhir' => $tanggal_akhir
         ]);
     }
-    public function detail_index_kedisiplinan($id, Request $request, $holding)
+    public function detail_index_kedisiplinan($id, $holding, $start, $end, Request $request)
     {
         // dd($id);
         $holding = Holding::where('holding_code', $holding)->first();
@@ -268,35 +287,98 @@ class ReportController extends Controller
         $user = Karyawan::where('nomor_identitas_karyawan', $id)->where('status_aktif', 'AKTIF')->first();
         // dd($user->Cuti->nama_cuti);
 
-        if ($request["mulai"] && $request["akhir"]) {
-            $tanggal_mulai = $request["mulai"];
-            $tanggal_akhir = $request["akhir"];
+        if ($start && $end) {
+            $tanggal_mulai = $start;
+            $tanggal_akhir = $end;
             $title = "Rekap Data Absensi Tanggal " . $tanggal_mulai . " s/d " . $tanggal_akhir;
         }
-        // dd(Carbon::createFromFormat('H:i:s', '17:12:00'));
-        $menus = Menu::with(['children' => function ($query) {
-            $query->with('subchildren');
-        }])
-            ->whereNull('parent_id')
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        // dd($get_role);
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.report.detail_kedisiplinan', [
             'title' => $title,
             'data_user' => $user,
             'menus' => $menus,
             'tanggal_mulai' => $tanggal_mulai,
-            'holding' => $holding,
-            'tanggal_akhir' => $tanggal_akhir
+            'tanggal_akhir' => $tanggal_akhir,
+            'holding' => $holding
         ]);
     }
     public function detail_datatable($id, Request $request, $holding)
     {
         if (request()->ajax()) {
-            $startDate = Carbon::parse($request->start_date);
-            $endDate = Carbon::parse($request->end_date);
+            $startDate = Carbon::parse($request->start_date)->startOfDay();
+            $endDate = Carbon::parse($request->end_date)->endOfDay();
             $period = CarbonPeriod::create($startDate, $endDate);
             // ubah jadi collection array
             $table = Karyawan::where('nomor_identitas_karyawan', $id)
+                ->with('Cuti.KategoriCuti')
+                ->with(['CutiDetail' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tgl_cuti', [$startDate, $endDate])->where('status', 1);
+                }])
+                ->with(['IzinSakitDetail' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tgl_sakit', [$startDate, $endDate])->where('status', 1);
+                }])
+                ->with(['IzinTidakMasukDetail' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tgl_tidak_masuk', [$startDate, $endDate])->where('status', 1);
+                }])
+                ->with(['PerdinDetail' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tgl_perdin', [$startDate, $endDate])->where('status', 1);
+                }])
+                ->with(['IzinTerlambat' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tanggal_terlambat', [$startDate, $endDate])->where('status_terlambat', 3);
+                }])
+                ->with(['IzinPulang' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('created_at', [$startDate, $endDate])->where('status_pulang', 3);
+                }])
+                ->with(['IzinKeluar' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('created_at', [$startDate, $endDate])->where('status_keluar', 3);
+                }])
+                ->with(['IzinLibur' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tanggal_tukar', [$startDate, $endDate])->where('status_libur', 3);
+                }])
+                ->with(['IzinLiburMinggu' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('tanggal_libur', [$startDate, $endDate])->where('status_libur', 3);
+                }])
+                ->with(['LemburDetail' => function ($q) use ($startDate, $endDate) {
+                    $q->where('status', 1)
+                        ->whereHas('Lembur', function ($q) use ($startDate, $endDate) {
+                            $q->whereBetween('tanggal_lembur', [$startDate, $endDate]);
+                        })
+                        ->with('Lembur');
+                }])
+                ->with(['PresensiFoto' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('jam_presensi', [$startDate, $endDate])->where('status_presensi', 1);
+                }])
+                ->with(['Absensi' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('LogTime', [$startDate, $endDate])
+                        ->select('EnrollNumber', 'LogTime');
+                }])
+                ->with(['MappingShift' => function ($q) use ($startDate, $endDate) {
+                    $q->with('Shift')
+                        ->whereNotNull('is_active')
+                        ->where('status_approved', 1)
+                        ->whereBetween('tanggal_masuk', [$startDate, $endDate])
+                        ->orderBy('tanggal_masuk', 'ASC');
+                }])
                 ->first();
             if ($table == NULL) {
                 return DataTables::of(null)
@@ -309,7 +391,7 @@ class ReportController extends Controller
                 // pastikan $date benar-benar Carbon
                 $carbonDate = $date instanceof \Carbon\Carbon ? $date : Carbon::parse($date);
                 // Karyawan Shift
-                $absensi_shift = MappingShift::with('Shift')->where('nik_karyawan', $id)->where('tanggal_masuk', $carbonDate->format('Y-m-d'))->first();
+                $absensi_shift = MappingShift::with('Shift')->where('nik_karyawan', $id)->whereNotNull('is_active')->where('tanggal_masuk', $carbonDate->format('Y-m-d'))->first();
 
                 if ($table->shift_id == 'NON SHIFT') {
                     $logs_absensi_masuk = $absensi_nonshift->filter(function ($log) use ($get_non_shift, $date) {
@@ -358,7 +440,7 @@ class ReportController extends Controller
 
                             if ($selisih_menit <= 0) {
                                 $telat = '0';
-                                $keterangan_absensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
+                                $keterangan_presensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
                             } else {
                                 $jam = floor($selisih_menit / 60);
                                 $menit = $selisih_menit % 60;
@@ -370,12 +452,12 @@ class ReportController extends Controller
                                 } else {
                                     $telat = "{$menit} menit";
                                 }
-                                $keterangan_absensi_masuk =  '<span>(Terlambat)</span>';
+                                $keterangan_presensi_masuk =  '<span>(Terlambat)</span>';
                             }
                             $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
                         } else {
                             $telat = '0';
-                            $keterangan_absensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
+                            $keterangan_presensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
                             $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
                         }
                     } else {
@@ -393,7 +475,7 @@ class ReportController extends Controller
 
                                 if ($selisih_menit <= 0) {
                                     $telat = '0';
-                                    $keterangan_absensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
+                                    $keterangan_presensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
                                 } else {
                                     $jam = floor($selisih_menit / 60);
                                     $menit = $selisih_menit % 60;
@@ -405,12 +487,12 @@ class ReportController extends Controller
                                     } else {
                                         $telat = "{$menit} menit";
                                     }
-                                    $keterangan_absensi_masuk =  '<span>(Terlambat)</span>';
+                                    $keterangan_presensi_masuk =  '<span>(Terlambat)</span>';
                                 }
                                 $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
                             } else {
                                 $telat = '0';
-                                $keterangan_absensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
+                                $keterangan_presensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
                                 $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
                             }
                         }
@@ -422,7 +504,7 @@ class ReportController extends Controller
 
                             if ($selisih_menit <= 0) {
                                 $telat = '0';
-                                $keterangan_absensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
+                                $keterangan_presensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
                             } else {
                                 $jam = floor($selisih_menit / 60);
                                 $menit = $selisih_menit % 60;
@@ -434,12 +516,12 @@ class ReportController extends Controller
                                 } else {
                                     $telat = "{$menit} menit";
                                 }
-                                $keterangan_absensi_masuk =  '<span>(Terlambat)</span>';
+                                $keterangan_presensi_masuk =  '<span>(Terlambat)</span>';
                             }
                             $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
                         } else {
                             $telat = '0';
-                            $keterangan_absensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
+                            $keterangan_presensi_masuk = '<span>(Tepat&nbsp;Waktu)</span>';
                             $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
                         }
                     }
@@ -453,16 +535,16 @@ class ReportController extends Controller
                         $lokasi_absen_masuk = $logs_absensi_masuk->min('MachineIp');
                         $checkIn  = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
                         $telat = '0';
-                        $keterangan_absensi_masuk = '';
+                        $keterangan_presensi_masuk = '';
                     } else {
                         $lokasi_absen_masuk = NULL;
                         $telat = '0';
-                        $keterangan_absensi_masuk = '';
-                        if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
+                        $keterangan_presensi_masuk = '';
+                        if ($date->format('Y-m-d') >= Carbon::now()->format('Y-m-d')) {
                             $checkIn = '';
                         } else {
                             $checkIn =
-                                'Tidak Absen';
+                                'Tidak Presensi';
                         }
                     }
                 }
@@ -473,58 +555,18 @@ class ReportController extends Controller
                     $lokasi_absen_pulang = $logs_absensi_pulang->min('MachineIp');
                     if ($table->shift_id == 'NON SHIFT') {
                         if ($checkOut < $get_non_shift->jam_keluar) {
-                            $keterangan_absensi_pulang = '<span>(Pulang Cepat)</span>';
-                            $selisih_menit_pulang = Carbon::parse($checkOut)->diffInMinutes($get_non_shift->jam_keluar);
-                            // hitung selisih dalam menit
-
-                            // kalau datang lebih awal atau tepat waktu
-                            if ($selisih_menit_pulang <= 0) {
-                                $pulang_cepat = '0';
-                                $keterangan_absensi_pulang = '<span>(Pulang&nbsp;Tepat&nbsp;Waktu)</span>';
-                            } else {
-                                $jam = floor($selisih_menit_pulang / 60);
-                                $menit = $selisih_menit_pulang % 60;
-
-                                if ($jam > 0 && $menit > 0) {
-                                    $pulang_cepat = "{$jam} jam {$menit} menit";
-                                } elseif ($jam > 0) {
-                                    $pulang_cepat = "{$jam} jam";
-                                } else {
-                                    $pulang_cepat = "{$menit} menit";
-                                }
-                            }
+                            $keterangan_presensi_pulang = '<span>(Pulang Cepat)</span>';
                             $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
                         } else {
-                            $pulang_cepat = '0';
-                            $keterangan_absensi_pulang = '<span>(Pulang Tepat Waktu)</span>';
+                            $keterangan_presensi_pulang = '<span>(Pulang Tepat Waktu)</span>';
                             $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
                         }
                     } else {
                         if ($checkOut < $absensi_shift->Shift->jam_keluar) {
-                            $keterangan_absensi_pulang = '<span>(Pulang Cepat)</span>';
-                            $selisih_menit_pulang = Carbon::parse($checkOut)->diffInMinutes($absensi_shift->Shift->jam_keluar);
-                            // hitung selisih dalam menit
-
-                            // kalau datang lebih awal atau tepat waktu
-                            if ($selisih_menit_pulang <= 0) {
-                                $pulang_cepat = '0';
-                                $keterangan_absensi_pulang = '<span>(Pulang&nbsp;Tepat&nbsp;Waktu)</span>';
-                            } else {
-                                $jam = floor($selisih_menit_pulang / 60);
-                                $menit = $selisih_menit_pulang % 60;
-
-                                if ($jam > 0 && $menit > 0) {
-                                    $pulang_cepat = "{$jam} jam {$menit} menit";
-                                } elseif ($jam > 0) {
-                                    $pulang_cepat = "{$jam} jam";
-                                } else {
-                                    $pulang_cepat = "{$menit} menit";
-                                }
-                            }
+                            $keterangan_presensi_pulang = '<span>(Pulang Cepat)</span>';
                             $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
                         } else {
-                            $pulang_cepat = '0';
-                            $keterangan_absensi_pulang = '<span>(Pulang Tepat Waktu)</span>';
+                            $keterangan_presensi_pulang = '<span>(Pulang Tepat Waktu)</span>';
                             $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
                         }
                     }
@@ -535,27 +577,25 @@ class ReportController extends Controller
                         return $getcheckOut->toDateString() === $start->toDateString();
                     });
                     if ($logs_absensi_pulang->isNotEmpty()) {
-                        $keterangan_absensi_pulang = '';
-                        $pulang_cepat = '0';
+                        $keterangan_presensi_pulang = '';
                         $lokasi_absen_pulang = $logs_absensi_pulang->min('MachineIp');
                         $checkOut = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
                         if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                            $checkOut = 'Tidak Absen';
+                            $checkOut = 'Tidak Presensi';
                         }
                     } else {
-                        $keterangan_absensi_pulang = '';
-                        $pulang_cepat = '0';
+                        $keterangan_presensi_pulang = '';
                         $lokasi_absen_pulang = '<span>(Tidak&nbsp;Absen)</span>';
-                        if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
+                        if ($date->format('Y-m-d') >= Carbon::now()->format('Y-m-d')) {
                             $checkOut = '';
                         } else {
-                            $checkOut = 'Tidak Absen';
+                            $checkOut = 'Tidak Presensi';
                         }
                     }
                 }
                 $check_all = $checkIn . ' - ' . $checkOut;
-                if ($checkIn == 'Tidak Absen' && $checkOut == 'Tidak Absen') {
-                    $check_all = '<span style="color:red;">' . 'Tidak Hadir' . '</span>';
+                if ($checkIn == 'Tidak Presensi' && $checkOut == 'Tidak Presensi') {
+                    $check_all = '<span style="color:red;">' . 'TIDAK HADIR' . '</span>';
                 }
 
                 $get_machine_masuk = FingerMachine::where('Ip', $lokasi_absen_masuk)->first();
@@ -568,7 +608,7 @@ class ReportController extends Controller
                 if ($get_machine_pulang == NULL) {
                     $lokasi_pulang = '<span class="badge bg-label-danger">-</span>';
                 } else {
-                    if ($checkOut == 'Tidak Absen') {
+                    if ($checkOut == 'Tidak Presensi') {
                         $lokasi_pulang = '<span class="badge bg-label-danger">-</span>';
                     } else {
                         $lokasi_pulang = $get_machine_pulang->Name;
@@ -584,19 +624,21 @@ class ReportController extends Controller
                     'nomor_identitas_karyawan' => $table->nomor_identitas_karyawan ?? '',
                     'shift_id' => $table->shift ?? '',
                     'non_shift' => $get_non_shift->nama_shift ?? '',
-                    'shift' => $absensi_shift ?? '',
+                    'shift' => $absensi_shift,
                     'checkIn' => $checkIn,
                     'checkOut' => $checkOut,
                     'check_all' => $check_all,
-                    'keterangan_absensi_masuk' => $keterangan_absensi_masuk,
-                    'keterangan_absensi_pulang' => $keterangan_absensi_pulang,
+                    'keterangan_presensi_masuk' => $keterangan_presensi_masuk,
+                    'keterangan_presensi_pulang' => $keterangan_presensi_pulang,
                     'lokasi_absen_masuk' => $lokasi_masuk,
                     'lokasi_absen_pulang' => $lokasi_pulang,
                     'telat' => $telat,
-                    'pulang_cepat' => $pulang_cepat,
                 ];
             });
             // dd($data);
+            // $data = $data->filter(function ($row) {
+            //     return $row['check_all'] == '<span style="color:red;">TIDAK HADIR</span>';
+            // });
             return DataTables::of($data)
 
                 ->addColumn('nomor_identitas_karyawan', function ($row) use ($table) {
@@ -609,8 +651,8 @@ class ReportController extends Controller
                     if ($row['shift_id'] == 'NON SHIFT') {
                         $nama_shift = $get_non_shift->nama_shift;
                     } else {
-                        if ($row['shift'] == NULL) {
-                            $nama_shift = '<span class="badge bg-label-danger">' . 'Belum di Mapping' . '</span>';
+                        if (empty($row['shift'])) {
+                            $nama_shift = '<span class="badge bg-label-danger">' . 'Belum dijadwalkan' . '</span>';
                         } else {
                             $nama_shift = $row['shift']->nama_shift;
                         }
@@ -624,8 +666,8 @@ class ReportController extends Controller
                         if ($row['shift_id'] == NULL) {
                             $jam_kerja = '-';
                         } else {
-                            if ($row['shift'] == NULL) {
-                                $jam_kerja = '<span class="badge bg-label-danger">' . 'Belum di Mapping' . '</span>';
+                            if (empty($row['shift'])) {
+                                $jam_kerja = '<span class="badge bg-label-danger">' . 'Belum dijadwalkan' . '</span>';
                             } else {
                                 $jam_masuk = $row['shift']->Shift->jam_masuk;
                                 $jam_keluar = $row['shift']->Shift->jam_keluar;
@@ -639,37 +681,56 @@ class ReportController extends Controller
                     if ($row['shift_id'] == 'NON SHIFT') {
                         return $row['checkIn'];
                     } else {
-                        if ($row['shift'] == NULL) {
-                            return '<span class="badge bg-label-danger">' . 'Belum di Mapping' . '</span>';
+                        if (empty($row['shift'])) {
+                            return '<span class="badge bg-label-danger">' . 'Belum dijadwalkan' . '</span>';
                         } else {
                             return $row['checkIn'];
                         }
                     }
                 })
-                ->addColumn('jam_absen_pulang', function ($row) {
-                    if ($row['shift_id'] == 'NON SHIFT') {
-                        return $row['checkOut'];
+                ->addColumn('jam_absen_pulang', function ($row) use ($table) {
+                    $lembur_detail = $table->LemburDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_lembur)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    // dd($lembur_detail);
+                    if ($lembur_detail) {
+                        $asoy =  Carbon::parse($lembur_detail->presensi_pulang)->format('H:i');
                     } else {
-                        if ($row['shift'] == NULL) {
-                            return '<span class="badge bg-label-danger">' . 'Belum di Mapping' . '</span>';
+                        if ($row['shift_id'] == 'NON SHIFT') {
+                            $asoy = $row['checkOut'];
                         } else {
-                            return $row['checkOut'];
+                            if (empty($row['shift'])) {
+                                $asoy = '<span class="badge bg-label-danger">' . 'Belum dijadwalkan' . '</span>';
+                            } else {
+                                $asoy = $row['checkOut'];
+                            }
                         }
                     }
+                    return $asoy;
+                    // $row->presensi == $row['checkOut'];
                 })
                 ->addColumn('tanggal_masuk', function ($row) {
 
                     return $row['hari'] . ', ' . $row['tanggal'];
                 })
-                ->addColumn('tanggal_pulang', function ($row) {
+                ->addColumn('tanggal_pulang', function ($row) use ($table) {
 
-                    if ($row['shift_id'] == 'NON SHIFT') {
-                        return $row['hari'] . ', ' . $row['tanggal'];
+                    $lembur_detail = $table->LemburDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_lembur)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    // dd($lembur_detail);
+                    if ($lembur_detail) {
+                        return Carbon::parse($lembur_detail->tgl_pulang)->isoFormat('dddd, D-MM-Y');
                     } else {
-                        if ($row['shift'] == NULL) {
-                            return '<span class="badge bg-label-danger">' . 'Belum di Mapping' . '</span>';
+
+                        if ($row['shift_id'] == 'NON SHIFT') {
+                            return $row['hari'] . ', ' . $row['tanggal'];
                         } else {
-                            return Carbon::parse($row['shift']->tanggal_pulang)->isoFormat('dddd, D-MM-Y');
+                            if (empty($row['shift'])) {
+                                return '<span class="badge bg-label-danger">' . 'Belum dijadwalkan' . '</span>';
+                            } else {
+                                return Carbon::parse($row['shift']->tanggal_pulang)->isoFormat('dddd, D-MM-Y');
+                            }
                         }
                     }
                 })
@@ -682,79 +743,191 @@ class ReportController extends Controller
                 ->addColumn('telat', function ($row) {
                     return $row['telat'];
                 })
-                ->addColumn('pulang_cepat', function ($row) {
-                    return $row['pulang_cepat'];
-                })
-
-                ->addColumn('keterangan_absensi', function ($row) use ($get_non_shift) {
+                ->addColumn('keterangan_presensi', function ($row) use ($get_non_shift, $table) {
+                    $sakit_detail = $table->IzinSakitDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_sakit)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $cuti_detail = $table->CutiDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_cuti)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $tidak_masuk_detail = $table->IzinTidakMasukDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_tidak_masuk)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $terlambat = $table->IzinTerlambat->where('status_terlambat', 3)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tanggal_terlambat)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $perdin_detail = $table->PerdinDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_perdin)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $tukar_libur = $table->IzinLibur->where('status_libur', 3)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tanggal_tukar)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $tukar_libur_minggu = $table->IzinLibur->where('status_libur', 3)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tanggal_libur)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    if ($sakit_detail) {
+                        return '<a href="' . url("izin/cetak_form_sakit/" . $sakit_detail->id_sakit . '/' . $table->id) . '" target="_blank" class="badge bg-secondary">SAKIT</a>';
+                    } elseif ($cuti_detail) {
+                        return '<a href="' . url("report/cetak_form_cuti/" . $table->id . '/' . $cuti_detail->id) . '" target="_blank" class="badge bg-warning">' . $cuti_detail->Cuti->nama_cuti . '</a>';
+                    } elseif ($tidak_masuk_detail) {
+                        return '<a href="' . url("izin/cetak_form_tidak_masuk/" . $tidak_masuk_detail->id . '/' . $table->id) . '" target="_blank" class="badge bg-secondary">IZIN TIDAK MASUK</a>';
+                    } elseif ($perdin_detail) {
+                        return '<a href="' . url("izin/cetak_form_perdin/" . $perdin_detail->id . '/' . $table->id) . '" target="_blank" class="badge bg-primary">PERJALANAN DINAS</a>';
+                    } elseif ($tukar_libur) {
+                        return '<a href="' . url("izin/cetak_form_libur/" . $tukar_libur->id . '/' . $table->id) . '" target="_blank" class="badge bg-info">TUKAR LIBUR</a>';
+                    }
                     if ($row['shift_id'] == 'NON SHIFT') {
                         if ($row['hari_libur'] == $get_non_shift->hari_libur) {
-                            $keterangan_absensi = '<span class="badge bg-label-info">LIBUR</span>';
+                            $keterangan_presensi = '<span class="badge bg-label-info">LIBUR</span>';
                         } else {
-                            if ($row['check_all'] == '<span style="color:red;">Tidak Hadir</span>') {
-                                $keterangan_absensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
+                            if ($row['check_all'] == '<span style="color:red;">TIDAK HADIR</span>') {
+                                $keterangan_presensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
+                                // $row->keterangan_presensi = 1;
                             } else if ($row['check_all'] == '' . ' - ' . '') {
-                                $keterangan_absensi = '<span class="badge bg-label-warning">-</span>';
+                                $keterangan_presensi = '<span class="badge bg-label-warning">-</span>';
                             } else {
-                                $keterangan_absensi = '<span class="badge bg-label-success">HADIR</span><br><span>' . $row['keterangan_absensi_masuk'] . '</span>';
+                                if ($terlambat) {
+                                    $kedisiplinan = '<a href="' . url("izin/cetak_form_terlambat/" . $terlambat->id . '/' . $table->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN TERLAMBAT</a>';
+                                } else {
+                                    $kedisiplinan = $row['keterangan_presensi_masuk'];
+                                }
+                                $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span> ' . $kedisiplinan . '</span>';
                             }
                         }
-                    } else {
-                        if ($row['shift'] == NULL) {
-                            $keterangan_absensi = '<span class="badge bg-label-danger">Belum di Mapping</span>';
-                        } else {
-                            if ($row['shift']->status_absen == 'LIBUR') {
-                                $keterangan_absensi = '<span class="badge bg-label-info">LIBUR</span>';
+                        if ($tukar_libur_minggu) {
+                            if ($terlambat) {
+                                $kedisiplinan = '<a href="' . url("izin/cetak_form_terlambat/" . $terlambat->id . '/' . $table->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN TERLAMBAT</a>';
                             } else {
-                                if ($row['check_all'] == '<span style="color:red;">Tidak Hadir</span>') {
-                                    $keterangan_absensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
+                                $kedisiplinan = $row['keterangan_presensi_masuk'];
+                            }
+                            $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span> ' . $kedisiplinan . '</span>';
+                        }
+                    } else {
+                        if ($sakit_detail) {
+                            return '<a href="' . url("izin/cetak_form_sakit/" . $sakit_detail->id_sakit . '/' . $table->id) . '" target="_blank" class="badge bg-secondary">SAKIT</a>';
+                        }
+                        if (empty($row['shift'])) {
+                            $keterangan_presensi = '<span class="badge bg-label-danger">Belum dijadwalkan</span>';
+                        } else {
+                            if ($row['shift']->nama_shift == 'LIBUR') {
+                                $keterangan_presensi = '<span class="badge bg-label-info">LIBUR</span>';
+                            } else {
+                                if ($row['check_all'] == '<span style="color:red;">TIDAK HADIR</span>') {
+                                    $keterangan_presensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
                                 } else if ($row['check_all'] == '' . ' - ' . '') {
-                                    $keterangan_absensi = '<span class="badge bg-label-warning">-</span>';
+                                    $keterangan_presensi = '<span class="badge bg-label-warning">-</span>';
                                 } else {
-                                    $keterangan_absensi = '<span class="badge bg-label-success">HADIR</span><br><span>' . $row['keterangan_absensi_masuk'] . '</span>';
+                                    if ($terlambat) {
+                                        $kedisiplinan = '<a href="' . url("izin/cetak_form_terlambat/" . $terlambat->id . '/' . $table->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN TERLAMBAT</a>';
+                                    } else {
+                                        $kedisiplinan = $row['keterangan_presensi_masuk'];
+                                    }
+                                    $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span> ' . $kedisiplinan . '</span>';
                                 }
                             }
                         }
                     }
-                    return $keterangan_absensi;
+                    return $keterangan_presensi;
                 })
-                ->addColumn('keterangan_absensi_pulang', function ($row) use ($get_non_shift) {
-                    if ($row['shift_id'] == 'NON SHIFT') {
-                        if ($row['hari_libur'] == $get_non_shift->hari_libur) {
-                            $keterangan_absensi = '<span class="badge bg-label-info">LIBUR</span>';
-                        } else {
-                            if ($row['check_all'] == '<span style="color:red;">Tidak Hadir</span>') {
-                                $keterangan_absensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
-                            } else if ($row['check_all'] == '' . ' - ' . '') {
-                                $keterangan_absensi = '<span class="badge bg-label-warning">-</span>';
-                            } else {
-                                $keterangan_absensi = '<span class="badge bg-label-success">HADIR</span><br><span>' . $row['keterangan_absensi_pulang'] . '</span>';
-                            }
-                        }
+                ->addColumn('keterangan_presensi_pulang', function ($row) use ($get_non_shift, $table) {
+
+                    $sakit_detail = $table->IzinSakitDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_sakit)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $cuti_detail = $table->CutiDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_cuti)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $tidak_masuk_detail = $table->IzinTidakMasukDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_tidak_masuk)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $pulang = $table->IzinPulang->where('status_pulang', 3)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->created_at)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $perdin_detail = $table->PerdinDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_perdin)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $tukar_libur = $table->IzinLibur->where('status_libur', 3)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tanggal_tukar)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    $tukar_libur_minggu = $table->IzinLibur->where('status_libur', 3)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tanggal_libur)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    if ($sakit_detail) {
+                        return '<a href="' . url("izin/cetak_form_sakit/" . $sakit_detail->id_sakit . '/' . $table->id) . '" target="_blank" class="badge bg-secondary">SAKIT</a>';
+                    } elseif ($cuti_detail) {
+                        return '<a href="' . url("report/cetak_form_cuti/" . $table->id . '/' . $cuti_detail->id) . '" target="_blank" class="badge bg-warning">' . $cuti_detail->Cuti->nama_cuti . '</a>';
+                    } elseif ($tidak_masuk_detail) {
+                        return '<a href="' . url("izin/cetak_form_tidak_masuk/" . $tidak_masuk_detail->id . '/' . $table->id) . '" target="_blank" class="badge bg-secondary">IZIN TIDAK MASUK</a>';
+                    } elseif ($perdin_detail) {
+                        return '<a href="' . url("izin/cetak_form_perdin/" . $perdin_detail->id . '/' . $table->id) . '" target="_blank" class="badge bg-primary">PERJALANAN DINAS</a>';
+                    } elseif ($tukar_libur) {
+                        return '<a href="' . url("izin/cetak_form_libur/" . $tukar_libur->id . '/' . $table->id) . '" target="_blank" class="badge bg-info">TUKAR LIBUR</a>';
+                    }
+                    $lembur_detail = $table->LemburDetail->where('status', 1)->first(function ($detail) use ($row) {
+                        return Carbon::parse($detail->tgl_lembur)->isSameDay(Carbon::parse($row['tanggal']));
+                    });
+                    if ($lembur_detail) {
+                        $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span><br>&nbsp;
+                                                <a href="' . url("lembur/cetak_form_lembur/" . $lembur_detail->id_lembur . '/' . $table->id) . '" 
+                                                target="_blank" class="badge bg-success">LEMBUR</a></span>';
                     } else {
-                        if ($row['hari_libur'] == $get_non_shift->hari_libur) {
-                            $keterangan_absensi = '<span class="badge bg-label-info">LIBUR</span>';
-                        } else {
-                            if ($row['check_all'] == '<span style="color:red;">Tidak Hadir</span>') {
-                                $keterangan_absensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
-                            } else if ($row['check_all'] == '' . ' - ' . '') {
-                                $keterangan_absensi = '<span class="badge bg-label-warning">-</span>';
+                        if ($row['shift_id'] == 'NON SHIFT') {
+                            if ($row['hari_libur'] == $get_non_shift->hari_libur) {
+                                $keterangan_presensi = '<span class="badge bg-label-info">LIBUR</span>';
                             } else {
-                                $keterangan_absensi = '<span class="badge bg-label-success">HADIR</span><br><span>' . $row['keterangan_absensi_pulang'] . '</span>';
+                                if ($row['check_all'] == '<span style="color:red;">TIDAK HADIR</span>') {
+                                    $keterangan_presensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
+                                } else if ($row['check_all'] == '' . ' - ' . '') {
+                                    $keterangan_presensi = '<span class="badge bg-label-warning">-</span>';
+                                } else {
+                                    if ($pulang) {
+                                        $kedisiplinan = '<a href="' . url("izin/cetak_form_pulang/" . $pulang->id . '/' . $table->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN PULANG</a>';
+                                    } else {
+                                        $kedisiplinan = $row['keterangan_presensi_pulang'];
+                                    }
+                                    $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span> ' . $kedisiplinan . '</span>';
+                                }
+                            }
+                            if ($tukar_libur_minggu) {
+                                if ($pulang) {
+                                    $kedisiplinan = '<a href="' . url("izin/cetak_form_pulang/" . $pulang->id . '/' . $table->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN PULANG</a>';
+                                } else {
+                                    $kedisiplinan = $row['keterangan_presensi_pulang'];
+                                }
+                                $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span> ' . $kedisiplinan . '</span>';
+                            }
+                        } else {
+                            if (empty($row['shift'])) {
+                                $keterangan_presensi = '<span class="badge bg-label-danger">Belum dijadwalkan</span>';
+                            } elseif ($row['shift']->nama_shift == 'LIBUR') {
+                                $keterangan_presensi = '<span class="badge bg-label-info">LIBUR</span>';
+                            } else {
+                                if ($row['check_all'] == '<span style="color:red;">TIDAK HADIR</span>') {
+                                    $keterangan_presensi = '<span class="badge bg-label-danger">TIDAK HADIR</span>';
+                                } else if ($row['check_all'] == '' . ' - ' . '') {
+                                    $keterangan_presensi = '<span class="badge bg-label-warning">-</span>';
+                                } else {
+                                    if ($pulang) {
+                                        $kedisiplinan = '<a href="' . url("izin/cetak_form_pulang/" . $pulang->id . '/' . $table->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN PULANG</a>';
+                                    } else {
+                                        $kedisiplinan = $row['keterangan_presensi_pulang'];
+                                    }
+                                    $keterangan_presensi = '<span class="badge bg-label-success">HADIR</span><br><span>' . $kedisiplinan . '</span>';
+                                }
                             }
                         }
                     }
-                    return $keterangan_absensi;
+                    return $keterangan_presensi;
                 })
-                ->addColumn('keterangan_izin', function ($row) {
-                    return '';
-                })
-                ->addColumn('keterangan_cuti', function ($row) {
-                    return '';
-                })
-                ->addColumn('keterangan_dinas', function ($row) {
-                    return '';
-                })
+                // ->addColumn('keterangan_izin', function ($row) {
+                //     return '';
+                // })
+                // ->addColumn('keterangan_cuti', function ($row) {
+                //     return '';
+                // })
+                // ->addColumn('keterangan_dinas', function ($row) {
+                //     return '';
+                // })
                 ->rawColumns([
                     'jam_absen_masuk',
                     'jam_absen_pulang',
@@ -762,17 +935,16 @@ class ReportController extends Controller
                     'nama_karyawan',
                     'nama_shift',
                     'jam_kerja',
-                    'keterangan_absensi',
-                    'keterangan_absensi_pulang',
+                    'keterangan_presensi',
+                    'keterangan_presensi_pulang',
                     'lokasi_absen_masuk',
                     'lokasi_absen_pulang',
                     'telat',
                     'tanggal_pulang',
-                    'pulang_cepat',
                     'total_jam_kerja',
-                    'keterangan_izin',
-                    'keterangan_cuti',
-                    'keterangan_dinas'
+                    // 'keterangan_izin',
+                    // 'keterangan_cuti',
+                    // 'keterangan_dinas'
                 ])
                 ->make(true);
         }
@@ -836,276 +1008,804 @@ class ReportController extends Controller
     public function datatable_kedisiplinan(Request $request, $holding)
     {
         date_default_timezone_set('Asia/Jakarta');
+
         $holding = Holding::where('holding_code', $holding)->first();
         if ($holding == NULL) {
             $holding = Holding::where('holding_code', request()->segment(count(request()->segments())))->first();
         }
-        // dd($request->all());
+
         $now = Carbon::parse($request->start_date)->startOfDay();
         $now1 = Carbon::parse($request->end_date)->endOfDay();
         $period = CarbonPeriod::create($now, $now1);
+
         if (request()->ajax()) {
-            $query = Karyawan::with(['Departemen' => function ($q) {
-                $q->select('id', 'nama_departemen');
+            // 1. PRE-FETCH DATA CALENDAR (Mencegah N+1 Query)
+            // Ambil kalender libur di awal, jadikan key array sebagai format Y-m-d
+            $calendars = Calendar::whereBetween('start_date', [$now->format('Y-m-d'), $now1->format('Y-m-d')])
+                ->where('status', 1)
+                ->get()
+                ->keyBy(function ($item) {
+                    return Carbon::parse($item->start_date)->format('Y-m-d');
+                });
+
+            // 2. EAGER LOAD YANG DIOPTIMASI (Tambahkan CutiDetail)
+            $query = Karyawan::with(['KaryawanJabatan' => function ($q) {
+                $q->with('Departemen', 'Jabatan', 'Bagian', 'Divisi');
             }])
+                ->with('Cuti.KategoriCuti')
+                ->with(['CutiDetail' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tgl_cuti', [$now, $now1])->where('status', 1);
+                }])
+                ->with(['IzinSakitDetail' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tgl_sakit', [$now, $now1])->where('status', 1);
+                }])
+                ->with(['IzinTidakMasukDetail' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tgl_tidak_masuk', [$now, $now1])->where('status', 1);
+                }])
+                ->with(['PerdinDetail' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tgl_perdin', [$now, $now1])->where('status', 1);
+                }])
+                ->with(['IzinTerlambat' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tanggal_terlambat', [$now, $now1])->where('status_terlambat', 3);
+                }])
+                ->with(['IzinPulang' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('created_at', [$now, $now1])->where('status_pulang', 3);
+                }])
+                ->with(['IzinKeluar' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('created_at', [$now, $now1])->where('status_keluar', 3);
+                }])
+                ->with(['IzinLibur' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tanggal_tukar', [$now, $now1])->where('status_libur', 3);
+                }])
+                ->with(['IzinLiburMinggu' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('tanggal_libur', [$now, $now1])->where('status_libur', 3);
+                }])
+                ->with(['LemburDetail' => function ($q) use ($now, $now1) {
+                    $q->where('status', 1)
+                        ->whereHas('Lembur', function ($q) use ($now, $now1) {
+                            $q->whereBetween('tanggal_lembur', [$now, $now1]);
+                        })
+                        ->with('Lembur');
+                }])
+                ->with(['PresensiFoto' => function ($q) use ($now, $now1) {
+                    $q->whereBetween('jam_presensi', [$now, $now1])->where('status_presensi', 1);
+                }])
                 ->with(['Absensi' => function ($q) use ($now, $now1) {
                     $q->whereBetween('LogTime', [$now, $now1])
-                        ->select('EnrollNumber', 'LogTime'); // supaya jelas field yg dibawa
+                        ->select('EnrollNumber', 'LogTime');
                 }])
                 ->with(['MappingShift' => function ($q) use ($now, $now1) {
-                    $q->with('Shift');
-                    $q->whereBetween('tanggal_masuk', [$now, $now1]);
-                }])->where('kontrak_kerja', $holding->id)
-                // ->where('nomor_identitas_karyawan', '=', '2002305050895')
+                    $q->with('Shift')
+                        ->whereNotNull('is_active')
+                        ->where('status_approved', 1)
+                        ->whereBetween('tanggal_masuk', [$now, $now1])
+                        ->orderBy('tanggal_masuk', 'ASC');
+                }])
+                ->where('kontrak_kerja', $holding->id)
                 ->where('kategori', 'Karyawan Bulanan')
-                ->where('status_aktif', 'AKTIF');
+                // ->whereIn('nomor_identitas_karyawan', ['1002002070273'])
+                ->where('status_aktif', 'AKTIF')
+                ->orderBy('name', 'ASC');
 
+            // Filter...
             if (!empty($request->departemen_filter)) {
-                $query->whereIn('dept_id', (array)$request->departemen_filter ?? []);
+                $query->whereHas('KaryawanJabatan', function ($q) use ($request) {
+                    $q->whereIn('departemen_id', (array)$request->departemen_filter ?? []);
+                });
             }
-
             if (!empty($request->divisi_filter)) {
-                $query->whereIn('divisi_id', (array)$request->divisi_filter ?? []);
+                $query->whereHas('KaryawanJabatan', function ($q) use ($request) {
+                    $q->whereIn('divisi_id', (array)$request->divisi_filter ?? []);
+                });
             }
-
             if (!empty($request->bagian_filter)) {
-                $query->whereIn('bagian_id', (array)$request->bagian_filter ?? []);
+                $query->whereHas('KaryawanJabatan', function ($q) use ($request) {
+                    $q->whereIn('bagian_id', (array)$request->bagian_filter ?? []);
+                });
             }
-
             if (!empty($request->jabatan_filter)) {
-                $query->whereIn('jabatan_id', (array)$request->jabatan_filter ?? []);
+                $query->whereHas('KaryawanJabatan', function ($q) use ($request) {
+                    $q->whereIn('jabatan_id', (array)$request->jabatan_filter ?? []);
+                });
             }
             if (!empty($request->shift_filter)) {
                 $query->where('shift', $request->shift_filter);
             }
-            $table = $query->select('karyawans.dept_id', 'karyawans.name', 'karyawans.id', 'karyawans.nomor_identitas_karyawan', 'karyawans.shift')
-                ->orderBy('karyawans.name', 'ASC')
-                // ->limit(10)
-                ->get();
-            // dd($table);
+
             $non_shift = Shift::where('nama_shift', 'NON SHIFT')->first();
-            $column = DataTables::of($table);
+            $column = DataTables::eloquent($query);
+
+            // 3. HELPER FUNCTION: Grouping data di sisi Memori agar tidak filter ratusan data per loop
+            $groupDataHarian = function ($row) {
+                if (!isset($row->_absensiByDate)) {
+                    $row->_absensiByDate = $row->Absensi->groupBy(function ($item) {
+                        return substr($item->LogTime, 0, 10); // Extract Y-m-d dengan cepat
+                    });
+                    $row->_cutiByDate = collect($row->CutiDetail)->groupBy(function ($item) {
+                        return substr($item->tgl_cuti, 0, 10);
+                    });
+                }
+            };
+            // LOOP RENTANG TANGGAL
             foreach ($period as $date) {
                 $colName = 'tanggal_' . $date->format('dmY');
-                $column->addColumn('tanggal_' . $date->format('dmY'), function ($row) use ($date, $non_shift) {
-                    // ambil log dari eager load Absensi
+                $dateStr = $date->format('Y-m-d');
+
+                $column->addColumn($colName, function ($row) use ($date, $dateStr, $non_shift, $calendars, $groupDataHarian) {
+                    $groupDataHarian($row); // Jalankan grouping jika belum
+
+                    // Ambil absensi HANYA untuk hari ini (Sangat Ringan, O(1))
+                    $logsToday = $row->_absensiByDate->get($dateStr, collect());
+                    $cuti_detail = $row->cutiDetail
+                        ->filter(function ($item) use ($date) {
+                            return $item->status == 1
+                                && \Carbon\Carbon::parse($item->tgl_cuti)->isSameDay($date);
+                        })
+                        ->isNotEmpty();
+                    $sakit_detail = $row->IzinSakitDetail
+                        ->filter(function ($item) use ($date) {
+                            return $item->status == 1
+                                && \Carbon\Carbon::parse($item->tgl_sakit)->isSameDay($date);
+                        })
+                        ->isNotEmpty();
+                    $tidak_masuk_detail = $row->IzinTidakMasukDetail
+                        ->filter(function ($item) use ($date) {
+                            return $item->status == 1
+                                && \Carbon\Carbon::parse($item->tgl_tidak_masuk)->isSameDay($date);
+                        })
+                        ->isNotEmpty();
+                    $perdin_detail = $row->PerdinDetail
+                        ->filter(function ($item) use ($date) {
+                            return $item->status == 1
+                                && \Carbon\Carbon::parse($item->tgl_perdin)->isSameDay($date);
+                        })
+                        ->isNotEmpty();
+                    $tukar_libur = $row->IzinLibur
+                        ->filter(function ($item) use ($date) {
+                            return $item->status_libur == 3
+                                && \Carbon\Carbon::parse($item->tanggal_tukar)->isSameDay($date);
+                        })
+                        ->isNotEmpty();
+                    $tukar_libur_minggu = $row->IzinLibur
+                        ->filter(function ($item) use ($date) {
+                            return $item->status_libur == 3
+                                && \Carbon\Carbon::parse($item->tanggal_libur)->isSameDay($date);
+                        })
+                        ->isNotEmpty();
+                    $lembur_detail = $row->LemburDetail
+                        ->filter(function ($item) use ($date) {
+                            return $item->Lembur
+                                && Carbon::parse($item->Lembur->tanggal_lembur)->isSameDay($date);
+                        });
+                    $cek_lembur = $lembur_detail->isNotEmpty();
+                    // dd($cek_lembur, $lembur_detail, $row->LemburDetail);
                     if ($row->shift == 'NON SHIFT') {
-                        // return $date->toDateString();
-                        $jam_masuk = $row->Absensi->whereBetween('LogTime', [$date->toDateString() . ' 00:00:00', $date->toDateString() . ' 23:59:59']);
-                        if (!$jam_masuk) {
-                            return '<span class="badge bg-danger">Belum diassign shift</span>';
-                        }
-                        if ($non_shift->hari_libur == Carbon::parse($date->toDateString())->dayOfWeek) {
-                            return '<span class="badge bg-info">LIBUR</span>';
-                        }
-                        $logs_absensi_masuk = $row->Absensi->filter(function ($log) use ($non_shift, $date) {
-                            $getcheckIn = Carbon::parse($log->LogTime);
-                            $start = Carbon::parse($date->format('Y-m-d') . ' ' . $non_shift->jam_min_masuk)->format('Y-m-d H:i:59');
-                            $end = Carbon::parse($date->format('Y-m-d') . ' ' . $non_shift->jam_terlambat)->addHours(3)->addMinutes(10)->format('Y-m-d H:i:59');
-                            return $getcheckIn->between($start, $end);
-                        });
-                        if ($logs_absensi_masuk->isNotEmpty()) {
-                            $checkIn  = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
-                            if ($checkIn > $non_shift->jam_terlambat) {
-                                $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
+                        $jam_masuk = $logsToday;
+                        if ($jam_masuk->count() == 0) {
+                            if ($cuti_detail) {
+                                $checkIn = 'CUTI';
+                                $checkOut = 'CUTI';
                             } else {
-                                $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
+                                if ($sakit_detail) {
+                                    $checkIn = 'SAKIT';
+                                    $checkOut = 'SAKIT';
+                                    $row->sakit += 1;
+                                } else {
+                                    if ($tidak_masuk_detail) {
+
+                                        $checkIn = 'tidak_masuk';
+                                        $checkOut = 'tidak_masuk';
+                                        $row->tidak_masuk += 1;
+                                    } else {
+                                        if ($perdin_detail) {
+
+                                            $checkIn = 'PERDIN';
+                                            $checkOut = 'PERDIN';
+                                            $row->perdin += 1;
+                                        } else {
+                                            if ($tukar_libur) {
+                                                $checkIn = 'tukar_libur';
+                                                $checkOut = 'tukar_libur';
+                                                $row->tukar_libur += 1;
+                                            } else {
+                                                if (!$tukar_libur_minggu) {
+                                                    if ($non_shift->hari_libur == Carbon::parse($dateStr)->dayOfWeek) {
+                                                        $checkIn = 'LIBUR';
+                                                        $checkOut = 'LIBUR';
+                                                    } else {
+                                                        $checkIn = 'Tidak Presensi';
+                                                        $checkOut = 'Tidak Presensi';
+                                                    }
+                                                } else {
+                                                    $checkIn = 'Tidak Presensi';
+                                                    $checkOut = 'Tidak Presensi';
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } else {
-                            $logs_absensi_masuk = $row->Absensi->filter(function ($log) use ($date) {
-                                $getcheckIn = Carbon::parse($log->LogTime);
-                                $start = Carbon::parse($date->format('Y-m-d'));
-                                return $getcheckIn->toDateString() === $start->toDateString();
-                            });
-                            if ($logs_absensi_masuk->isNotEmpty()) {
-                                $checkIn  = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
-                            } else {
-                                if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
-                                    $checkIn = '';
+                            if ($non_shift->hari_libur == Carbon::parse($dateStr)->dayOfWeek) {
+                                if (!$tukar_libur_minggu) {
+                                    $checkIn = 'LIBUR';
+                                    $checkOut = 'LIBUR';
                                 } else {
-                                    $checkIn =
-                                        'Tidak Absen';
+                                    $logs_absensi_masuk = $logsToday->filter(function ($log) use ($non_shift, $dateStr) {
+                                        $getcheckIn = Carbon::parse($log->LogTime);
+                                        $start = Carbon::parse($dateStr . ' ' . $non_shift->jam_min_masuk)->format('Y-m-d H:i:59');
+                                        $end = Carbon::parse($dateStr . ' ' . $non_shift->jam_terlambat)->addHours(3)->addMinutes(10)->format('Y-m-d H:i:59');
+                                        return $getcheckIn->between($start, $end);
+                                    });
+
+                                    if ($logs_absensi_masuk->isNotEmpty()) {
+                                        $checkIn = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
+                                        if ($checkIn >  Carbon::parse($dateStr . ' ' . $non_shift->jam_terlambat)->format('H:i')) {
+                                            if ($checkIn <  Carbon::parse($dateStr . ' ' . $non_shift->jam_terlambat)->addMinutes(10)->format('H:i')) {
+                                                $row->telat_ringan += 1;
+                                            } else {
+                                                $row->telat_berat += 1;
+                                            }
+                                            $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
+                                        } else {
+                                            $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
+                                            $row->tepat_waktu += 1;
+                                        }
+                                    } else {
+                                        $batas_absensi = Carbon::parse($dateStr . ' ' . $non_shift->jam_min_masuk)->subHours(3);
+                                        $start = Carbon::parse($dateStr . ' ' . $non_shift->jam_min_masuk)->format('Y-m-d H:i:59');
+                                        $logs_absensi_masuk_datang_awal = $logsToday->filter(function ($log) use ($batas_absensi, $start) {
+                                            return Carbon::parse($log->LogTime)->between($batas_absensi, $start);
+                                        });
+                                        if ($logs_absensi_masuk_datang_awal->isNotEmpty()) {
+                                            $checkIn = Carbon::parse($logs_absensi_masuk_datang_awal->min('LogTime'))->format('H:i');
+                                            $row->total_datang_lebih_awal += 1;
+                                        } else {
+                                            $checkIn = 'Tidak Presensi';
+                                        }
+                                    }
+                                    if ($cek_lembur == true) {
+                                        $detail_lembur = $lembur_detail->first();
+                                        $startPulang = Carbon::parse($detail_lembur->tgl_lembur . ' ' . $non_shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
+                                        $endPulang = Carbon::parse($detail_lembur->tgl_pulang . ' ' . $detail_lembur->jam_selesai)->addHours(2)->format('Y-m-d H:i:59');
+                                        $tanggalPulangStr = Carbon::parse($detail_lembur->tgl_pulang)->format('Y-m-d');
+                                    } else {
+                                        $startPulang = Carbon::parse($dateStr . ' ' . $non_shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
+                                        $endPulang = Carbon::parse($dateStr . ' ' . $non_shift->jam_keluar)->addHours(5)->format('Y-m-d H:i:59');
+                                        $tanggalPulangStr = Carbon::parse($dateStr)->format('Y-m-d');
+                                    }
+                                    // dd($startPulang, $endPulang);
+                                    $logsPulangToday = $row->_absensiByDate->get($tanggalPulangStr, collect());
+                                    $logs_absensi_pulang = $logsPulangToday->filter(function ($log) use ($startPulang, $endPulang) {
+                                        $getcheckOut = Carbon::parse($log->LogTime);
+                                        return $getcheckOut->between($startPulang, $endPulang);
+                                    });
+                                    if ($logs_absensi_pulang->isNotEmpty()) {
+                                        $checkOut  = Carbon::parse($logs_absensi_pulang->min('LogTime'))->format('H:i');
+                                        if ($checkOut < $non_shift->jam_keluar) {
+                                            $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
+                                        } else {
+                                            $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
+                                        }
+                                    } else {
+                                        $logs_absensi_pulang = $row->Absensi->filter(function ($log) use ($date) {
+                                            $getcheckOut = Carbon::parse($log->LogTime);
+                                            $start = Carbon::parse($date->format('Y-m-d'));
+                                            return $getcheckOut->toDateString() === $start->toDateString();
+                                        });
+                                        if ($logs_absensi_pulang->isNotEmpty()) {
+                                            $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
+                                            if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
+                                                $checkOut = 'Tidak Presensi';
+                                            }
+                                        } else {
+                                            if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
+                                                $checkOut = '';
+                                            } else {
+                                                $checkOut = 'Tidak Presensi';
+                                            }
+                                        }
+                                    }
                                 }
-                            }
-                        }
-                        $logs_absensi_pulang = $row->Absensi->filter(function ($log) use ($date, $non_shift) {
-                            $getcheckOut = Carbon::parse($log->LogTime);
-                            $start = Carbon::parse($date->format('Y-m-d') . ' ' . $non_shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
-                            $end = Carbon::parse($date->format('Y-m-d') . ' ' . $non_shift->jam_keluar)->addHours(5)->format('Y-m-d H:i:59');
-                            return $getcheckOut->between($start, $end);
-                        });
-                        // return $logs_absensi_pulang;
-                        if ($logs_absensi_pulang->isNotEmpty()) {
-                            $checkOut  = Carbon::parse($logs_absensi_pulang->min('LogTime'))->format('H:i');
-                            if ($checkOut < $non_shift->jam_keluar) {
-                                $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
                             } else {
-                                $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
-                            }
-                        } else {
-                            $logs_absensi_pulang = $row->Absensi->filter(function ($log) use ($date) {
-                                $getcheckOut = Carbon::parse($log->LogTime);
-                                $start = Carbon::parse($date->format('Y-m-d'));
-                                return $getcheckOut->toDateString() === $start->toDateString();
-                            });
-                            if ($logs_absensi_pulang->isNotEmpty()) {
-                                $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
-                                if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                                    $checkOut = 'Tidak Absen';
-                                }
-                            } else {
-                                if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
-                                    $checkOut = '';
+                                $batas_absensi = Carbon::parse($dateStr . ' ' . $non_shift->jam_min_masuk)->subHours(3);
+                                $start = Carbon::parse($dateStr . ' ' . $non_shift->jam_min_masuk)->format('Y-m-d H:i:59');
+                                $logs_absensi_masuk_datang_awal = $logsToday->filter(function ($log) use ($batas_absensi, $start) {
+                                    return Carbon::parse($log->LogTime)->between($batas_absensi, $start);
+                                });
+                                if ($logs_absensi_masuk_datang_awal->isNotEmpty()) {
+                                    $checkIn = Carbon::parse($logs_absensi_masuk_datang_awal->min('LogTime'))->format('H:i');
+                                    $row->total_datang_lebih_awal += 1;
+                                    $logs_absensi_masuk = $logs_absensi_masuk_datang_awal;
                                 } else {
-                                    $checkOut = 'Tidak Absen';
+                                    $logs_absensi_masuk = $logsToday->filter(function ($log) use ($non_shift, $dateStr) {
+                                        $getcheckIn = Carbon::parse($log->LogTime);
+                                        $start = Carbon::parse($dateStr . ' ' . $non_shift->jam_min_masuk)->format('Y-m-d H:i:59');
+                                        $end = Carbon::parse($dateStr . ' ' . $non_shift->jam_terlambat)->addHours(3)->addMinutes(10)->format('Y-m-d H:i:59');
+                                        return $getcheckIn->between($start, $end);
+                                    });
+                                    if ($logs_absensi_masuk->isNotEmpty()) {
+                                        $checkIn = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
+                                        if ($checkIn >  Carbon::parse($dateStr . ' ' . $non_shift->jam_terlambat)->format('H:i')) {
+                                            if ($checkIn <  Carbon::parse($dateStr . ' ' . $non_shift->jam_terlambat)->addMinutes(10)->format('H:i')) {
+                                                $row->telat_ringan += 1;
+                                            } else {
+                                                $row->telat_berat += 1;
+                                            }
+                                            $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
+                                        } else {
+                                            $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
+                                            $row->tepat_waktu += 1;
+                                        }
+                                    } else {
+                                        $checkIn = 'Tidak Presensi';
+                                    }
+                                }
+
+
+                                if ($cek_lembur == true) {
+                                    $detail_lembur = $lembur_detail->first();
+                                    $startPulang = Carbon::parse($detail_lembur->tgl_lembur . ' ' . $non_shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
+                                    $endPulang = Carbon::parse($detail_lembur->tgl_pulang . ' ' . $detail_lembur->jam_selesai)->addHours(2)->format('Y-m-d H:i:59');
+                                    $tanggalPulangStr = Carbon::parse($detail_lembur->tgl_pulang)->format('Y-m-d');
+                                } else {
+                                    $startPulang = Carbon::parse($dateStr . ' ' . $non_shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
+                                    $endPulang = Carbon::parse($dateStr . ' ' . $non_shift->jam_keluar)->addHours(5)->format('Y-m-d H:i:59');
+                                    $tanggalPulangStr = Carbon::parse($dateStr)->format('Y-m-d');
+                                }
+                                // dd($startPulang, $endPulang);
+                                $logsPulangToday = $row->_absensiByDate->get($tanggalPulangStr, collect());
+                                $logs_absensi_pulang = $logsPulangToday->filter(function ($log) use ($startPulang, $endPulang) {
+                                    $getcheckOut = Carbon::parse($log->LogTime);
+                                    return $getcheckOut->between($startPulang, $endPulang);
+                                });
+                                if ($logs_absensi_pulang->isNotEmpty()) {
+                                    $checkOut  = Carbon::parse($logs_absensi_pulang->min('LogTime'))->format('H:i');
+                                    if ($checkOut < $non_shift->jam_keluar) {
+                                        $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
+                                    } else {
+                                        $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
+                                    }
+                                } else {
+                                    $logs_absensi_pulang = $row->Absensi->filter(function ($log) use ($date) {
+                                        $getcheckOut = Carbon::parse($log->LogTime);
+                                        $start = Carbon::parse($date->format('Y-m-d'));
+                                        return $getcheckOut->toDateString() === $start->toDateString();
+                                    });
+                                    // dd($logs_absensi_pulang);
+                                    if ($logs_absensi_pulang->isNotEmpty()) {
+                                        $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
+                                        // if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
+                                        // }
+                                        $checkOut = 'Tidak Presensi';
+                                    } else {
+                                        if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
+                                            $checkOut = '';
+                                        } else {
+                                            $checkOut = 'Tidak Presensi';
+                                        }
+                                    }
                                 }
                             }
+                            // Karena logsToday hanya berisi data hari ini, filter jadi sangat cepat
                         }
                         $nama_shift = $row->shift;
                     } else {
-                        $jam_masuk = $row->MappingShift->firstWhere('tanggal_masuk', $date->toDateString());
+                        $jam_masuk = $row->MappingShift->firstWhere('tanggal_masuk', $dateStr);
+                        // dd($jam_masuk);
                         if (!$jam_masuk) {
-                            return '<span class="badge bg-danger">Belum diassign shift</span>';
-                        }
-                        if ($jam_masuk->status_absen == 'LIBUR') {
-                            return '<span class="badge bg-info">Libur</span>';
-                        }
-
-
-                        $logs_absensi_masuk = $row->Absensi->filter(function ($log) use ($jam_masuk) {
-                            $getcheckIn = Carbon::parse($log->LogTime);
-                            $start = Carbon::parse($jam_masuk->tanggal_masuk . ' ' . $jam_masuk->Shift->jam_min_masuk)->format('Y-m-d H:i:59');
-                            $end = Carbon::parse($jam_masuk->tanggal_masuk . ' ' . $jam_masuk->Shift->jam_terlambat)->addHours(3)->addMinutes(10)->format('Y-m-d H:i:59');
-                            return $getcheckIn->between($start, $end);
-                        });
-                        // return $start . ' - ' . $end;
-                        // return $logs_absensi_masuk . ' - ' . Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('Y-m-d H:i') . ' - ' . Carbon::parse($logs_absensi_masuk->max('LogTime'))->format('Y-m-d H:i');
-                        if ($logs_absensi_masuk->isNotEmpty()) {
-                            $checkIn  = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
-                            if ($checkIn > $jam_masuk->Shift->jam_terlambat) {
-                                $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
+                            if ($cuti_detail) {
+                                $checkIn = 'CUTI';
+                                $checkOut = 'CUTI';
+                                $nama_shift = 'CUTI';
                             } else {
-                                $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
-                            }
-                        } else {
-                            $logs_absensi_masuk = $row->Absensi->filter(function ($log) use ($jam_masuk) {
-                                $getcheckIn = Carbon::parse($log->LogTime);
-                                $start = Carbon::parse($jam_masuk->tanggal_masuk);
-                                return $getcheckIn->toDateString() === $start->toDateString();
-                            });
-                            if ($logs_absensi_masuk->isNotEmpty()) {
-                                $checkIn  = Carbon::parse($logs_absensi_masuk->max('LogTime'))->format('H:i');
-                            } else {
-                                if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
-                                    $checkIn = '';
+                                if ($sakit_detail) {
+                                    $checkIn = 'SAKIT';
+                                    $checkOut = 'SAKIT';
+                                    $nama_shift = 'SAKIT';
+                                    $row->sakit += 1;
                                 } else {
-                                    $checkIn =
-                                        'Tidak Absen';
-                                }
-                            }
-                        }
-
-                        $logs_absensi_pulang = $row->Absensi->filter(function ($log) use ($jam_masuk) {
-                            $getcheckOut = Carbon::parse($log->LogTime);
-                            $start = Carbon::parse($jam_masuk->tanggal_pulang . ' ' . $jam_masuk->Shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
-                            $end = Carbon::parse($jam_masuk->tanggal_pulang . ' ' . $jam_masuk->Shift->jam_keluar)->addHours(5)->format('Y-m-d H:i:59');
-                            return $getcheckOut->between($start, $end);
-                        });
-                        // return $logs_absensi_pulang;
-                        if ($logs_absensi_pulang->isNotEmpty()) {
-                            $checkOut  = Carbon::parse($logs_absensi_pulang->min('LogTime'))->format('H:i');
-                            if (Carbon::parse($jam_masuk->tanggal_pulang)->format('Y-m-d') > $date->format('Y-m-d')) {
-
-                                // $checkOut = $row->Absensi;
-                                if ($checkOut < $jam_masuk->Shift->jam_keluar) {
-                                    $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">(' . $checkOut  . Carbon::parse($jam_masuk->tanggal_pulang)->format('d-m-Y') . ')' . '</span>';
-                                } else {
-                                    $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span> (' . Carbon::parse($jam_masuk->tanggal_pulang)->format('d-m-Y') . ')';
-                                }
-                            } else {
-                                if ($checkOut < $jam_masuk->Shift->jam_keluar) {
-                                    $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
-                                } else {
-                                    $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
+                                    if ($tidak_masuk_detail) {
+                                        $checkIn = 'tidak_masuk';
+                                        $checkOut = 'tidak_masuk';
+                                        $nama_shift = 'tidak_masuk';
+                                        $row->tidak_masuk += 1;
+                                    } else {
+                                        if ($perdin_detail) {
+                                            $checkIn = 'PERDIN';
+                                            $checkOut = 'PERDIN';
+                                            $nama_shift = 'PERDIN';
+                                            $row->perdin += 1;
+                                        } else {
+                                            $checkIn = 'Tidak Presensi';
+                                            $checkOut = 'Tidak Presensi';
+                                            $nama_shift = 'BELUM DITENTUKAN';
+                                        }
+                                    }
                                 }
                             }
                         } else {
-                            $logs_absensi_pulang = $row->Absensi->filter(function ($log) use ($jam_masuk) {
-                                $getcheckOut = Carbon::parse($log->LogTime);
-                                $start = Carbon::parse($jam_masuk->tanggal_pulang);
-                                return $getcheckOut->toDateString() === $start->toDateString();
-                            });
-                            if ($logs_absensi_pulang->isNotEmpty()) {
-                                $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
-                                if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                                    $checkOut = 'Tidak Absen';
-                                }
+                            if ($cuti_detail) {
+                                $checkIn = 'CUTI';
+                                $checkOut = 'CUTI';
+                                $nama_shift = $jam_masuk->Shift->nama_shift;
                             } else {
-                                if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
-                                    $checkOut = '';
+                                // dd($jam_masuk->nama_shift);
+                                if ($sakit_detail) {
+                                    $checkIn = 'SAKIT';
+                                    $checkOut = 'SAKIT';
+                                    $nama_shift = $jam_masuk->Shift->nama_shift;
+                                    $row->sakit += 1;
                                 } else {
-                                    $checkOut = 'Tidak Absen';
+                                    if ($tidak_masuk_detail) {
+                                        $checkIn = 'tidak_masuk';
+                                        $checkOut = 'tidak_masuk';
+                                        $nama_shift = $jam_masuk->Shift->nama_shift;
+                                        $row->tidak_masuk += 1;
+                                    } else {
+                                        if ($jam_masuk->nama_shift == 'LIBUR') {
+                                            $checkIn = 'LIBUR';
+                                            $checkOut = 'LIBUR';
+                                        } else {
+                                            if ($jam_masuk->Shift->tgl_pulang_besok != 1) {
+                                                $log_besok = Carbon::parse($dateStr)->format('Y-m-d');
+                                                $end_date  = Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_terlambat)->addHours(3)->addMinutes(10);
+                                            } else {
+                                                $end_date  = Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_terlambat)->addHours(3)->addMinutes(10);
+                                                $log_besok = Carbon::parse($dateStr)->addDay(1)->format('Y-m-d');
+                                                $logsTodayLembur = $row->_absensiByDate->get($log_besok, collect());
+                                            }
+                                            $start = Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_min_masuk)->format('Y-m-d H:i:59');
+                                            $end = $end_date->format('Y-m-d H:i:59');
+                                            $batas_absensi = Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_min_masuk)->subHours(4)->format('Y-m-d H:i:s');
+                                            $logs_absensi_masuk = $logsToday->filter(function ($log) use ($start, $end) {
+                                                return Carbon::parse($log->LogTime)->between($start, $end);
+                                            });
+                                            // dd($logs_absensi_masuk, $start, $end, $logsToday, $logsTodayLembur);
+                                            if ($logs_absensi_masuk->isNotEmpty()) {
+                                                $checkIn = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i');
+                                                $checkInFullDate = Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('YmdHi');
+
+                                                // dd($log_besok, $checkInFullDate, Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_terlambat)->addMinutes(10)->format('YmdHi'));
+                                                if ($checkInFullDate >  Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_terlambat)->format('YmdHi')) {
+                                                    if ($checkInFullDate <  Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_terlambat)->addMinutes(10)->format('YmdHi')) {
+                                                        $row->telat_ringan += 1;
+                                                    } else {
+                                                        $row->telat_berat += 1;
+                                                    }
+                                                    $checkIn = '<span style="color:rgba(var(--bs-warning-rgb));">' . $checkIn . '</span>';
+                                                } else {
+                                                    $checkIn = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkIn . '</span>';
+                                                    $row->tepat_waktu += 1;
+                                                }
+                                            } else {
+                                                $logs_absensi_masuk_datang_awal = $logsToday->filter(function ($log) use ($batas_absensi, $start) {
+                                                    return Carbon::parse($log->LogTime)->between($batas_absensi, $start);
+                                                });
+                                                // dd($start, $logs_absensi_masuk_datang_awal, $batas_absensi, $logsToday);
+                                                if ($logs_absensi_masuk_datang_awal->isNotEmpty()) {
+                                                    $checkIn = Carbon::parse($logs_absensi_masuk_datang_awal->min('LogTime'))->format('Y-m-d H:i');
+                                                    $row->total_datang_lebih_awal += 1;
+                                                } else {
+                                                    $checkIn = 'Tidak Presensi';
+                                                }
+                                            }
+                                            // dd($checkIn);
+                                            // Pulang
+                                            if ($cek_lembur == true) {
+                                                $detail_lembur = $lembur_detail->first();
+                                                $startPulang = Carbon::parse($detail_lembur->tgl_lembur . ' ' . $detail_lembur->jam_mulai)->format('Y-m-d H:i:59');
+                                                $endPulang = Carbon::parse($detail_lembur->tgl_pulang . ' ' . $detail_lembur->jam_selesai)->addHours(2)->format('Y-m-d H:i:59');
+                                                // dd($detail_lembur, $jam_masuk->tanggal_pulang, $startPulang, $endPulang, $tanggalMasukStr, $tanggalPulangStr);
+                                            } else {
+                                                if ($jam_masuk->Shift->tgl_pulang_besok == 1) {
+                                                    $startPulang = Carbon::parse($jam_masuk->tanggal_pulang . ' ' . $jam_masuk->Shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
+                                                    $endPulang = Carbon::parse($jam_masuk->tanggal_pulang . ' ' . $jam_masuk->Shift->jam_keluar)->addHours(5)->format('Y-m-d H:i:59');
+                                                } else {
+                                                    $startPulang = Carbon::parse($jam_masuk->tanggal_pulang . ' ' . $jam_masuk->Shift->jam_pulang_cepat)->format('Y-m-d H:i:59');
+                                                    $endPulang = Carbon::parse($jam_masuk->tanggal_pulang . ' ' . $jam_masuk->Shift->jam_keluar)->addHours(5)->format('Y-m-d H:i:59');
+                                                }
+                                            }
+                                            // dd($startPulang, $endPulang);
+                                            $tanggalMasukStr = Carbon::parse($startPulang)->format('Y-m-d'); // cth: 2026-09-20
+                                            $tanggalPulangStr = Carbon::parse($startPulang)->format('Y-m-d');
+                                            // Perhatian: jika pulang besoknya, kita harus ambil log harian tanggal pulang
+                                            $logsPulangToday = $row->_absensiByDate->get($tanggalPulangStr, collect());
+
+                                            $logs_absensi_pulang = $logsPulangToday->filter(function ($log) use ($startPulang, $endPulang) {
+                                                return Carbon::parse($log->LogTime)->between($startPulang, $endPulang);
+                                            });
+                                            // dd($logs_absensi_pulang, $startPulang, $endPulang, $logsPulangToday, $tanggalPulangStr);
+                                            if ($logs_absensi_pulang->isNotEmpty()) {
+                                                $checkOut = Carbon::parse($logs_absensi_pulang->min('LogTime'))->format('H:i');
+                                                if ($tanggalPulangStr > $dateStr) {
+                                                    if (Carbon::parse($logs_absensi_pulang->min('LogTime'))->format('YmdHis') < Carbon::parse($dateStr . ' ' . $jam_masuk->Shift->jam_keluar)->format('YmdHis')) {
+                                                        $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">(' . $checkOut . ' ' . Carbon::parse($tanggalPulangStr)->format('d-m-Y') . ')' . '</span>';
+                                                    } else {
+                                                        $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span> (' . Carbon::parse($tanggalPulangStr)->format('d-m-Y') . ')';
+                                                    }
+                                                } else {
+                                                    if ($checkOut < $jam_masuk->Shift->jam_keluar) {
+                                                        $checkOut = '<span style="color:rgba(var(--bs-danger-rgb));">' . $checkOut . '</span>';
+                                                    } else {
+                                                        $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span>';
+                                                    }
+                                                }
+                                            } else {
+                                                $logPulangBesok = $row->_absensiByDate->get(Carbon::parse($tanggalPulangStr)->addDays(1)->format('Y-m-d'), collect());
+                                                // dd($logPulangBesok, $tanggalMasukStr, $tanggalPulangStr);
+                                                $logs_absensi_pulang_besok = $logPulangBesok->filter(function ($log) use ($startPulang, $endPulang) {
+                                                    return Carbon::parse($log->LogTime)->between($startPulang, $endPulang);
+                                                });
+                                                if ($logs_absensi_pulang_besok->isNotEmpty()) {
+                                                    $checkOut = Carbon::parse($logs_absensi_pulang_besok->min('LogTime'))->format('H:i');
+                                                    $checkOut = '<span style="color:rgba(var(--bs-success-rgb));">' . $checkOut . '</span> (' . Carbon::parse($tanggalPulangStr)->format('d-m-Y') . ')';
+                                                } else {
+                                                    $checkOut = 'Tidak Presensi';
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
+                                $nama_shift = $jam_masuk->Shift->nama_shift;
                             }
                         }
-                        $nama_shift = $jam_masuk->Shift->nama_shift;
                     }
-                    if ($checkIn == 'Tidak Absen' && $checkOut == 'Tidak Absen') {
-                        $check_all = '<span style="color:red;">' . 'Tidak Hadir' . '</span>';
-                        return $check_all;
+
+                    // Cek TIDAK HADIR / Libur Calendar / Cuti
+                    if ($checkIn == 'Tidak Presensi' && $checkOut == 'Tidak Presensi') {
+
+                        // Cek kalender (Sangat Ringan berkat pre-fetch)
+                        if (isset($calendars[$dateStr])) {
+                            $calendar = $calendars[$dateStr];
+                            return '<span class="badge bg-label-info">' . $calendar->nama_kegiatan . '</span><br><button class="btn btn-sm btn-warning" id="detail_libur" data-id="' . $calendar->id . '" type="button"><span>Detail</span></button>';
+                        }
+                        $row->tidak_hadir += 1;
+                        return '<span class="badge bg-danger">TIDAK HADIR</span><br><span>(Shift : ' . $nama_shift . ')</span>';
+                    } else if ($checkIn == 'LIBUR' && $checkOut == 'LIBUR') {
+                        $row->libur += 1;
+                        return '<span class="badge bg-info">LIBUR</span><br><span>(Shift : ' . $nama_shift . ')</span>';
+                    } else if ($checkIn == 'CUTI' && $checkOut == 'CUTI') {
+                        $cuti_detail = $row->cutiDetail
+                            ->filter(function ($item) use ($date) {
+                                return $item->status == 1
+                                    && \Carbon\Carbon::parse($item->tgl_cuti)->isSameDay($date);
+                            })
+                            ->first();
+
+                        return '<a href="' . url("report/cetak_form_cuti/" . $row->id . '/' . $cuti_detail->id) . '" target="_blank" class="badge bg-warning">' . $cuti_detail->Cuti->nama_cuti . '</a>';
+                        // return $cuti_detail->id;
+                    } else if ($checkIn == 'SAKIT' && $checkOut == 'SAKIT') {
+                        $sakit_detail = $row->IzinSakitDetail
+                            ->filter(function ($item) use ($date) {
+                                return $item->status == 1
+                                    && \Carbon\Carbon::parse($item->tgl_sakit)->isSameDay($date);
+                            })
+                            ->first();
+
+                        return '<a href="' . url("izin/cetak_form_sakit/" . $sakit_detail->id_sakit . '/' . $row->id) . '" target="_blank" class="badge bg-secondary">SAKIT</a>';
+                        // return $cuti_detail->id;
+                    } else if ($checkIn == 'tidak_masuk' && $checkOut == 'tidak_masuk') {
+                        $tidak_masuk_detail = $row->IzinTidakMasukDetail
+                            ->filter(function ($item) use ($date) {
+                                return $item->status == 1
+                                    && \Carbon\Carbon::parse($item->tgl_tidak_masuk)->isSameDay($date);
+                            })
+                            ->first();
+
+                        return '<a href="' . url("izin/cetak_form_tidak_masuk/" . $tidak_masuk_detail->id_tidak_masuk . '/' . $row->id) . '" target="_blank" class="badge bg-secondary">IZIN TIDAK MASUK</a>';
+                        // return $cuti_detail->id;
+                    } else if ($checkIn == 'tukar_libur' && $checkOut == 'tukar_libur') {
+                        $tukar_libur = $row->IzinLibur
+                            ->filter(function ($item) use ($date) {
+                                return $item->status_libur == 3
+                                    && \Carbon\Carbon::parse($item->tanggal_tukar)->isSameDay($date);
+                            })
+                            ->first();
+
+                        return '<a href="' . url("izin/cetak_form_libur/" . $tukar_libur->id . '/' . $row->id) . '" target="_blank" class="badge bg-info">TUKAR LIBUR</a>';
+                        // return $cuti_detail->id;
+                    } else if ($checkIn == 'Tidak Presensi' && $checkOut != 'Tidak Presensi') {
+                        $row->tidak_presensi_masuk += 1;
+                    } else if ($checkIn != 'Tidak Presensi' && $checkOut == 'Tidak Presensi') {
+                        $row->tidak_presensi_pulang += 1;
+                    } else {
+                        $row->hadir += 1;
                     }
-                    // return $logs_absensi_masuk . ' ' . $logs_absensi_pulang;
-                    return '<span style="white-space:nowrap;">' . $checkIn . '&nbsp;-&nbsp;' . $checkOut . '</span><br><span>(Shift : ' . $nama_shift . ')</span>';
+                    $pulang = $row->IzinPulang()
+                        ->whereDate('created_at', $dateStr)
+                        ->where('status_pulang', 3)
+                        ->first();
+                    if ($pulang && $checkOut != 'Tidak Presensi') {
+                        $izin_pulang = '<br>&nbsp;<a href="' . url("izin/cetak_form_pulang/" . $pulang->id . '/' . $row->id) . '" target="_blank" class="badge my-1 bg-secondary">IZIN PULANG</a>';
+                    } else {
+                        $izin_pulang = "";
+                    }
+                    $terlambat = $row->IzinTerlambat()
+                        ->whereDate('tanggal_terlambat', $dateStr)
+                        ->where('status_terlambat', 3)
+                        ->first();
+                    if ($terlambat) {
+                        $izin_terlambat = '<br>&nbsp;<a href="' . url("izin/cetak_form_terlambat/" . $terlambat->id . '/' . $row->id) . '" target="_blank" class="badge my-1 bg-primary">IZIN TERLAMBAT</a>';
+                    } else {
+                        $izin_terlambat = "";
+                    }
+                    $keluar = $row->IzinKeluar()
+                        ->whereDate('created_at', $dateStr)
+                        ->where('status_keluar', 3)
+                        ->first();
+                    if ($keluar) {
+                        $izin_keluar = '<br>&nbsp;<a href="' . url("izin/cetak_form_keluar/" . $keluar->id . '/' . $row->id) . '" target="_blank" class="badge my-1 bg-success">IZIN KELUAR</a>';
+                    } else {
+                        $izin_keluar = "";
+                    }
+                    $lembur = $row->LemburDetail()
+                        ->whereDate('tgl_lembur', $dateStr)
+                        ->where('status', 1)
+                        ->first();
+                    if ($lembur) {
+                        $lembur_sah = '<br>&nbsp;<a href="' . url("lembur/cetak_form_lembur/" . $lembur->id_lembur . '/' . $row->id) . '" target="_blank" class="badge my-1 bg-success">LEMBUR</a>';
+                    } else {
+                        $lembur_sah = "";
+                    }
+
+                    $perdin = $row->PerdinDetail()
+                        ->whereDate('tgl_perdin', $dateStr)
+                        ->where('status', 1)
+                        ->first();
+                    if ($perdin) {
+                        $perdin_sah = '<br>&nbsp;<a href="' . url("perdin/cetak_form_perdin/" . $perdin->id_perdin . '/' . $row->id) . '" target="_blank" class="badge my-1 bg-primary">PERJALANAN DINAS</a>';
+                    } else {
+                        $perdin_sah = "";
+                    }
+                    $presensi = $row->PresensiFoto()
+                        ->whereDate('jam_presensi', $dateStr)
+                        ->where('status_presensi', 1)
+                        ->first();
+                    if ($presensi) {
+                        $presensi_foto = '<br>&nbsp;<a href="' . url("presensi_foto/cetak_form_presensi/" . $presensi->id . '/' . $row->id) . '" target="_blank" class="badge my-1 bg-primary">PRESENSI FOTO</a>';
+                    } else {
+                        $presensi_foto = "";
+                    }
+                    return '<span style="white-space:nowrap;">' . $checkIn . '&nbsp;-&nbsp;' . $checkOut . '</span>' . $izin_terlambat . '&nbsp;' . $izin_pulang . '&nbsp;' . $izin_keluar . '&nbsp;' . $presensi_foto . '&nbsp;' . $lembur_sah . '&nbsp;' . $perdin_sah . '<br>&nbsp;<span>(Shift&nbsp;: ' . $nama_shift . ')&nbsp;</span>';
                 });
                 $data_tanggal[] = $colName;
             }
-            $column->addColumn('btn_detail', function ($row) use ($holding) {
-                $btn_detail = '<a id="btn_detail" type="button" href="' . url('report_kedisiplinan/detail', ['id' => $row->nomor_identitas_karyawan]) . '/' . $holding->holding_code . '" class="btn btn-sm" target="_blank"><i class="menu-icon tf-icons mdi mdi-database-eye-outline text-primary"></i><span class="text-primary">Detail</span></a>';
+
+            // =========================================================================
+            // KOLOM TAMBAHAN DAN STATISTIK (DIPERCEPAT MENGGUNAKAN $row->_absensiByDate)
+            // =========================================================================
+            $column->addColumn('btn_detail', function ($row) use ($holding, $request) {
+                $btn_detail = '<a id="btn_detail" type="button" href="' . url('report/absensi/kedisiplinan/detail', ['id' => $row->nomor_identitas_karyawan]) . '/' . $holding->holding_code . '/' . $request->start_date . '/' . $request->end_date . '" class="btn btn-sm" target="_blank"><i class="menu-icon tf-icons mdi mdi-database-eye-outline text-primary"></i><span class="text-primary">Detail</span></a>';
                 return $btn_detail;
             });
-            $column->addColumn('departemen', function ($row) use ($now, $now1) {
-                if ($row->Departemen != NULL) {
-                    $departemen = $row->Departemen->nama_departemen;
+            $column->addColumn('nama_karyawan', function ($row) use ($holding) {
+                $nama = $row->name;
+                if ($nama != NULL) {
+                    $nama = $row->name;
+                } else {
+                    $nama = '-';
+                }
+                return $nama;
+            });
+            $column->addColumn('nomor_identitas_karyawan', function ($row) use ($holding) {
+                $nomor = $row->nomor_identitas_karyawan;
+                if ($nomor != NULL) {
+                    $nomor = $row->nomor_identitas_karyawan;
+                } else {
+                    $nomor = '-';
+                }
+                return $nomor;
+            });
+            $column->addColumn('shift', function ($row) use ($holding) {
+                $shift = $row->shift;
+                if ($shift != NULL) {
+                    $shift = $row->shift;
+                } else {
+                    $shift = '-';
+                }
+                return $shift;
+            });
+            $column->addColumn('departemen', function ($row) {
+                $departemen = '<ul>';
+                $printedDepartemen = []; // penanda departemen yang sudah ditampilkan
+
+                if ($row->KaryawanJabatan && $row->KaryawanJabatan->count()) {
+                    foreach ($row->KaryawanJabatan as $data) {
+
+                        $namaDepartemen = $data->Departemen->nama_departemen ?? null;
+
+                        // SKIP jika nama departemen sama dengan sebelumnya / sudah ada
+                        if (!$namaDepartemen || in_array($namaDepartemen, $printedDepartemen)) {
+                            continue;
+                        }
+
+                        $printedDepartemen[] = $namaDepartemen;
+
+                        $main = ($data->main == 1)
+                            ? '<span class="badge bg-label-success ms-1">Utama</span>'
+                            : '';
+                        $strong = ($data->main == 1)
+                            ? 'style="font-weight: bold;"'
+                            : '';
+                        $departemen .= '<li ' . $strong . '>' . e($namaDepartemen) . $main . '</li>';
+                    }
+
+                    $departemen .= '</ul>';
                 } else {
                     $departemen = '-';
                 }
+
                 return $departemen;
             });
-            $column->addColumn('total_datang_lebih_awal', function ($row) use ($period, $non_shift) {
-                if ($row->shift == 'NON SHIFT') {
-                    foreach ($period as $data) {
-                        $logs = $row->Absensi->filter(function ($log) use ($data, $non_shift) {
-                            $logTime = Carbon::parse($log->LogTime);
-                            $start = Carbon::parse($data->format('Y-m-d'))->startOfDay();
-                            $end = Carbon::parse($data->format('Y-m-d'))->setTimeFromTimeString(Carbon::parse($non_shift->jam_min_masuk)->format('H:i:59'));
-                            return $logTime->between($start, $end);
-                        });
-                        // return $logs;
-                        // $row->total_datang_lebih_awal = 0;
-                        if ($logs->isNotEmpty()) {
-                            $row->total_datang_lebih_awal = ($row->total_datang_lebih_awal ?? 0) + 1;
+            $column->addColumn('divisi', function ($row) {
+                $divisi = '<ul>';
+                $last_divisi = []; // penanda divisi yang sudah ditampilkan
+
+                if ($row->KaryawanJabatan && $row->KaryawanJabatan->count()) {
+                    foreach ($row->KaryawanJabatan as $data) {
+
+                        $namaDivisi = $data->Divisi->nama_divisi ?? null;
+
+                        // SKIP jika nama divisi sama dengan sebelumnya / sudah ada
+                        if (!$namaDivisi || in_array($namaDivisi, $last_divisi)) {
+                            continue;
                         }
+
+                        $last_divisi[] = $namaDivisi;
+
+                        $main = ($data->main == 1)
+                            ? '<span class="badge bg-label-success ms-1">Utama</span>'
+                            : '';
+                        $strong = ($data->main == 1)
+                            ? 'style="font-weight: bold;"'
+                            : '';
+                        $divisi .= '<li ' . $strong . '>' . e($namaDivisi) . $main . '</li>';
                     }
+
+                    $divisi .= '</ul>';
                 } else {
-                    $mapping_shift = $row->MappingShift;
-                    foreach ($mapping_shift as $data) {
-                        if ($data->status_absen != 'LIBUR') {
-                            if ($data->Shift != NULL) {
-                                $logs = $row->Absensi->filter(function ($log) use ($data, $non_shift) {
-                                    $logTime = Carbon::parse($log->LogTime);
-                                    $start = Carbon::parse($data->tanggal_masuk)->setTimeFromTimeString(Carbon::parse($data->Shift->jam_min_masuk)->subHours(4)->format('H:i:59'));
-                                    $end = Carbon::parse($data->tanggal_masuk)->setTimeFromTimeString(Carbon::parse($data->Shift->jam_min_masuk)->format('H:i:59'));
-                                    return $logTime->between($start, $end);
-                                });
-                                // return $logs;
-                                if ($logs->isNotEmpty()) {
-                                    $row->total_datang_lebih_awal = ($row->total_datang_lebih_awal ?? 0) + 1;
-                                }
-                            }
-                        }
-                    }
+                    $divisi = '-';
                 }
 
+                return $divisi;
+            });
+            $column->addColumn('jabatan', function ($row) {
+                $jabatan = '<ul>';
+                $last_jabatan = []; // penanda departemen yang sudah ditampilkan
+
+                if ($row->KaryawanJabatan && $row->KaryawanJabatan->count()) {
+                    foreach ($row->KaryawanJabatan as $data) {
+
+                        $namaBagian = $data->Bagian->nama_bagian ?? null;
+                        $namaJabatan = $data->Jabatan->nama_jabatan ?? null;
+
+                        $jabatan_full = $namaJabatan . ' - ' . $namaBagian;
+
+
+                        if (!$jabatan_full || in_array($jabatan_full, $last_jabatan)) {
+                            continue;
+                        }
+
+                        $last_jabatan[] = $jabatan_full;
+
+                        $main = ($data->main == 1)
+                            ? '<span class="badge bg-label-success ms-1">Utama</span>'
+                            : '';
+                        $strong = ($data->main == 1)
+                            ? 'style="font-weight: bold;"'
+                            : '';
+                        $jabatan .= '<li ' . $strong . '>' . e($jabatan_full) . $main . '</li>';
+                    }
+
+                    $jabatan .= '</ul>';
+                } else {
+                    $jabatan = '-';
+                }
+
+                return $jabatan;
+            });
+            $column->addColumn('total_datang_lebih_awal', function ($row) use ($period, $non_shift) {
                 return $row->total_datang_lebih_awal ?? 0;
             });
             $column->addColumn('total_overtime_pulang', function ($row) use ($period, $non_shift) {
@@ -1114,7 +1814,7 @@ class ReportController extends Controller
                     $row->total_overtime_pulang = 0;
                 } else {
                     foreach ($mapping_shift as $data) {
-                        if ($data->status_absen != 'LIBUR') {
+                        if ($data->nama_shift != 'LIBUR') {
                             if ($data->Shift != NULL) {
                                 $jam_pulang = Carbon::parse($data->Shift->jam_keluar)->format('H:i');
                                 // return $jam_pulang;
@@ -1139,117 +1839,13 @@ class ReportController extends Controller
                 return $row->pulang_cepat ?? 0;
             });
             $column->addColumn('total_hadir_tepat_waktu', function ($row) use ($period, $non_shift) {
-                if ($row->shift == 'NON SHIFT') {
-                    foreach ($period as $data) {
-                        $logs = $row->Absensi->filter(function ($log) use ($data, $non_shift) {
-                            $logTime = Carbon::parse($log->LogTime);
-                            $start = Carbon::parse($data->format('Y-m-d'))->setTimeFromTimeString(Carbon::parse($non_shift->jam_min_masuk)->format('H:i:59'));
-                            $end = Carbon::parse($data->format('Y-m-d'))->setTimeFromTimeString(Carbon::parse($non_shift->jam_terlambat)->format('H:i:59'));
-                            return $logTime->between($start, $end);
-                        });
-                        // return $logs;
-                        if ($logs->isNotEmpty()) {
-                            $row->tepat_waktu = ($row->tepat_waktu ?? 0) + 1;
-                        }
-                    }
-                } else {
-                    $mapping_shift = $row->MappingShift;
-                    foreach ($mapping_shift as $data) {
-                        if ($data->status_absen != 'LIBUR') {
-                            if ($data->Shift != NULL) {
-                                $logs = $row->Absensi->filter(function ($log) use ($data, $non_shift) {
-                                    $logTime = Carbon::parse($log->LogTime);
-                                    $start = Carbon::parse($data->tanggal_masuk)->setTimeFromTimeString(Carbon::parse($data->Shift->jam_min_masuk)->format('H:i:59'));
-                                    $end = Carbon::parse($data->tanggal_masuk)->setTimeFromTimeString(Carbon::parse($data->Shift->jam_terlambat)->format('H:i:59'));
-                                    return $logTime->between($start, $end);
-                                });
-                                // return $logs;
-                                if ($logs->isNotEmpty()) {
-                                    $row->tepat_waktu = ($row->tepat_waktu ?? 0) + 1;
-                                }
-                            }
-                        }
-                    }
-                }
-
                 return $row->tepat_waktu ?? 0;
             });
             $column->addColumn('total_hadir_telat_hadir', function ($row) use ($period, $non_shift) {
-                $mapping_shift = $row->MappingShift;
-                if ($row->shift == 'NON SHIFT') {
-                    foreach ($period as $data) {
-                        $plus5  = Carbon::parse($data->format('Y-m-d') . ' ' . $non_shift->jam_terlambat)->format('H:i');
-                        $plus15 = Carbon::parse($data->format('Y-m-d') . ' ' . $non_shift->jam_terlambat)->addMinutes(10)->format('H:i');
-                        $logs = $row->Absensi->filter(function ($log) use ($data) {
-                            return Carbon::parse($log->LogTime)->isSameDay($data->format('Y-m-d'));
-                        });
-                        if ($logs->isNotEmpty()) {
-                            $logtime  = $logs->min('LogTime'); // ambil check-in paling awal
-                            $check_in = Carbon::parse($logtime)->format('H:i');
-                            if ($check_in > $plus5 && $check_in <= $plus15) {
-                                $row->telat_ringan += 1;
-                            }
-                        }
-                    }
-                } else {
-                    foreach ($mapping_shift as $data) {
-                        if ($data->status_absen != 'LIBUR') {
-                            if ($data->Shift != NULL) {
-                                $plus5  = Carbon::parse($data->tanggal_masuk . ' ' . $data->Shift->jam_terlambat)->format('H:i');
-                                $plus15 = Carbon::parse($data->tanggal_masuk . ' ' . $data->Shift->jam_terlambat)->addMinutes(10)->format('H:i');
-                                $logs = $row->Absensi->filter(function ($log) use ($data) {
-                                    return Carbon::parse($log->LogTime)->isSameDay($data->tanggal_masuk);
-                                });
-                                if ($logs->isNotEmpty()) {
-                                    $logtime  = $logs->min('LogTime'); // ambil check-in paling awal
-                                    $check_in = Carbon::parse($logtime)->format('H:i');
-                                    if ($check_in > $plus5 && $check_in <= $plus15) {
-                                        $row->telat_ringan += 1;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+
                 return $row->telat_ringan ?? 0;
             });
             $column->addColumn('total_hadir_telat_hadir1', function ($row) use ($period, $non_shift) {
-                $mapping_shift = $row->MappingShift;
-                if ($row->shift == 'NON SHIFT') {
-                    foreach ($period as $data) {
-                        $plus15 = Carbon::parse($data->format('Y-m-d') . ' ' . $non_shift->jam_terlambat)->addMinutes(10)->format('H:i');
-                        $logs = $row->Absensi->filter(function ($log) use ($data) {
-                            return Carbon::parse($log->LogTime)->isSameDay($data->format('Y-m-d'));
-                        });
-                        if ($logs->isNotEmpty()) {
-                            $logtime  = $logs->min('LogTime'); // ambil check-in paling awal
-                            $check_in = Carbon::parse($logtime)->format('H:i');
-                            if ($check_in > $plus15) {
-                                $row->telat_berat += 1;
-                            }
-                            // return $check_in . ' - ' . $plus5 . ' - ' . $plus15;
-                        }
-                    }
-                } else {
-                    foreach ($mapping_shift as $data) {
-                        if ($data->status_absen != 'LIBUR') {
-                            if ($data->Shift != NULL) {
-                                $plus15 = Carbon::parse($data->tanggal_masuk . ' ' . $data->Shift->jam_terlambat)->addMinutes(10)->format('H:i');
-                                $logs = $row->Absensi->filter(function ($log) use ($data) {
-                                    return Carbon::parse($log->LogTime)->isSameDay($data->tanggal_masuk);
-                                });
-                                if ($logs->isNotEmpty()) {
-                                    $logtime  = $logs->min('LogTime'); // ambil check-in paling awal
-                                    $check_in = Carbon::parse($logtime)->format('H:i');
-                                    if ($check_in > $plus15) {
-                                        $row->telat_berat += 1;
-                                    }
-                                    // return $check_in . ' - ' . $plus5 . ' - ' . $plus15;
-                                }
-                            }
-                        }
-                    }
-                }
                 return $row->telat_berat ?? 0;
             });
             $column->addColumn('total_pulang_cepat', function ($row) use ($period, $non_shift) {
@@ -1274,7 +1870,7 @@ class ReportController extends Controller
                     }
                 } else {
                     foreach ($mapping_shift as $data) {
-                        if ($data->status_absen != 'LIBUR') {
+                        if ($data->nama_shift != 'LIBUR') {
                             if ($data->Shift != NULL) {
                                 $jam_pulang = Carbon::parse($data->Shift->jam_keluar)->format('H:i');
                                 // return $jam_pulang;
@@ -1300,147 +1896,105 @@ class ReportController extends Controller
             });
             $column->addColumn('total_izin_true', function ($row) use ($now, $now1) {
                 // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
-                $total_izin_true = $row->MappingShift
-                    ->filter(function ($shift) {
-                        return $shift->status_absen === 'TIDAK HADIR KERJA'
-                            && ($shift->keterangan_absensi === 'IZIN SAKIT'
-                                || $shift->keterangan_absensi === 'IZIN TIDAK MASUK')
-                            && $shift->keterangan_izin === 'TRUE';
-                    })
-                    ->count();
-                $row->total_izin = $total_izin_true;
-                return $total_izin_true;
+
+                return $row->sakit ?? 0;
             });
             $column->addColumn('total_cuti_true', function ($row) use ($now, $now1) {
-                $total_cuti_true = $row->MappingShift
-                    ->filter(function ($shift) {
-                        return $shift->status_absen === 'TIDAK HADIR KERJA'
-                            && $shift->keterangan_absensi === 'CUTI'
-                            && $shift->keterangan_cuti === 'TRUE';
-                    })
-                    ->count();
 
-                $row->total_cuti = $total_cuti_true;
-                return $total_cuti_true;
+                $cuti_detail = CutiDetail::where('id_karyawan', $row->id)
+                    ->with('Cuti')
+                    ->whereHas('Cuti', function ($query) {
+                        $query->whereNull('kategori_cuti_id');
+                    })
+                    ->whereBetween('tgl_cuti', [$now, $now1])
+                    ->where('status', 1)
+                    ->distinct('tgl_cuti')
+                    ->count();
+                $row->total_cuti = $cuti_detail;
+                return $cuti_detail;
+            });
+            $column->addColumn('total_cuti_non', function ($row) use ($now, $now1) {
+
+                $cuti_detail = CutiDetail::where('id_karyawan', $row->id)
+                    ->with('Cuti')
+                    ->whereHas('Cuti', function ($query) {
+                        $query->whereNotNull('kategori_cuti_id');
+                    })
+                    ->whereBetween('tgl_cuti', [$now, $now1])
+                    ->where('status', 1)
+                    ->distinct('tgl_cuti')
+                    ->count();
+                $row->total_cuti_non = $cuti_detail;
+                return $cuti_detail;
+            });
+            $column->addColumn('total_tidak_masuk', function ($row) use ($now, $now1) {
+                // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
+
+                return $row->tidak_masuk ?? 0;
             });
             $column->addColumn('total_dinas_true', function ($row) use ($now, $now1) {
-                // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
-                $total_dinas_true = $row->MappingShift
-                    ->filter(function ($shift) {
-                        return $shift->status_absen === 'TIDAK HADIR KERJA'
-                            && $shift->keterangan_absensi === 'PENUGASAN'
-                            && $shift->keterangan_dinas === 'TRUE';
-                    })
-                    ->count();
-                $row->total_dinas = $total_dinas_true;
-                return $total_dinas_true;
+                return $row->perdin ?? 0;
             });
             $column->addColumn('tidak_hadir_kerja', function ($row) use ($period, $non_shift) {
-                $tidak_hadir = 0;
-                $today = Carbon::today();
-                if ($row->shift == 'NON SHIFT') {
-                    foreach ($period as $data) {
-                        // Kalau bukan libur & ada shift
-                        if (Carbon::parse($data->format('Y-m-d'))->gt($today)) {
-                            continue;
-                        }
-                        if ($data->dayOfWeek != $non_shift->hari_libur) {
 
-                            // Cek log absensi pada tanggal itu
-                            $logs = $row->Absensi->filter(function ($log) use ($data) {
-                                return Carbon::parse($log->LogTime)
-                                    ->isSameDay($data->format('Y-m-d'));
-                            });
-
-                            // Kalau kosong → tidak hadir
-                            if ($logs->isEmpty()) {
-                                $tidak_hadir++;
-                            }
-                        }
-                    }
-                } else {
-                    foreach ($row->MappingShift as $data) {
-                        // Kalau bukan libur & ada shift
-                        if (Carbon::parse($data->tanggal_masuk)->gt($today)) {
-                            continue;
-                        }
-                        if ($data->status_absen != 'LIBUR' && $data->Shift) {
-
-                            // Cek log absensi pada tanggal itu
-                            $logs = $row->Absensi->filter(function ($log) use ($data) {
-                                return Carbon::parse($log->LogTime)
-                                    ->isSameDay($data->tanggal_masuk);
-                            });
-
-                            // Kalau kosong → tidak hadir
-                            if ($logs->isEmpty()) {
-                                $tidak_hadir++;
-                            }
-                        }
-                    }
-                }
-                $row->tidak_hadir = $tidak_hadir;
-                return $tidak_hadir;
+                return $row->tidak_hadir ?? 0;
+            });
+            $column->addColumn('tidak_presensi_masuk', function ($row) {
+                return $row->tidak_presensi_masuk ?? 0;
+            });
+            $column->addColumn('tidak_presensi_pulang', function ($row) {
+                return $row->tidak_presensi_pulang ?? 0;
+            });
+            $column->addColumn('tukar_libur', function ($row) {
+                return $row->tukar_libur ?? 0;
             });
             $column->addColumn('total_libur', function ($row) use ($period) {
-                $today = Carbon::today();
+                $tukar = $row->tukar_libur ?? 0;
+                $libur = $row->libur ?? 0;
+                $total_libur = $libur + $tukar;
 
-                // ambil hanya libur yang <= hari ini
-                if ($row->shift == 'NON SHIFT') {
-                    $total_libur = collect($period)
-                        ->filter(function ($date) {
-                            // Carbon: 0 = Minggu, 6 = Sabtu
-                            return $date->dayOfWeek === 0; // Minggu
-                        })
-                        ->count();
-                } else {
-                    $total_libur = $row->MappingShift
-                        ->filter(function ($shift) use ($today) {
-                            return $shift->status_absen === 'LIBUR'
-                                && Carbon::parse($shift->tanggal_masuk)->lte($today);
-                        })
-                        ->count();
-                }
-                $row->libur = $total_libur;
-                return $total_libur;
+                return $row->total_libur = $total_libur;
             });
             $column->addColumn('total_hadir', function ($row) {
                 $total_tepat_waktu = $row->tepat_waktu ?? 0;
                 $total_telat_berat = $row->telat_berat ?? 0;
                 $total_datang_lebih_awal = $row->total_datang_lebih_awal ?? 0;
                 $total_telat_ringan = $row->telat_ringan ?? 0;
-                $total_hadir = $total_tepat_waktu + $total_telat_berat + $total_telat_ringan + $total_datang_lebih_awal;
+                $total_tidak_presensi_masuk = $row->tidak_presensi_masuk ?? 0;
+                $total_perdin = $row->perdin ?? 0;
+
+                $total_hadir = $total_tepat_waktu + $total_telat_berat + $total_telat_ringan + $total_datang_lebih_awal + $total_tidak_presensi_masuk + $total_perdin;
                 if ($total_hadir == 0) {
                     $jumlah_hadir = '<h6><span class="badge bg-label-danger">0</span></h6>';
                 } else {
                     $jumlah_hadir = '<h6><span class="badge bg-label-success">' . $total_hadir . '</span></h6>';
                 }
                 $row->total_hadir = $total_hadir;
+                // return $total_tepat_waktu . ' ' . $total_telat_berat . ' ' . $total_telat_ringan . ' ' . $total_datang_lebih_awal . ' ' . $total_tidak_presensi_masuk;
                 return $jumlah_hadir;
             });
-            $column->addColumn('net_hadir_kerja', function ($row) use ($period, $non_shift) {
+            $column->addColumn('total_tidak_hadir', function ($row) use ($period, $non_shift) {
                 // return $row->Absensi;
-                $total_cuti_true = $row->total_cuti ?? 0;
-                $total_izin_true = $row->total_izin ?? 0;
+                $total_cuti_true = ($row->total_cuti ?? 0) + ($row->total_cuti_non ?? 0);
+                $total_izin_true = $row->sakit ?? 0;
                 $total_dinas_true = $row->total_dinas ?? 0;
-                $total_hadir = $row->total_hadir ?? 0;
-                $net_hadir_kerja = $total_hadir + $total_izin_true + $total_dinas_true + $total_cuti_true;
-                if ($total_hadir == 0 && $total_izin_true == 0 && $total_cuti_true == 0 && $total_dinas_true == 0) {
-                    $jumlah_net_hadir_kerja = '<h6><span class="badge bg-label-danger">' . $net_hadir_kerja . '</span></h6>';
-                } else {
-                    $jumlah_net_hadir_kerja = '<h6><span class="badge bg-label-success">' . $net_hadir_kerja . '</span></h6>';
-                }
-                $row->net_hadir_kerja = $net_hadir_kerja;
-                return $jumlah_net_hadir_kerja;
+                $total_libur = $row->total_libur ?? 0;
+                $tidak_hadir = $row->tidak_hadir ?? 0;
+                $tidak_masuk = $row->tidak_masuk ?? 0;
+                $total_tidak_hadir =  $total_izin_true + $total_dinas_true + $total_cuti_true + $total_libur + $tidak_hadir + $tidak_masuk;
+                $jumlah_total_tidak_hadir = '<h6><span class="badge bg-label-danger">' . $total_tidak_hadir . '</span></h6>';
+                $row->total_tidak_hadir = $total_tidak_hadir;
+                return $jumlah_total_tidak_hadir;
             });
             $column->addColumn('total_semua', function ($row) use ($now, $now1) {
                 $today = Carbon::now()->format('Y-m-d');
                 // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
 
-                $total_libur = $row->libur ?? 0;
-                $net_hadir_kerja = $row->net_hadir_kerja ?? 0;
-                $total_tidak_hadir = $row->tidak_hadir ?? 0;
-                $total_semua = ($net_hadir_kerja  + $total_libur  + $total_tidak_hadir);
+                $total_tidak_hadir = $row->total_tidak_hadir ?? 0;
+                // $total_izin = $row->sakit ?? 0;
+                // $tukar = $row->tukar_libur ?? 0;
+                $total_hadir = $row->total_hadir ?? 0;
+                $total_semua = ($total_tidak_hadir  + $total_hadir);
                 if ($total_semua == 0) {
                     $total_semua = '<h6><span class="badge bg-label-danger">0</span></h6>';
                 } else {
@@ -1449,8 +2003,13 @@ class ReportController extends Controller
                 $row->total_semua = $total_semua;
                 return $total_semua;
             });
+
             $rawCols = array_merge([
+                'nama_karyawan',
+                'nomor_identitas_karyawan',
+                'shift',
                 'total_hadir_tepat_waktu',
+                'tukar_libur',
                 'total_libur',
                 'btn_detail',
                 'total_hadir_telat_hadir',
@@ -1458,18 +2017,61 @@ class ReportController extends Controller
                 'total_pulang_cepat',
                 'total_izin_true',
                 'total_cuti_true',
+                'total_cuti_non',
                 'total_dinas_true',
                 'tidak_hadir_kerja',
                 'total_datang_lebih_awal',
                 'total_overtime_pulang',
                 'departemen',
+                'divisi',
+                'jabatan',
+                'total_tidak_masuk',
+                'tidak_presensi_masuk',
+                'tidak_presensi_pulang',
                 'total_hadir',
-                'net_hadir_kerja',
+                'total_tidak_hadir',
                 'total_semua'
             ], $data_tanggal);
-            return $column->rawColumns($rawCols)
-                ->make(true);
+
+            return $column->rawColumns($rawCols)->make(true);
         }
+    }
+    public function cetak_form_cuti($id, $cuti_id)
+    {
+        $cuti_detail = CutiDetail::where('id', $cuti_id)->first();
+        $cuti = Cuti::with('KategoriCuti', 'KaryawanPengganti', 'Atasan1', 'Atasan2')->where('id', $cuti_detail->id_cuti)->first();
+        $jumlah_hari = CutiDetail::where('id_cuti', $cuti->id)->count();
+        $karyawn_jabatan = KaryawanJabatan::with('Departemen', 'Jabatan', 'Divisi', 'Bagian')->where('karyawan_id', $id)->where('is_active', 1)->where('main', 1)->first();
+        $user_karyawan = Karyawan::where('id', $id)->first();
+        $holding = Holding::where('id', $user_karyawan->kontrak_kerja)->first();
+        $data = [
+            'title' => 'domPDF in Laravel 10',
+            'data_cuti' => $cuti,
+            'karyawan_jabatan' => $karyawn_jabatan,
+            'user_karyawan' => $user_karyawan,
+            'holding' => $holding,
+            'jumlah_hari' => $jumlah_hari,
+            // 'logo' => $data['logo'],
+            // 'ttd_user' => $data['ttd_pemohon'],
+            // 'ttd_atasan' => $data['ttd_atasan'],
+            // 'ttd_atasan2' => $data['ttd_atasan2']
+        ];
+        $pdf = PDF::setOptions([
+            'defaultFont' => 'Poppins, sans-serif',
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+            'chroot' => [storage_path('app/public')],
+        ])
+            ->loadView('users/cuti/form_cuti', $data)
+            ->setPaper('letter', 'potrait');
+
+        return $pdf->stream(
+            'FORM_PENGAJUAN_CUTI_' .
+                $user_karyawan->name . '_' .
+                now()->format('Y-m-d_H-i-s') .
+                '.pdf'
+        );
     }
     public function datatable_finger(Request $request, $holding)
     {
@@ -1498,7 +2100,7 @@ class ReportController extends Controller
             ->get();
         $non_shift = Shift::where('nama_shift', 'NON SHIFT')->first();
         $column = DataTables::of($table);
-        // dd($period, $now, $now1);
+        // dd($table);
         foreach ($period as $date) {
             $colName = 'tanggal_' . $date->format('dmY');
             $column->addColumn('tanggal_' . $date->format('dmY'), function ($row) use ($date, $non_shift) {
@@ -1506,8 +2108,9 @@ class ReportController extends Controller
                 if ($row->shift == 'NON SHIFT') {
                     // return $date->toDateString();
                     $jam_masuk = $row->Absensi->whereBetween('LogTime', [$date->toDateString() . ' 00:00:00', $date->toDateString() . ' 23:59:59']);
+                    // dd($jam_masuk);
                     if (!$jam_masuk) {
-                        return '<span class="badge bg-danger">Belum diassign shift</span>';
+                        return '<span class="badge bg-danger">BELUM DITENTUKAN</span>';
                     }
                     if ($non_shift->hari_libur == Carbon::parse($date->toDateString())->dayOfWeek) {
                         return '<span class="badge bg-info">LIBUR</span>';
@@ -1538,7 +2141,7 @@ class ReportController extends Controller
                                 $checkIn = '';
                             } else {
                                 $checkIn =
-                                    'Tidak Absen';
+                                    'Tidak Presensi';
                             }
                         }
                     }
@@ -1565,13 +2168,13 @@ class ReportController extends Controller
                         if ($logs_absensi_pulang->isNotEmpty()) {
                             $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
                             if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         } else {
                             if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
                                 $checkOut = '';
                             } else {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         }
                     }
@@ -1579,12 +2182,20 @@ class ReportController extends Controller
                 } else {
                     $jam_masuk = $row->MappingShift->firstWhere('tanggal_masuk', $date->toDateString());
                     if (!$jam_masuk) {
-                        return '<span class="badge bg-danger">Belum diassign shift</span>';
+                        return '<span class="badge bg-danger">BELUM DITENTUKAN</span>';
                     }
-                    if ($jam_masuk->status_absen == 'LIBUR') {
+                    if ($jam_masuk->status_presensi == 'LIBUR') {
                         return '<span class="badge bg-info">Libur</span>';
                     }
-
+                    if ($jam_masuk->status_presensi == 'CUTI') {
+                        return '<span class="badge bg-info">CUTI</span>';
+                    }
+                    if ($jam_masuk->status_presensi == 'SAKIT') {
+                        return '<span class="badge bg-info">SAKIT</span>';
+                    }
+                    if ($jam_masuk->status_presensi == 'tidak_masuk') {
+                        return '<span class="badge bg-info">IZIN TIDAK MASUK</span>';
+                    }
 
                     $logs_absensi_masuk = $row->Absensi->filter(function ($log) use ($jam_masuk) {
                         $getcheckIn = Carbon::parse($log->LogTime);
@@ -1614,7 +2225,7 @@ class ReportController extends Controller
                                 $checkIn = '';
                             } else {
                                 $checkIn =
-                                    'Tidak Absen';
+                                    'Tidak Presensi';
                             }
                         }
                     }
@@ -1652,24 +2263,24 @@ class ReportController extends Controller
                         if ($logs_absensi_pulang->isNotEmpty()) {
                             $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
                             if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         } else {
                             if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
                                 $checkOut = '';
                             } else {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         }
                     }
                     $nama_shift = $jam_masuk->Shift->nama_shift;
                 }
-                if ($checkIn == 'Tidak Absen' && $checkOut == 'Tidak Absen') {
-                    $check_all = '<span style="color:red;">' . 'Tidak Hadir' . '</span>';
+                if ($checkIn == 'Tidak Presensi' && $checkOut == 'Tidak Presensi') {
+                    $check_all = '<span style="color:red;">' . 'TIDAK HADIR' . '</span>';
                     return $check_all;
                 }
                 // return $logs_absensi_masuk . ' ' . $logs_absensi_pulang;
-                return '<span style="white-space:nowrap;">' . $checkIn . '&nbsp;-&nbsp;' . $checkOut . '</span><br><span>(Shift : ' . $nama_shift . ')</span>';
+                return '<span style="white-space:nowrap;">' . $checkIn . '&nbsp;-&nbsp;' . $checkOut . '</span><br>&nbsp;<span>(Shift : ' . $nama_shift . ')</span>';
             });
             $data_tanggal[] = $colName;
         }
@@ -1717,7 +2328,7 @@ class ReportController extends Controller
                     $jumlah_hadir = '<h6><span class="badge bg-label-danger">0</span></h6>';
                 } else {
                     $jumlah_hadir = $row->MappingShift
-                        ->where('status_absen', '!=', 'LIBUR')
+                        ->where('status_presensi', '!=', 'LIBUR')
                         ->filter(function ($shift) use ($row) {
                             // cek apakah ada absensi di tanggal shift
                             return $row->Absensi->contains(function ($log) use ($shift) {
@@ -1735,28 +2346,13 @@ class ReportController extends Controller
             ->addColumn('name', function ($row) {
                 return $row->name;
             });
-        $column->addColumn('total_tidak_hadir_kerja', function ($row) {
-            if ($row->shift == 'NON SHIFT') {
-                return '<h6><span class="badge bg-label-danger">0</span></h6>';
-            } else {
-                $mapping_shift  = $row->MappingShift
-                    ->where('status_absen', '!=', 'LIBUR');
-                if (!$mapping_shift->first()) {
-                    return '<h6><span class="badge bg-label-danger">0</span></h6>';
-                }
 
-                // hitung tidak hadir
-                $total_tidak_hadir_kerja = $mapping_shift->count() - ($row->jumlah_hadir ?? 0);
-                $row->total_tidak_hadir_kerja = $total_tidak_hadir_kerja;
-                return '<h6><span class="badge bg-label-danger">' . $total_tidak_hadir_kerja . '</span></h6>';
-            }
-        });
-
+        $column->addCoulmn('tidak_presensi_pulang', function ($row) {});
         $column->addColumn('total_cuti', function ($row) use ($now, $now1) {
             // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
             $total_cuti = $row->MappingShift->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'CUTI')
-                ->where('keterangan_absensi_pulang', 'CUTI')
+                ->where('keterangan_presensi', 'CUTI')
+                ->where('keterangan_presensi_pulang', 'CUTI')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'TRUE')
                         ->orWhere('keterangan_cuti', 'True')
@@ -1782,7 +2378,7 @@ class ReportController extends Controller
         $column->addColumn('total_libur', function ($row) use ($now, $now1) {
 
             $total_libur = $row->MappingShift
-                ->where('status_absen', 'LIBUR')->count();
+                ->where('status_presensi', 'LIBUR')->count();
             $row->libur = $total_libur;
             return $total_libur;
         });
@@ -1850,7 +2446,7 @@ class ReportController extends Controller
                     // return $date->toDateString();
                     $jam_masuk = $row->Absensi->whereBetween('LogTime', [$date->toDateString() . ' 00:00:00', $date->toDateString() . ' 23:59:59']);
                     if (!$jam_masuk) {
-                        return '<span class="badge bg-danger">Belum diassign shift</span>';
+                        return '<span class="badge bg-danger">BELUM DITENTUKAN</span>';
                     }
                     if ($non_shift->hari_libur == Carbon::parse($date->toDateString())->dayOfWeek) {
                         return '<span class="badge bg-info">LIBUR</span>';
@@ -1881,7 +2477,7 @@ class ReportController extends Controller
                                 $checkIn = '';
                             } else {
                                 $checkIn =
-                                    'Tidak Absen';
+                                    'Tidak Presensi';
                             }
                         }
                     }
@@ -1908,13 +2504,13 @@ class ReportController extends Controller
                         if ($logs_absensi_pulang->isNotEmpty()) {
                             $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
                             if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         } else {
                             if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
                                 $checkOut = '';
                             } else {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         }
                     }
@@ -1922,9 +2518,9 @@ class ReportController extends Controller
                 } else {
                     $jam_masuk = $row->MappingShift->firstWhere('tanggal_masuk', $date->toDateString());
                     if (!$jam_masuk) {
-                        return '<span class="badge bg-danger">Belum diassign shift</span>';
+                        return '<span class="badge bg-danger">BELUM DITENTUKAN</span>';
                     }
-                    if ($jam_masuk->status_absen == 'LIBUR') {
+                    if ($jam_masuk->status_presensi == 'LIBUR') {
                         return '<span class="badge bg-info">Libur</span>';
                     }
 
@@ -1957,7 +2553,7 @@ class ReportController extends Controller
                                 $checkIn = '';
                             } else {
                                 $checkIn =
-                                    'Tidak Absen';
+                                    'Tidak Presensi';
                             }
                         }
                     }
@@ -1995,20 +2591,20 @@ class ReportController extends Controller
                         if ($logs_absensi_pulang->isNotEmpty()) {
                             $checkOut  = Carbon::parse($logs_absensi_pulang->max('LogTime'))->format('H:i');
                             if ($checkOut == Carbon::parse($logs_absensi_masuk->min('LogTime'))->format('H:i')) {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         } else {
                             if ($date->format('Y-m-d') > Carbon::now()->format('Y-m-d')) {
                                 $checkOut = '';
                             } else {
-                                $checkOut = 'Tidak Absen';
+                                $checkOut = 'Tidak Presensi';
                             }
                         }
                     }
                     $nama_shift = $jam_masuk->Shift->nama_shift;
                 }
-                if ($checkIn == 'Tidak Absen' && $checkOut == 'Tidak Absen') {
-                    $check_all = '<span style="color:red;">' . 'Tidak Hadir' . '</span>';
+                if ($checkIn == 'Tidak Presensi' && $checkOut == 'Tidak Presensi') {
+                    $check_all = '<span style="color:red;">' . 'TIDAK HADIR' . '</span>';
                     return $check_all;
                 }
                 // return $logs_absensi_masuk . ' ' . $logs_absensi_pulang;
@@ -2019,7 +2615,7 @@ class ReportController extends Controller
         $column->addColumn('total_hadir_kerja', function ($row) use ($now, $now1) {
             $mapping_shift = $row->MappingShift;
             foreach ($mapping_shift as $data) {
-                if ($data->status_absen != 'LIBUR') {
+                if ($data->nama_shift != 'LIBUR') {
                     if ($data->Shift != NULL) {
                         $logs_masuk = $row->Absensi->filter(function ($log) use ($data) {
                             $logTime = Carbon::parse($log->LogTime);
@@ -2061,7 +2657,7 @@ class ReportController extends Controller
                         ->orWhere('keterangan_izin', '');
                 });
             foreach ($total_tidak_hadir_kerja as $data) {
-                if ($data->status_absen != 'LIBUR') {
+                if ($data->nama_shift != 'LIBUR') {
                     if ($data->Shift != NULL) {
                         $logs_masuk = $row->Absensi->filter(function ($log) use ($data) {
                             $logTime = Carbon::parse($log->LogTime);
@@ -2086,9 +2682,10 @@ class ReportController extends Controller
             // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
             $total_cuti = MappingShift::where('user_id', $row->id)
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'CUTI')
-                ->where('keterangan_absensi_pulang', 'CUTI')
-                ->where('status_absen', 'TIDAK HADIR KERJA')
+                ->whereNotNull('is_active')
+                ->where('keterangan_presensi', 'CUTI')
+                ->where('keterangan_presensi_pulang', 'CUTI')
+                ->where('status_presensi', 'TIDAK HADIR KERJA')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'TRUE')
                         ->orWhere('keterangan_cuti', 'True')
@@ -2113,9 +2710,10 @@ class ReportController extends Controller
             // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
             $total_izin_sakit = MappingShift::where('user_id', $row->id)
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'IZIN SAKIT')
-                ->where('keterangan_absensi_pulang', 'IZIN SAKIT')
-                ->where('status_absen', 'TIDAK HADIR KERJA')
+                ->whereNotNull('is_active')
+                ->where('keterangan_presensi', 'IZIN SAKIT')
+                ->where('keterangan_presensi_pulang', 'IZIN SAKIT')
+                ->where('status_presensi', 'TIDAK HADIR KERJA')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'FALSE')
                         ->orWhere('keterangan_cuti', 'false')
@@ -2139,9 +2737,10 @@ class ReportController extends Controller
             // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
             $total_izin_lainnya = MappingShift::where('user_id', $row->id)
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'IZIN TIDAK MASUK')
-                ->where('keterangan_absensi_pulang', 'IZIN TIDAK MASUK')
-                ->where('status_absen', 'TIDAK HADIR KERJA')
+                ->whereNotNull('is_active')
+                ->where('keterangan_presensi', 'IZIN TIDAK MASUK')
+                ->where('keterangan_presensi_pulang', 'IZIN TIDAK MASUK')
+                ->where('status_presensi', 'TIDAK HADIR KERJA')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'FALSE')
                         ->orWhere('keterangan_cuti', 'false')
@@ -2165,23 +2764,27 @@ class ReportController extends Controller
         $column->addColumn('total_libur', function ($row) use ($now, $now1) {
             // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
             $total_libur = MappingShift::where('user_id', $row->id)
+                ->whereNotNull('is_active')
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('status_absen', 'LIBUR')->count();
+                ->where('status_presensi', 'LIBUR')->count();
             return $total_libur;
         });
         $column->addColumn('total_semua', function ($row) use ($now, $now1) {
             // $id_karyawan = Karyawan::where('nomor_identitas_karyawan', $row->nomor_identitas_karyawan)->value('id');
             $total_hadir = MappingShift::where('user_id', $row->id)
+                ->whereNotNull('is_active')
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('status_absen', 'HADIR KERJA')->count();
+                ->where('status_presensi', 'HADIR KERJA')->count();
             $total_libur = MappingShift::where('user_id', $row->id)
+                ->whereNotNull('is_active')
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('status_absen', 'LIBUR')->count();
+                ->where('status_presensi', 'LIBUR')->count();
             $total_cuti = MappingShift::where('user_id', $row->id)
+                ->whereNotNull('is_active')
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'CUTI')
-                ->where('keterangan_absensi_pulang', 'CUTI')
-                ->where('status_absen', 'TIDAK HADIR KERJA')
+                ->where('keterangan_presensi', 'CUTI')
+                ->where('keterangan_presensi_pulang', 'CUTI')
+                ->where('status_presensi', 'TIDAK HADIR KERJA')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'TRUE')
                         ->orWhere('keterangan_cuti', 'True')
@@ -2201,10 +2804,11 @@ class ReportController extends Controller
                 })
                 ->count();
             $total_izin_sakit = MappingShift::where('user_id', $row->id)
+                ->whereNotNull('is_active')
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'IZIN SAKIT')
-                ->where('keterangan_absensi_pulang', 'IZIN SAKIT')
-                ->where('status_absen', 'TIDAK HADIR KERJA')
+                ->where('keterangan_presensi', 'IZIN SAKIT')
+                ->where('keterangan_presensi_pulang', 'IZIN SAKIT')
+                ->where('status_presensi', 'TIDAK HADIR KERJA')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'FALSE')
                         ->orWhere('keterangan_cuti', 'false')
@@ -2224,9 +2828,10 @@ class ReportController extends Controller
                 ->count();
             $total_izin_lainnya = MappingShift::where('user_id', $row->id)
                 ->whereBetween('tanggal_masuk', [$now, $now1])
-                ->where('keterangan_absensi', 'IZIN TIDAK MASUK')
-                ->where('keterangan_absensi_pulang', 'IZIN TIDAK MASUK')
-                ->where('status_absen', 'TIDAK HADIR KERJA')
+                ->whereNotNull('is_active')
+                ->where('keterangan_presensi', 'IZIN TIDAK MASUK')
+                ->where('keterangan_presensi_pulang', 'IZIN TIDAK MASUK')
+                ->where('status_presensi', 'TIDAK HADIR KERJA')
                 ->where(function ($query) {
                     $query->where('keterangan_cuti', 'FALSE')
                         ->orWhere('keterangan_cuti', 'false')
@@ -2247,9 +2852,10 @@ class ReportController extends Controller
                 ->count();
             $total_tidak_hadir = MappingShift::where('user_id', $row->id)
                 ->whereBetween('tanggal_masuk', [$now, $now1])
+                ->whereNotNull('is_active')
                 ->where(function ($query) {
-                    $query->where('status_absen', 'TIDAK HADIR KERJA')
-                        ->orWhere('status_absen', NULL);
+                    $query->where('status_presensi', 'TIDAK HADIR KERJA')
+                        ->orWhere('status_presensi', NULL);
                 })
                 ->where(function ($query) {
                     $query->where('keterangan_dinas', 'FALSE')
@@ -2392,6 +2998,7 @@ class ReportController extends Controller
         $period = CarbonPeriod::create($start_date, $end_date);
         $query = MappingShift::with(['Shift', 'User'])
             ->whereBetween('tanggal_masuk', [$start_date, $end_date])
+            ->whereNotNull('is_active')
             ->whereHas('User', function ($q) use ($holding, $request) {
                 $q->where('kontrak_kerja', $holding);
 
@@ -2428,7 +3035,7 @@ class ReportController extends Controller
         }
         // dd($baseQuery);
         foreach ($baseQuery as $shiftData) {
-            if ($shiftData->status_absen == 'LIBUR' || !$shiftData->Shift) continue;
+            if ($shiftData->status_presensi == 'LIBUR' || !$shiftData->Shift) continue;
             $tanggal = Carbon::parse($shiftData->tanggal_masuk)->format('Y-m-d');
             $timeplus5 = Carbon::parse($shiftData->Shift->jam_masuk)->addMinutes(6);
             // dd($start_hours);
@@ -2451,8 +3058,8 @@ class ReportController extends Controller
                     $data_absensi_masuk_telat[$tanggal]++;
                 }
             } else {
-                if ($shiftData->status_absen == 'TIDAK HADIR KERJA') {
-                    if ($shiftData->keterangan_absensi == 'CUTI' && $shiftData->keterangan_cuti == 'TRUE') {
+                if ($shiftData->status_presensi == 'TIDAK HADIR KERJA') {
+                    if ($shiftData->keterangan_presensi == 'CUTI' && $shiftData->keterangan_cuti == 'TRUE') {
                         $data_absensi_masuk_cuti[$tanggal]++;
                     } else {
                         if ($shiftData->tanggal_masuk > date('Y-m-d')) {
@@ -2519,7 +3126,7 @@ class ReportController extends Controller
         }
         // dd($baseQuery);
         foreach ($baseQuery as $shiftData) {
-            if ($shiftData->status_absen == 'LIBUR' || !$shiftData->Shift) continue;
+            if ($shiftData->status_presensi == 'LIBUR' || !$shiftData->Shift) continue;
             $tanggal = Carbon::parse($shiftData->tanggal_masuk)->format('Y-m-d');
             $timeplus5 = Carbon::parse($shiftData->Shift->jam_masuk)->addMinutes(6);
             // dd($start_hours);
@@ -2542,8 +3149,8 @@ class ReportController extends Controller
                     $data_absensi_masuk_telat[$tanggal]++;
                 }
             } else {
-                if ($shiftData->status_absen == 'TIDAK HADIR KERJA') {
-                    if ($shiftData->keterangan_absensi == 'CUTI' && $shiftData->keterangan_cuti == 'TRUE') {
+                if ($shiftData->status_presensi == 'TIDAK HADIR KERJA') {
+                    if ($shiftData->keterangan_presensi == 'CUTI' && $shiftData->keterangan_cuti == 'TRUE') {
                         $data_absensi_masuk_cuti[$tanggal]++;
                     } else {
                         if ($shiftData->tanggal_masuk > date('Y-m-d')) {

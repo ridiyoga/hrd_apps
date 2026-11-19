@@ -22,7 +22,7 @@
                                     <table class="mt-2">
                                         <tr>
                                             <th>Jumlah Soal</th>
-                                            <th>: {{ $ujian->detailEsai->count() }} Soal</th>
+                                            <th>: {{ $esaiDetailjawab->count() }} Soal</th>
                                         </tr>
                                         <tr>
                                             <th>Waktu Ujian</th>
@@ -71,6 +71,7 @@
                                         <div class="col-lg">
                                             <form action={{ route('penilaian_esai') }} method="POST">
                                                 @csrf
+                                                <input type="hidden" id="menu_id_add" name="menu_id">
                                                 <input class="form-control" type="number" name="nilai" id=""
                                                     value="{{ $ujianEsaiJawab == null ? '0' : $ujianEsaiJawab->nilai }}">
                                                 <input class="form-control" type="hidden" name="recruitment_user_id"
@@ -102,6 +103,9 @@
     <script src="{{ asset('/assets/ew/js/examwizard.js') }}"></script>
 
     <script>
+        var menu_id = $('#asoy').val();
+        // console.log(menu_id);
+        $('#menu_id_add').val(menu_id);
         var examWizard = $.fn.examWizard({
             finishOption: {
                 enableModal: !0

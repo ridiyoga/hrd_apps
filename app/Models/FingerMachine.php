@@ -11,8 +11,10 @@ class FingerMachine extends Model
     use HasFactory, UuidTrait;
     public $incrementing = false;
     protected $table = 'fingerprint_machines';
-    protected $guarded = ['Id'];
+    protected $primaryKey = 'Id';
+    protected $keyType = 'string';
     protected $fillable = [
+        'Id',
         'Name',
         'Ip',
         'Port',

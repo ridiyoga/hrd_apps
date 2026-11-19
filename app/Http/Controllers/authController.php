@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Karyawan;
+use App\Models\Menu;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,12 @@ class authController extends Controller
             } else if (Auth::user()->is_admin == 'hrd') {
                 return Redirect::route('dashboard_holding');
             } else {
-                return Redirect::route('home');
+                if (Auth::user()->menu_active == null) {
+                    $menu = Menu::where('url', 'home')->where('kategori', 'mobile')->where('main', 2)->where('is_active', 1)->first();
+                } else {
+                    $menu = Menu::where('id', Auth::user()->menu_active)->first();
+                }
+                return Redirect('/' . $menu->url . '/' . $menu->id);
             }
         }
     }
@@ -107,7 +113,7 @@ class authController extends Controller
 
         // 6. Validasi dan Redireksi untuk Role 'user'
         if ($authUser->is_admin === 'user') {
-            $karyawan = Karyawan::find($authUser->karyawan_id);
+            $karyawan = Karyawan::where('nomor_identitas_karyawan', $authUser->karyawan_id)->first();
 
             if (!$karyawan || $karyawan->status_aktif === 'NON AKTIF') {
                 Auth::logout();
@@ -136,10 +142,14 @@ class authController extends Controller
 
     public function logout(Request $request)
     {
+        $authUser = Auth::guard('web');
+        if ($authUser->user()->menu_active != null) {
+            User::where('id', $authUser->user()->id)->update(['menu_active' => NULL]);
+        }
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        $request->session()->flash('logout_success');
+        $request->session()->flash('logout_success', 'Logout Berhasil');
         return redirect('/');
     }
 }

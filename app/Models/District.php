@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class District extends Model
 {
-    use HasFactory;
-    protected $table = 'indonesia_districts';
-    protected $guarded = ['id'];
-    protected $fillable = ['code', 'city_code', 'name', 'meta'];
+    // use HasFactory;
+    protected $table = 'master_kecamatan';
+    protected $fillable = ['code', 'city_code', 'name', 'created_at', 'updated_at'];
 }

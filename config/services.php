@@ -34,5 +34,10 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'mekari' => [
+        'client_id' => env('MEKARI_CLIENT_ID'),
+        'client_secret' => env('MEKARI_CLIENT_SECRET'),
+        'base_url' => env('MEKARI_BASE_URL'),
+    ],
 
 ];

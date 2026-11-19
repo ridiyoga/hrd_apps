@@ -15,7 +15,10 @@ class Divisi extends Model
     protected $guarded = ['id'];
     protected $fillable = ['id', 'holding', 'nama_divisi', 'dept_id', 'created_at', 'updated_at'];
 
-
+    public function Holding(): BelongsTo
+    {
+        return $this->belongsTo(Holding::class, 'holding', 'id');
+    }
     public function Departemen(): BelongsTo
     {
         return $this->belongsTo(Departemen::class, 'dept_id', 'id');

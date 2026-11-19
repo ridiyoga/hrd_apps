@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class InterviewAdmin extends Model
 {
     use HasFactory, UuidTrait;
+    protected $keyType = 'string';
     protected $table = 'interview_admin';
     public $incrementing = false;
 

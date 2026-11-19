@@ -53,6 +53,8 @@ return [
     */
 
     'url' => env('APP_URL', 'http://localhost'),
+    'url_karir' => env('APP_URL_KARIR', 'https://karir.sumberpangan.store'),
+
 
     /*
     |--------------------------------------------------------------------------

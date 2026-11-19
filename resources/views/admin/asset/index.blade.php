@@ -333,7 +333,11 @@
                 window.location.assign(url);
             },
             error: function(data) {
-                console.log('error:', data)
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: data.responseJSON.message,
+                })
             },
 
         })
@@ -341,7 +345,7 @@
     $('#foto_inventaris').change(function() {
 
         let reader = new FileReader();
-        console.log(reader);
+        // console.log(reader);
         reader.onload = (e) => {
 
             $('#template_foto_inventaris').attr('src', e.target.result);
@@ -369,7 +373,11 @@
                 window.location.assign(url);
             },
             error: function(data) {
-                console.log('error:', data)
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: data.responseJSON.message,
+                })
             },
 
         })
@@ -383,7 +391,7 @@
     $(document).on('click', '#btn_delete_karyawan', function() {
         var id = $(this).data('id');
         let holding = $(this).data("holding");
-        console.log(id);
+        // console.log(id);
         Swal.fire({
             title: 'Apakah kamu yakin?',
             text: "Kamu tidak dapat mengembalikan data ini",

@@ -42,7 +42,7 @@
     <h2>DETAIL CV</h2>
     <img src="{{ url_karir() . '/storage/file_pp/' . $data_cv->AuthLogin->recruitmentCV->file_pp }}"
         style="max-height: 400px; max-width: 340px;">
-    <div class="fw-bold py-3">Email : {{ $data_cv->AuthLogin->email }}</div>
+    <div class="fw-bold py-3">Email : {{ $data_cv->AuthLogin->email ?? '-' }}</div>
     <div class="table table-striped">
         <table border="1" class="table" id="table_pelamar3" style="width: 100%; font-size: small;">
             <tbody class="table-primary">
@@ -57,19 +57,19 @@
                 <tr>
                     <td class="fw-bold"><small>NAMA LENGKAP</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->nama_lengkap }}</td>
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->nama_lengkap ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>TEMPAT, TANGGAL LAHIR</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->tempat_lahir }},
-                        {{ $data_cv->AuthLogin->recruitmentCV->tanggal_lahir }}
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->tempat_lahir ?? '-' }},
+                        {{ $data_cv->AuthLogin->recruitmentCV->tanggal_lahir ?? '-' }}
                     </td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>NIK</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->nik }}</td>
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->nik ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>AGAMA</small></td>
@@ -120,13 +120,13 @@
                     <td class="fw-bold"><small>JUMLAH ANAK</small></td>
                     <td>:</td>
                     <td>
-                        {{ $data_cv->AuthLogin->recruitmentCV->jumlah_anak }}
+                        {{ $data_cv->AuthLogin->recruitmentCV->jumlah_anak ?? '-' }}
                     </td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>HOBI</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->hobi }}</td>
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->hobi ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>KTP</small></td>
@@ -150,15 +150,15 @@
                     <td class="fw-bold"><small>ALAMAT SESUAI KTP</small></td>
                     <td>:</td>
                     <td>
-                        {{ $data_cv->AuthLogin->recruitmentCV->nama_jalan_ktp }},
-                        RT {{ $data_cv->AuthLogin->recruitmentCV->rt_ktp }},
-                        RW {{ $data_cv->AuthLogin->recruitmentCV->rw_ktp }},
-                        {{ $data_cv->AuthLogin->recruitmentCV->desaKTP->name }},
-                        {{ $data_cv->AuthLogin->recruitmentCV->kecamatanKTP->name }},
-                        {{ $data_cv->AuthLogin->recruitmentCV->kabupatenKTP->name }},
-                        {{ $data_cv->AuthLogin->recruitmentCV->provinsiKTP->name }},
+                        {{ $data_cv->AuthLogin->recruitmentCV->nama_jalan_ktp ?? '-' }},
+                        RT {{ $data_cv->AuthLogin->recruitmentCV->rt_ktp ?? '-' }},
+                        RW {{ $data_cv->AuthLogin->recruitmentCV->rw_ktp ?? '-' }},
+                        {{ $data_cv->AuthLogin->recruitmentCV->desaKTP->name ?? '-' }},
+                        {{ $data_cv->AuthLogin->recruitmentCV->kecamatanKTP->name ?? '-' }},
+                        {{ $data_cv->AuthLogin->recruitmentCV->kabupatenKTP->name ?? '-' }},
+                        {{ $data_cv->AuthLogin->recruitmentCV->provinsiKTP->name ?? '-' }},
                         KODE POS :
-                        {{ $data_cv->AuthLogin->recruitmentCV->kode_pos_ktp }}
+                        {{ $data_cv->AuthLogin->recruitmentCV->kode_pos_ktp ?? '-' }}
 
                     </td>
                 </tr>
@@ -167,25 +167,25 @@
                     <td>:</td>
                     <td>
                         @if ($data_cv->AuthLogin->recruitmentCV->alamat_sekarang == 'sama')
-                            {{ $data_cv->AuthLogin->recruitmentCV->nama_jalan_ktp }},
-                            RT {{ $data_cv->AuthLogin->recruitmentCV->rt_ktp }},
-                            RW {{ $data_cv->AuthLogin->recruitmentCV->rw_ktp }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->desaKTP->name }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->kecamatanKTP->name }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->kabupatenKTP->name }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->provinsiKTP->name }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->nama_jalan_ktp ?? '-' }},
+                            RT {{ $data_cv->AuthLogin->recruitmentCV->rt_ktp ?? '-' }},
+                            RW {{ $data_cv->AuthLogin->recruitmentCV->rw_ktp ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->desaKTP->name ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->kecamatanKTP->name ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->kabupatenKTP->name ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->provinsiKTP->name ?? '-' }},
                             KODE POS :
-                            {{ $data_cv->AuthLogin->recruitmentCV->kode_pos_ktp }}
+                            {{ $data_cv->AuthLogin->recruitmentCV->kode_pos_ktp ?? '-' }}
                         @else
-                            {{ $data_cv->AuthLogin->recruitmentCV->nama_jalan_now }},
-                            RT {{ $data_cv->AuthLogin->recruitmentCV->rt_now }},
-                            RW {{ $data_cv->AuthLogin->recruitmentCV->rw_now }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->desaNOW->name }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->kecamatanNOW->name }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->kabupatenNOW->name }},
-                            {{ $data_cv->AuthLogin->recruitmentCV->provinsiNOW->name }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->nama_jalan_now ?? '-' }},
+                            RT {{ $data_cv->AuthLogin->recruitmentCV->rt_now ?? '-' }},
+                            RW {{ $data_cv->AuthLogin->recruitmentCV->rw_now ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->desaNOW->name ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->kecamatanNOW->name ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->kabupatenNOW->name ?? '-' }},
+                            {{ $data_cv->AuthLogin->recruitmentCV->provinsiNOW->name ?? '-' }},
                             KODE POS :
-                            {{ $data_cv->AuthLogin->recruitmentCV->kode_pos_now }}
+                            {{ $data_cv->AuthLogin->recruitmentCV->kode_pos_now ?? '-' }}
                         @endif
                     </td>
                 </tr>
@@ -201,17 +201,17 @@
                 <tr>
                     <td class="fw-bold"><small>NOMOR WHATSAPP</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->nomor_whatsapp }}</td>
+                    <td>{{ $data_cv->AuthLogin->nomor_whatsapp ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>LAMA NOMOR INI DIGUNAKAN</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->lama_nomor_whatsapp }}
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->lama_nomor_whatsapp ?? '-' }}
                         TAHUN
                         @if ($data_cv->AuthLogin->recruitmentCV->lama_nomor_bulan == null)
                             -
                         @else
-                            {{ $data_cv->AuthLogin->recruitmentCV->lama_nomor_bulan }}
+                            {{ $data_cv->AuthLogin->recruitmentCV->lama_nomor_bulan ?? '-' }}
                             BULAN
                         @endif
 
@@ -220,13 +220,13 @@
                 <tr>
                     <td class="fw-bold"><small>KONTAK DARURAT</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->nomor_whatsapp_darurat }}
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->nomor_whatsapp_darurat ?? '-' }}
                     </td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>PEMILIK KONTAK DARURAT</small></td>
                     <td>:</td>
-                    <td>{{ $data_cv->AuthLogin->recruitmentCV->pemilik_nomor_whatsapp }}
+                    <td>{{ $data_cv->AuthLogin->recruitmentCV->pemilik_nomor_whatsapp ?? '-' }}
                     </td>
                 </tr>
             </tbody>
@@ -310,7 +310,7 @@
                 <td class="fw-bold"><small>JENIS PHOBIA</small></td>
                 <td>:</td>
                 <td>
-                    {{ $kesehatan->sebutkan_phobia }}
+                    {{ $kesehatan->sebutkan_phobia ?? '-' }}
                 </td>
             </tr>
             <tr>
@@ -328,7 +328,7 @@
                 <td class="fw-bold"><small>KATEGORI KETERBATASAN FISIK</small></td>
                 <td>:</td>
                 <td>
-                    {{ $kesehatan->sebutkan_keterbatasan_fisik }}
+                    {{ $kesehatan->sebutkan_keterbatasan_fisik ?? '-' }}
                 </td>
             </tr>
             <tr>
@@ -361,14 +361,14 @@
                 @endphp
                 @foreach ($kesehatan_pengobatan as $rr)
                     <tr>
-                        <td class="fw-bold"><small>{{ $n++ }}. JENIS
+                        <td class="fw-bold"><small>{{ $n++ ?? '-' }}. JENIS
                                 OBAT</small>
                         </td>
                         <td>:</td>
-                        <td>{{ $rr->jenis_obat }}</td>
+                        <td>{{ $rr->jenis_obat ?? '-' }}</td>
                         <td class="fw-bold"><small>ALASAN</small></td>
                         <td>:</td>
-                        <td>{{ $rr->alasan_obat }}</td>
+                        <td>{{ $rr->alasan_obat ?? '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -492,7 +492,7 @@
                 <td class="fw-bold"><small>SEBUTKAN GANGGUAN</small></td>
                 <td>:</td>
                 <td>
-                    {{ $kesehatan->sebutkan_gangguan }}
+                    {{ $kesehatan->sebutkan_gangguan ?? '-' }}
                 </td>
             </tr>
         </tbody>
@@ -538,13 +538,13 @@
                 @endphp
                 @foreach ($kesehatan_rs as $rr)
                     <tr>
-                        <td class="fw-bold"><small>{{ $k++ }}. TAHUN</small>
+                        <td class="fw-bold"><small>{{ $k++ ?? '-' }}. TAHUN</small>
                         </td>
                         <td>:</td>
-                        <td>{{ $rr->tahun_rs }}</td>
+                        <td>{{ $rr->tahun_rs ?? '-' }}</td>
                         <td class="fw-bold"><small>PENYEBAB</small></td>
                         <td>:</td>
-                        <td>{{ $rr->penyebab_rs }}</td>
+                        <td>{{ $rr->penyebab_rs ?? '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -592,13 +592,13 @@
                 @endphp
                 @foreach ($kesehatan_kecelakaan as $rr)
                     <tr>
-                        <td class="fw-bold"><small>{{ $l++ }}. TAHUN</small>
+                        <td class="fw-bold"><small>{{ $l++ ?? '-' }}. TAHUN</small>
                         </td>
                         <td>:</td>
-                        <td>{{ $rr->tahun_kecelakaan }}</td>
+                        <td>{{ $rr->tahun_kecelakaan ?? '-' }}</td>
                         <td class="fw-bold"><small>PENYEBAB</small></td>
                         <td>:</td>
-                        <td>{{ $rr->penyebab_kecelakaan }}</td>
+                        <td>{{ $rr->penyebab_kecelakaan ?? '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -653,7 +653,7 @@
                 <td class="fw-bold"><small>SEBUTKAN</small></td>
                 <td>:</td>
                 <td>
-                    {{ $kesehatan->sebutkan_vaksin_lainnya }}
+                    {{ $kesehatan->sebutkan_vaksin_lainnya ?? '-' }}
                 </td>
             </tr>
         </tbody>
@@ -729,7 +729,7 @@
             <tr>
                 <td class="fw-bold"><small>IPK</small></td>
                 <td>:</td>
-                <td>{{ $data_cv->AuthLogin->recruitmentCV->ipk }}
+                <td>{{ $data_cv->AuthLogin->recruitmentCV->ipk ?? '-' }}
                 </td>
             </tr>
             <tr>
@@ -748,7 +748,7 @@
         @foreach ($pendidikan as $pp)
             <tbody class="table-primary">
                 <tr>
-                    <th class="fw-bold">RIWAYAT PENDIDIKAN ({{ $i++ }})</th>
+                    <th class="fw-bold">RIWAYAT PENDIDIKAN ({{ $i++ ?? '-' }})</th>
                     <th class="fw-bold"></th>
                     <th class="fw-bold"></th>
                 </tr>
@@ -758,25 +758,153 @@
                 <tr>
                     <td class="fw-bold"><small>NAMA INSTITUSI</small></td>
                     <td>:</td>
-                    <td>{{ $pp->institusi }}</td>
+                    <td>{{ $pp->institusi ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>JURUSAN</small></td>
                     <td>:</td>
-                    <td>{{ $pp->jurusan }}</td>
+                    <td>{{ $pp->jurusan ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>JENJANG</small></td>
                     <td>:</td>
-                    <td>{{ $pp->jenjang }}</td>
+                    <td>{{ $pp->jenjang ?? '-' }}</td>
                 </tr>
                 <tr>
                     <td class="fw-bold"><small>PERIODE</small></td>
                     <td>:</td>
-                    <td>{{ $pp->tanggal_masuk }} - {{ $pp->tanggal_keluar }}</td>
+                    <td>{{ $pp->tanggal_masuk ?? '-' }} - {{ $pp->tanggal_keluar ?? '-' }}</td>
                 </tr>
             </tbody>
         @endforeach
+    </table>
+
+    <h2>RIWAYAT PEKERJAAN</h2>
+    <table class="table" id="table_pelamar3" style="width: 100%; font-size: small;">
+        <thead class="table-primary">
+            <tr>
+                <th class="fw-bold">BACKGROUND CHECK</th>
+                <th class="fw-bold"></th>
+                <th class="fw-bold"></th>
+            </tr>
+
+        </thead>
+        <tbody class="table-border-bottom-0">
+            <tr>
+                <td class="fw-bold"><small>BERSEDIA DILAKUKAN BACKGROUND
+                        CHECK?</small>
+                </td>
+                <td>:</td>
+                <td>
+                    @if ($data_cv->AuthLogin->recruitmentCV->persetujuan == '1')
+                        SETUJU
+                    @else
+                        TIDAK SETUJU
+                    @endif
+                </td>
+            </tr>
+        </tbody>
+
+
+        @if ($pekerjaan_count == 0)
+            <thead class="table-primary">
+                <tr>
+                    <th class="fw-bold">RIWAYAT PEKERJAAN
+                    </th>
+                    <th class="fw-bold"></th>
+                    <th class="fw-bold"></th>
+                </tr>
+
+            </thead>
+            <tbody class="table-border-bottom-0">
+                <tr>
+                    <td colspan="3" class="fw-bold" style="text-align: center">
+                        <small>PELAMAR
+                            TIDAK MEMASUKKAN
+                            RIWAYAT PEKERJAAN</small>
+                    </td>
+                </tr>
+            </tbody>
+        @else
+            @php
+                $j = 1;
+            @endphp
+            @foreach ($pekerjaan as $rr)
+                <thead class="table-primary">
+                    <tr>
+                        <th class="fw-bold">RIWAYAT PEKERJAAN ({{ $j++ }})
+                        </th>
+                        <th class="fw-bold"></th>
+                        <th class="fw-bold"></th>
+                    </tr>
+
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    <tr>
+                        <td class="fw-bold"><small>PERUSAHAAN</small></td>
+                        <td>:</td>
+                        <td>{{ $rr->nama_perusahaan ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>ALAMAT PERUSAHAAN</small></td>
+                        <td>:</td>
+                        <td>{{ $rr->alamat_perusahaan ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>POSISI</small></td>
+                        <td>:</td>
+                        <td>{{ $rr->posisi ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>GAJI TERAKHIR</small></td>
+                        <td>:</td>
+                        <td>{{ rupiah($rr->gaji) ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>TANGGAL MASUK</small></td>
+                        <td>:</td>
+                        <td>{{ Carbon\Carbon::parse($rr->tanggal_masuk)->format('d M Y') ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>TANGGAL KELUAR</small></td>
+                        <td>:</td>
+                        <td>{{ Carbon\Carbon::parse($rr->tanggal_keluar)->format('d M Y') ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>SURAT KETERANGAN</small></td>
+                        <td>:</td>
+                        <td>
+                            @if ($rr->surat_keterangan == null)
+                                -
+                            @else
+                                <a href="{{ url_karir() . '/storage/surat_keterangan/' . $rr->surat_keterangan }}"
+                                    type="button" class="btn btn-sm btn-info" target="_blank">
+                                    <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                    LIHAT SURAT KETERANGAN
+                                </a>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>ALASAN KELUAR</small></td>
+                        <td>:</td>
+                        <td>{{ $rr->alasan_keluar ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>KONTAK REFERENSI</small></td>
+                        <td>:</td>
+                        <td>{{ $rr->nomor_referensi ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold"><small>JABATAN REFERENSI</small></td>
+                        <td>:</td>
+                        <td>{{ $rr->jabatan_referensi ?? '-' }}</td>
+                    </tr>
+                </tbody>
+            @endforeach
+        @endif
     </table>
     <h2>KEAHLIAN</h2>
     <table class="table" id="table_pelamar3" style="width: 100%; font-size: small;">
@@ -804,8 +932,8 @@
                 @endphp
                 @foreach ($keahlian as $kk)
                     <tr>
-                        <td class="fw-bold"><small>{{ $k++ }}</small></td>
-                        <td class="fw-bold"><small>{{ $kk->keahlian }}</small></td>
+                        <td class="fw-bold"><small>{{ $k++ ?? '-' }}</small></td>
+                        <td class="fw-bold"><small>{{ $kk->keahlian ?? '-' }}</small></td>
                         <td class="fw-bold">
                             @if ($kk->file_keahlian != null)
                                 <a href="{{ url_karir() . '/storage/file_keahlian/' . $kk->file_keahlian }}"

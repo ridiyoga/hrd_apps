@@ -9,7 +9,8 @@ class UjianEsaiJawabDetail extends Model
 {
     use HasFactory;
     protected $table = 'ujian_esai_detail_jawab';
-    public $incrementing = false;
+    public $incrementing = true;
+    protected $keyType = 'int';
     public $timestamps = false;
     protected $guarded = ['id'];
     protected $fillable = [

@@ -10,6 +10,7 @@ use App\Models\RoleUsers;
 use Illuminate\Support\Facades\Auth;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Yajra\DataTables\Facades\DataTables;
 
 class ShiftController extends Controller
@@ -23,16 +24,26 @@ class ShiftController extends Controller
     {
         $holding = Holding::where('holding_code', $holding)->first();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         $roleId = Auth::user();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
@@ -121,47 +132,62 @@ class ShiftController extends Controller
      */
     public function store(Request $request)
     {
+        // return response()->json($request->all());
+        // dd($request->all);
         $holding = Holding::where('holding_code', $request->holding)->first();
-        try {
-            $validatedData = $request->validate([
+        $validator = Validator::make(
+            $request->all(),
+            [
                 'nama_shift' => 'required|max:255',
                 'jam_min_masuk' => 'required',
                 'jam_masuk' => 'required',
                 'jam_keluar' => 'required',
                 'jam_terlambat' => 'required',
                 'jam_pulang_cepat' => 'required'
-            ], [
-                'nama_shift.required' => 'Nama shift wajib diisi',
-                'jam_min_masuk.required' => 'Jam min masuk wajib diisi',
-                'jam_masuk.required' => 'Jam masuk wajib diisi',
-                'jam_keluar.required' => 'Jam keluar wajib diisi',
-                'jam_terlambat.required' => 'Jam terlambat wajib diisi',
-                'jam_pulang_cepat.required' => 'Jam pulang cepat wajib diisi'
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+            ],
+            [
+                // 'nama_shift.required' => 'Nama shift wajib diisi',
+                // 'jam_min_masuk.required' => 'Jam min masuk wajib diisi',
+                // 'jam_masuk.required' => 'Jam masuk wajib diisi',
+                // 'jam_keluar.required' => 'Jam keluar wajib diisi',
+                // 'jam_terlambat.required' => 'Jam terlambat wajib diisi',
+                // 'jam_pulang_cepat.required' => 'Jam pulang cepat wajib diisi'
+                'required' => ':attribute Wajib diisi!',
+            ]
+        );
+        if ($validator->fails()) {
             return response()->json([
-                'code'   => 422,
-                'message' => $e->errors()
-            ], 422);
+                'code' => 400,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ]);
         }
 
-        Shift::create([
-            'nama_shift' => $validatedData['nama_shift'],
-            'jam_min_masuk' => $validatedData['jam_min_masuk'],
-            'jam_masuk' => $validatedData['jam_masuk'],
-            'jam_keluar' => $validatedData['jam_keluar'],
-            'jam_terlambat' => $validatedData['jam_terlambat'],
-            'jam_pulang_cepat' => $validatedData['jam_pulang_cepat']
-        ]);
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => 'create',
-            'description' => 'Menambahkan data master shift dengan nama shift ' . $validatedData['nama_shift']
-        ]);
-        return response()->json([
-            'code' => 200,
-            'message' => 'data berhasil ditambahkan'
-        ]);
+        try {
+            Shift::create([
+                'nama_shift' => $request->nama_shift,
+                'jam_min_masuk' => $request->jam_min_masuk,
+                'jam_masuk' => $request->jam_masuk,
+                'jam_keluar' => $request->jam_keluar,
+                'jam_terlambat' => $request->jam_terlambat,
+                'jam_pulang_cepat' => $request->jam_pulang_cepat
+            ]);
+            ActivityLog::create([
+                'user_id' => Auth::user()->id,
+                'activity' => 'create',
+                'description' => 'Menambahkan data master shift dengan nama shift ' . $request->nama_shift
+            ]);
+            return response()->json([
+                'code' => 200,
+                // 'data2' => $get_data2,
+                'message' => 'Data Berhasil Diupdate'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
+            ]);
+        }
     }
 
     /**
@@ -204,14 +230,12 @@ class ShiftController extends Controller
         $validatedData = $request->validate([
             'nama_shift_update' => 'required|max:255',
             'jam_masuk_update' => 'required',
-            'jam_kerja_update' => 'required',
             'jam_keluar_update' => 'required'
         ]);
 
         Shift::where('id', $request->id_shift)->update([
             'nama_shift' => $validatedData['nama_shift_update'],
             'jam_masuk' => $validatedData['jam_masuk_update'],
-            'jam_kerja' => $validatedData['jam_kerja_update'],
             'jam_keluar' => $validatedData['jam_keluar_update'],
         ]);
         if (Auth::user()->is_admin == 'user') {
@@ -219,12 +243,11 @@ class ShiftController extends Controller
         } else {
             $user_activity = Auth::user()->id;
         }
+        // dd($request->id_shift);
         ActivityLog::create([
             'user_id' => $user_activity,
-            'object_id' => $request->id_shift,
-            'kategory_activity' => 'SHIFT',
             'activity' => 'Update Master Shift',
-            'description' => 'Mengubah data master shift dengan nama shift ' . $request->nama_shift
+            'description' => 'Mengubah data master shift dengan nama shift ' . $request->nama_shift_update
         ]);
         return redirect('/shift/' . $holding->holding_code)->with('success', 'data berhasil diupdate');
     }
@@ -235,7 +258,7 @@ class ShiftController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id, $holding)
+    public function destroy($id, $holding, $menu_id)
     {
         $holding = Holding::where('id', $holding)->first();
         if ($holding) {

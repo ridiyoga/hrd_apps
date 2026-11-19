@@ -22,6 +22,8 @@
             <!-- Transactions -->
             <div class="col-lg-12">
                 <div class="container card">
+                    {{-- <input type="text" name="menu_id" id="menu_id_add"> --}}
+
                     <ul class="nav nav-tabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <a class="nav-link active" id="icon-tab-0" data-bs-toggle="tab" href="#icon-tabpanel-0"
@@ -158,7 +160,7 @@
                                         <th class="text-start">esai</th>
                                         <th class="text-start">pilihan ganda</th>
                                         <th class="text-start">interview</th>
-                                        <th class="text-start">interview user</th>
+                                        {{-- <th class="text-start">interview user</th> --}}
                                         <th class="text-start">option</th>
                                     </tr>
                                 </thead>
@@ -284,13 +286,13 @@
                     <form method="post" enctype="multipart/form-data">
                         <div id="pembobotan_perhitungan">
                             <div class="mb-3">
-                                <label>PILIHAN GANDA</label>
+                                <label>ESAI</label>
                                 <input type="number" class="form-control" id="esai_update" name="esai" required>
                                 <input type="hidden" class="form-control" id="pembobotan_id_update"
                                     name="pembobotan_id">
                             </div>
                             <div class="mb-3">
-                                <label>ESAI</label>
+                                <label>PILIHAN GANDA</label>
                                 <input type="number" class="form-control" id="pilihan_ganda_update"
                                     name="pilihan_ganda" required>
                             </div>
@@ -299,11 +301,11 @@
                                 <input type="number" class="form-control" id="interview_update" name="interview"
                                     required>
                             </div>
-                            <div class="mb-3">
+                            {{-- <div class="mb-3">
                                 <label>INTERVIEW USER</label>
                                 <input type="number" class="form-control" id="interview_user_update"
                                     name="interview_user" required>
-                            </div>
+                            </div> --}}
                             <div class="mb-3">
                                 <label>TOTAL</label>
                                 <input type="number" class="form-control" id="total_update" name="total" readonly>
@@ -387,7 +389,7 @@
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="exampleModalLabel">TAMBAH SOAL INTERVIEW</h1>
+                    <h1 class="modal-title fs-5" id="exampleModalLabel">TAMBAH REFERENSI</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -453,6 +455,35 @@
         $("input[type=text]").keyup(function() {
             $(this).val($(this).val().toUpperCase());
         });
+        $(document).ready(function() {
+            var menu_id = $('#asoy').val();
+            // console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
+            var formData = new FormData();
+
+            //ambil data dari form
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('menu_id', menu_id);
+            // console.log(formData);
+
+            $.ajax({
+                type: "POST",
+
+                url: "{{ url('/recruitment/update_menu') }}",
+                data: formData,
+                contentType: false,
+                processData: false,
+                error: function() {
+                    alert('Something is wrong!');
+                    // console.log(formData);
+                },
+            });
+        })
+
+        var menu_id = $('#asoy').val();
+        // console.log(menu_id);
+        $('#menu_id_add').val(menu_id);
         let holding = window.location.pathname.split("/").pop();
         var table = $('#table_ujian').DataTable({
             "scrollY": true,
@@ -631,10 +662,10 @@
                     data: 'interview',
                     name: 'interview',
                 },
-                {
-                    data: 'interview_user',
-                    name: 'interview_user'
-                },
+                // {
+                //     data: 'interview_user',
+                //     name: 'interview_user'
+                // },
                 {
                     data: 'option',
                     name: 'option'
@@ -698,6 +729,7 @@
             //ambil data dari form
             formData.append('_token', '{{ csrf_token() }}');
             formData.append('nama_kategori', $('#nama_kategori_add').val());
+            formData.append('menu_id', menu_id);
 
             // post
             $.ajax({
@@ -772,6 +804,7 @@
         $(document).on('click', '#btn_delete_ujian_kategori', function() {
             // $('#modal_delete_riwayat').modal('show');
             var id = $(this).data('id');
+
             Swal.fire({
                 title: 'Konfirmasi',
                 icon: 'warning',
@@ -779,79 +812,69 @@
                 showCancelButton: true,
                 inputValue: 0,
                 confirmButtonText: 'Yes',
-                beforeSend: function() {
-                    Swal.fire({
-                        title: 'Memuat Data...',
-                        html: 'Mohon tunggu sebentar',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                },
             }).then(function(result) {
-                Swal.close();
                 if (result.value) {
-                    // console.log(id);
-                    Swal.fire({
-                        title: 'Harap Tuggu Sebentar!',
-                        html: 'Proses Menghapus Data...', // add html attribute if you want or remove
-                        allowOutsideClick: false,
-                        onBeforeOpen: () => {
-                            Swal.showLoading()
-                            $.ajax({
-                                data: {
-                                    "_token": "{{ csrf_token() }}",
-                                    id: id,
-                                },
-                                url: "{{ url('/delete_ujian_kategori') }}",
-                                type: "POST",
-                                dataType: 'json',
-                                beforeSend: function() {
-                                    Swal.fire({
-                                        title: 'Memuat Data...',
-                                        html: 'Mohon tunggu sebentar',
-                                        allowOutsideClick: false,
-                                        allowEscapeKey: false,
-                                        didOpen: () => {
-                                            Swal.showLoading();
-                                        }
-                                    });
-                                },
-                                success: function(data) {
-                                    Swal.close();
-                                    if (data.code == 200) {
-                                        $('#tabel_ujian_kategori').DataTable().ajax
-                                            .reload();
-                                        Swal.fire({
-                                            title: 'success',
-                                            text: 'Data Berhasil dihapus',
-                                            icon: 'success',
-                                            timer: 1500
-                                        })
-                                    } else {
-                                        $('#tabel_ujian_kategori').DataTable().ajax
-                                            .reload();
-                                        Swal.fire({
-                                            title: 'error',
-                                            text: 'Data gagal dihapus',
-                                            icon: 'success',
-                                            timer: 1500
-                                        })
-                                    }
-                                },
-                                error: function(data) {
-                                    Swal.close();
-                                    Swal.fire({
-                                        title: 'Gagal',
-                                        text: 'Data Gagal dihapus',
-                                        icon: 'error',
-                                        timer: 1500
-                                    })
+                    // console.log(id_riwayat);
+                    $.ajax({
+                        data: {
+                            "_token": "{{ csrf_token() }}",
+                            id: id,
+                            menu_id: menu_id,
+                        },
+                        url: "{{ url('/delete_ujian_kategori') }}",
+                        type: "POST",
+                        dataType: 'json',
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'Memuat Data...',
+                                html: 'Mohon tunggu sebentar',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                didOpen: () => {
+                                    Swal
+                                        .showLoading();
                                 }
                             });
                         },
+                        success: function(data) {
+                            Swal.close();
+                            if (data.code == 200) {
+                                $('#tabel_ujian_kategori').DataTable()
+                                    .ajax
+                                    .reload();
+                                Swal.fire({
+                                    title: 'success',
+                                    text: 'Data Berhasil dihapus',
+                                    icon: 'success',
+                                    timer: 1500
+                                })
+                                // console.log(data.data_riwayat);
+                                if (data.data_riwayat <= 3) {
+                                    $('#btn_tambah_riwayat')
+                                        .attr(
+                                            "disabled", false);
+                                    $('#pesan_disabled').hide();
+                                }
+                            } else {
+                                $('#tabel_ujian_kategori').DataTable()
+                                    .ajax
+                                    .reload();
+                                Swal.fire({
+                                    title: 'error',
+                                    text: data.error,
+                                    icon: 'error',
+                                    timer: 6500
+                                })
+                            }
+                        },
+                        error: function(data) {
+                            Swal.fire({
+                                title: 'Gagal',
+                                text: 'Data Gagal dihapus',
+                                icon: 'error',
+                                timer: 1500
+                            })
+                        }
                     });
 
                 } else {
@@ -881,6 +904,7 @@
             formData.append('_token', '{{ csrf_token() }}');
             formData.append('nama_kategori', $('#nama_kategori_update').val());
             formData.append('id', $('#id_update').val());
+            formData.append('menu_id', menu_id);
             $.ajax({
                 type: "POST",
 
@@ -956,9 +980,10 @@
             var esai = $('#esai_update').val();
             var pilihan_ganda = $('#pilihan_ganda_update').val();
             var interview = $('#interview_update').val();
-            var interview_user = $('#interview_user_update').val();
+            // var interview_user = $('#interview_user_update').val();
 
-            var total = parseInt(esai) + parseInt(pilihan_ganda) + parseInt(interview) + parseInt(interview_user);
+            var total = parseInt(esai) + parseInt(pilihan_ganda) + parseInt(interview);
+            // + parseInt(interview_user);
             $('#total_update').val(total);
             if (total == '100') {
                 $('#btn_update_pembobotan').prop('disabled', false);
@@ -995,6 +1020,7 @@
             formData.append('interview', $('#interview_update').val());
             formData.append('interview_user', $('#interview_user_update').val());
             formData.append('id', $('#id_update').val());
+            formData.append('menu_id', menu_id);
             $.ajax({
                 type: "POST",
 
@@ -1079,6 +1105,7 @@
             formData.append('_token', '{{ csrf_token() }}');
             formData.append('parameter', $('#parameter_add').val());
             formData.append('deskripsi', $('#deskripsi_add').val());
+            formData.append('menu_id', menu_id);
 
             // post
             $.ajax({
@@ -1152,10 +1179,11 @@
                 }
             });
         });
+
         $(document).on('click', '#btn_delete_interview', function() {
             // $('#modal_delete_riwayat').modal('show');
             var id = $(this).data('id');
-            // console.log(id);
+
             Swal.fire({
                 title: 'Konfirmasi',
                 icon: 'warning',
@@ -1165,65 +1193,67 @@
                 confirmButtonText: 'Yes',
             }).then(function(result) {
                 if (result.value) {
-                    // console.log(id);
-                    Swal.fire({
-                        title: 'Harap Tuggu Sebentar!',
-                        html: 'Proses Menghapus Data...', // add html attribute if you want or remove
-                        allowOutsideClick: false,
-                        onBeforeOpen: () => {
-                            Swal.showLoading()
-                            $.ajax({
-                                data: {
-                                    "_token": "{{ csrf_token() }}",
-                                    id: id,
-                                },
-                                url: "{{ url('/interview_admin_delete') }}",
-                                type: "POST",
-                                dataType: 'json',
-                                beforeSend: function() {
-                                    Swal.fire({
-                                        title: 'Memuat Data...',
-                                        html: 'Mohon tunggu sebentar',
-                                        allowOutsideClick: false,
-                                        allowEscapeKey: false,
-                                        didOpen: () => {
-                                            Swal.showLoading();
-                                        }
-                                    });
-                                },
-                                success: function(data) {
-                                    Swal.close();
-                                    if (data.code == 200) {
-                                        $('#tabel_interview').DataTable().ajax
-                                            .reload();
-                                        Swal.fire({
-                                            title: 'success',
-                                            text: 'Data Berhasil dihapus',
-                                            icon: 'success',
-                                            timer: 1500
-                                        })
-                                    } else {
-                                        $('#tabel_interview').DataTable().ajax
-                                            .reload();
-                                        Swal.fire({
-                                            title: 'error',
-                                            text: 'Data gagal dihapus',
-                                            icon: 'success',
-                                            timer: 1500
-                                        })
-                                    }
-                                },
-                                error: function(data) {
-                                    Swal.close();
-                                    Swal.fire({
-                                        title: 'Gagal',
-                                        text: 'Data Gagal dihapus',
-                                        icon: 'error',
-                                        timer: 1500
-                                    })
+                    // console.log(id_riwayat);
+                    $.ajax({
+                        data: {
+                            "_token": "{{ csrf_token() }}",
+                            id: id,
+                            menu_id: menu_id,
+                        },
+                        url: "{{ url('/interview_admin_delete') }}",
+                        type: "POST",
+                        dataType: 'json',
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'Memuat Data...',
+                                html: 'Mohon tunggu sebentar',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                didOpen: () => {
+                                    Swal
+                                        .showLoading();
                                 }
                             });
                         },
+                        success: function(data) {
+                            Swal.close();
+                            if (data.code == 200) {
+                                $('#tabel_interview').DataTable()
+                                    .ajax
+                                    .reload();
+                                Swal.fire({
+                                    title: 'success',
+                                    text: 'Data Berhasil dihapus',
+                                    icon: 'success',
+                                    timer: 1500
+                                })
+                                // console.log(data.data_riwayat);
+                                if (data.data_riwayat <= 3) {
+                                    $('#btn_tambah_riwayat')
+                                        .attr(
+                                            "disabled", false);
+                                    $('#pesan_disabled').hide();
+                                }
+                            } else {
+                                $('#tabel_interview').DataTable()
+                                    .ajax
+                                    .reload();
+                                Swal.fire({
+                                    title: 'error',
+                                    text: data.error,
+                                    icon: 'error',
+                                    timer: 6500
+                                })
+                            }
+                        },
+                        error: function(data) {
+                            Swal.fire({
+                                title: 'Gagal',
+                                text: 'Data Gagal dihapus',
+                                icon: 'error',
+                                timer: 1500
+                            })
+                        }
                     });
 
                 } else {
@@ -1255,6 +1285,7 @@
             formData.append('parameter', $('#parameter_update').val());
             formData.append('deskripsi', $('#deskripsi_update').val());
             formData.append('id', $('#id_update').val());
+            formData.append('menu_id', menu_id);
             $.ajax({
                 type: "POST",
 
@@ -1346,6 +1377,7 @@
             formData.append('_token', '{{ csrf_token() }}');
             formData.append('alamat', $('#alamat_add').val());
             formData.append('tempat_link', $('#tempat_link_add').val());
+            formData.append('menu_id', menu_id);
             $.ajax({
                 type: "POST",
 
@@ -1422,6 +1454,8 @@
             formData.append('alamat', $('#alamat_update').val());
             formData.append('tempat_link', $('#tempat_link_update').val());
             formData.append('id_referensi', $('#id_referensi').val());
+            formData.append('menu_id', menu_id);
+
             $.ajax({
                 type: "POST",
 
@@ -1491,7 +1525,7 @@
         $(document).on('click', '#btn_delete_referensi', function() {
             // $('#modal_delete_riwayat').modal('show');
             var id = $(this).data('id_referensi');
-            // console.log(id);
+
             Swal.fire({
                 title: 'Konfirmasi',
                 icon: 'warning',
@@ -1501,65 +1535,67 @@
                 confirmButtonText: 'Yes',
             }).then(function(result) {
                 if (result.value) {
-                    // console.log(id);
-                    Swal.fire({
-                        title: 'Harap Tuggu Sebentar!',
-                        html: 'Proses Menghapus Data...', // add html attribute if you want or remove
-                        allowOutsideClick: false,
-                        onBeforeOpen: () => {
-                            Swal.showLoading()
-                            $.ajax({
-                                data: {
-                                    "_token": "{{ csrf_token() }}",
-                                    id: id,
-                                },
-                                url: "{{ url('/delete_referensi') }}",
-                                type: "POST",
-                                dataType: 'json',
-                                beforeSend: function() {
-                                    Swal.fire({
-                                        title: 'Memuat Data...',
-                                        html: 'Mohon tunggu sebentar',
-                                        allowOutsideClick: false,
-                                        allowEscapeKey: false,
-                                        didOpen: () => {
-                                            Swal.showLoading();
-                                        }
-                                    });
-                                },
-                                success: function(data) {
-                                    Swal.close();
-                                    if (data.code == 200) {
-                                        $('#tabel_referensi').DataTable().ajax
-                                            .reload();
-                                        Swal.fire({
-                                            title: 'success',
-                                            text: 'Data Berhasil dihapus',
-                                            icon: 'success',
-                                            timer: 1500
-                                        })
-                                    } else {
-                                        $('#tabel_referensi').DataTable().ajax
-                                            .reload();
-                                        Swal.fire({
-                                            title: 'error',
-                                            text: 'Data gagal dihapus',
-                                            icon: 'success',
-                                            timer: 1500
-                                        })
-                                    }
-                                },
-                                error: function(data) {
-                                    Swal.close();
-                                    Swal.fire({
-                                        title: 'Gagal',
-                                        text: 'Data Gagal dihapus',
-                                        icon: 'error',
-                                        timer: 1500
-                                    })
+                    // console.log(id_riwayat);
+                    $.ajax({
+                        data: {
+                            "_token": "{{ csrf_token() }}",
+                            id: id,
+                            menu_id: menu_id,
+                        },
+                        url: "{{ url('/delete_referensi') }}",
+                        type: "POST",
+                        dataType: 'json',
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'Memuat Data...',
+                                html: 'Mohon tunggu sebentar',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                didOpen: () => {
+                                    Swal
+                                        .showLoading();
                                 }
                             });
                         },
+                        success: function(data) {
+                            Swal.close();
+                            if (data.code == 200) {
+                                $('#tabel_referensi').DataTable()
+                                    .ajax
+                                    .reload();
+                                Swal.fire({
+                                    title: 'success',
+                                    text: 'Data Berhasil dihapus',
+                                    icon: 'success',
+                                    timer: 1500
+                                })
+                                // console.log(data.data_riwayat);
+                                if (data.data_riwayat <= 3) {
+                                    $('#btn_tambah_riwayat')
+                                        .attr(
+                                            "disabled", false);
+                                    $('#pesan_disabled').hide();
+                                }
+                            } else {
+                                $('#tabel_referensi').DataTable()
+                                    .ajax
+                                    .reload();
+                                Swal.fire({
+                                    title: 'error',
+                                    text: data.error,
+                                    icon: 'error',
+                                    timer: 6500
+                                })
+                            }
+                        },
+                        error: function(data) {
+                            Swal.fire({
+                                title: 'Gagal',
+                                text: 'Data Gagal dihapus',
+                                icon: 'error',
+                                timer: 1500
+                            })
+                        }
                     });
 
                 } else {

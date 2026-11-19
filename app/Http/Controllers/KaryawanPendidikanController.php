@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
+use App\Models\Holding;
 use App\Models\Karyawan;
 use App\Models\KaryawanPendidikan;
+use App\Models\Menu;
+use App\Models\User;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -29,8 +33,8 @@ class KaryawanPendidikanController extends Controller
         // dd($pendidikan, $id);  
         return DataTables::of($pendidikan)
             ->addColumn('aksi', function ($row) {
-                $btn = '<a href="javascript:void(0)" class="btn_edit_pendidikan" data-id_pendidikan="' . $row->id_pendidikan . '" data-jenjang="' . $row->jenjang . '" data-nama_instansi="' . $row->institusi . '" data-jurusan="' . $row->jurusan . '" data-tahun_masuk="' . $row->tanggal_masuk . '" data-tahun_lulus="' . $row->tanggal_keluar . '"><i class="mdi mdi-pencil"></i></a>';
-                $btn = $btn . ' <a href="javascript:void(0)" id="btn_delete_pendidikan" data-id="' . $row->id_pendidikan . '"><i class="mdi mdi-delete text-danger"></i></a>';
+                $btn = '<button type="button"  class="btn btn-sm btn-primary btn_edit_pendidikan" data-id_pendidikan="' . $row->id_pendidikan . '" data-jenjang="' . $row->jenjang . '" data-nama_instansi="' . $row->institusi . '" data-jurusan="' . $row->jurusan . '" data-tahun_masuk="' . $row->tanggal_masuk . '" data-tahun_lulus="' . $row->tanggal_keluar . '"><i class="mdi mdi-pencil"></i></button>';
+                $btn = $btn . ' <button class="btn btn-sm btn-danger" type="button" id="btn_delete_pendidikan" data-id="' . $row->id_pendidikan . '"><i class="mdi mdi-delete"></i></button>';
                 return $btn;
             })
 
@@ -59,9 +63,10 @@ class KaryawanPendidikanController extends Controller
                     'tahun_lulus.required' => 'Tahun Lulus wajib diisi',
                 ]
             );
+            $id_pendidikan = Uuid::uuid4();
             KaryawanPendidikan::create(
                 [
-                    'id_pendidikan' => Uuid::uuid4(),
+                    'id_pendidikan' => $id_pendidikan,
                     'id_karyawan' => $validatedData['id_karyawan'],
                     'institusi' => $validatedData['nama_instansi'],
                     'jurusan' => $validatedData['jurusan'],
@@ -71,6 +76,23 @@ class KaryawanPendidikanController extends Controller
                     'created_at' => now(),
                 ]
             );
+            $karyawan_id = Karyawan::where('id', $request->id_karyawan)->first();
+            $holdings = Holding::where('id', $karyawan_id->kontrak_kerja)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_pendidikan,
+                'holding_id' => $holdings->id ?? '-',
+                'holding_category' => $holdings->holding_category ?? '-',
+                'table' => 'karyawan_pendidikan',
+                'activity' => 'create',
+                'description' => 'Menambah data pendidikan ' . $karyawan_id->name,
+                'keterangan' => 'Success',
+            ]);
             $data_pendidikan = KaryawanPendidikan::select()->where('id_karyawan', $request->id_karyawan)->count();
             return response()->json([
                 'code' => 200,
@@ -117,6 +139,23 @@ class KaryawanPendidikanController extends Controller
                     'updated_at' => now(),
                 ]
             );
+            $karyawan_id = Karyawan::where('id', $request->id_karyawan)->first();
+            $holdings = Holding::where('id', $karyawan_id->kontrak_kerja)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id_pendidikan,
+                'holding_id' => $holdings->id ?? '-',
+                'holding_category' => $holdings->holding_category ?? '-',
+                'table' => 'karyawan_pendidikan',
+                'activity' => 'update',
+                'description' => 'mengedit data pendidikan ' . $karyawan_id->name,
+                'keterangan' => 'Success',
+            ]);
             return response()->json([
                 'code' => 200,
                 'message' => 'Data berhasil Diupdate'
@@ -130,7 +169,26 @@ class KaryawanPendidikanController extends Controller
     }
     public function delete_pendidikan(Request $request, $id)
     {
+        // dd($request->all());
         $get = KaryawanPendidikan::where('id_pendidikan', $request->id_pendidikan);
+        $get_pendidikan = KaryawanPendidikan::where('id_pendidikan', $request->id_pendidikan)->first();
+        $karyawan_id = Karyawan::where('id', $get_pendidikan->id_karyawan)->first();
+        $holdings = Holding::where('id', $karyawan_id->kontrak_kerja)->first();
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => $nama_menu->name,
+            'id_table' => $request->id_pendidikan,
+            'holding_id' => $holdings->id ?? '-',
+            'holding_category' => $holdings->holding_category ?? '-',
+            'table' => 'karyawan_pendidikan',
+            'activity' => 'delete',
+            'description' => 'menghapus data pendidikan ' . $karyawan_id->name,
+            'keterangan' => 'Success',
+        ]);
         if ($get->exists()) {
             $get->delete();
             $data_pendidikan = KaryawanPendidikan::select()->where('id_karyawan', $id)->count();

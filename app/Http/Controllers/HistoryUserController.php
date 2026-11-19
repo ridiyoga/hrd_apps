@@ -15,8 +15,12 @@ use Illuminate\Support\Facades\Auth;
 
 class HistoryUserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $user_karyawan = Karyawan::where('id', Auth::user()->karyawan_id)->first();
         $history_absensi = ActivityLog::where('kategory_activity', 'ABSENSI')->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->get();
         $history_izin = ActivityLog::where('kategory_activity', 'IZIN')->where('user_id', Auth::user()->id)->orderBy('created_at', 'DESC')->get();

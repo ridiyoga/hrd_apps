@@ -1,727 +1,2060 @@
-@extends('users.cuti.layout.main')
+@extends('users.layouts.main')
 @section('title')
     APPS | KARYAWAN - SP
 @endsection
-@section('content')
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <link type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/south-street/jquery-ui.css"
+@section('css')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
         rel="stylesheet">
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-    <script type="text/javascript" src="http://keith-wood.name/js/jquery.signature.js"></script>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
     <link rel="stylesheet" type="text/css" href="http://keith-wood.name/css/jquery.signature.css">
-    <!-- <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.css" rel="stylesheet"> -->
-    <link rel="stylesheet" type="text/css" href="{{ asset('assets/assets_users/css/daterangepicker.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/assets_users/css/select2.css') }}">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
     <style>
+        .form-input {
+            position: relative;
+        }
+
+        /* Offcanvas Kedua (Konfirmasi) */
+        #off-canvas-konfirmasi-save {
+            z-index: 1085 !important;
+        }
+
+        /* Backdrop untuk Offcanvas Kedua */
+        /* Ini sedikit trik karena Bootstrap pakai satu class backdrop */
+        #off-canvas-cuti {
+            z-index: 1060 !important;
+        }
+
+        .offcanvas-backdrop+.offcanvas-backdrop {
+            z-index: 1070 !important;
+            opacity: 0.2 !important;
+            /* Buat backdrop kedua lebih tipis agar tidak gelap total */
+        }
+
+        /* ICON */
+        .form-input .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        .profile-card {
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+        }
+
+        .profile-tabs {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-bottom: none;
+        }
+
+        .profile-tabs .nav-link {
+            border: none;
+            border-radius: 14px;
+            padding: 8px 12px;
+            background: #f3e8ff;
+            color: #6b21a8;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .profile-tabs .nav-link.active {
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(168, 85, 247, 0.4);
+        }
+
+        .profile-tabs .nav-link i {
+            font-size: 12px;
+        }
+
+        @media (max-width: 576px) {
+            .profile-card {
+                border-radius: 12px;
+            }
+
+            .profile-tabs span {
+                font-size: 10px;
+            }
+        }
+
+        /* Memaksa kalender muncul di paling depan */
+        .daterangepicker {
+            z-index: 9999 !important;
+            /* Angka tinggi agar di atas elemen apapun */
+            border: none !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            border-radius: 12px !important;
+            padding: 8px !important;
+            margin-top: 5px !important;
+        }
+
+        /* Menghilangkan panah kecil di atas kalender agar lebih clean */
+        .daterangepicker:before,
+        .daterangepicker:after {
+            display: none !important;
+        }
+
+        .daterangepicker .ranges li.active {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: #fff;
+        }
+
+        .daterangepicker td.active,
+        .daterangepicker td.active:hover {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            border-color: transparent;
+            color: #fff;
+        }
+
+        .daterangepicker td.in-range {
+            background-color: #dcd9fa;
+            border-color: transparent;
+            color: #000;
+            border-radius: 0;
+        }
+
+        /* Responsif Mobile */
+        @media (max-width: 768px) {
+            .daterangepicker {
+                width: 90% !important;
+                left: 5% !important;
+                right: 5% !important;
+                position: fixed !important;
+                /* Membuatnya 'floating' di tengah layar mobile */
+                top: 20% !important;
+            }
+
+            .daterangepicker .drp-calendar {
+                max-width: 100% !important;
+            }
+        }
+
+        /* Style Signature Pad */
         .kbw-signature {
-            width: fit-content;
-            height: 100%;
+            width: 100%;
+            height: 160px;
+            border: 1px solid #f3e8ff !important;
+            background: #ffffff;
         }
 
         #sig canvas {
-            margin-top: 5px;
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .border-dashed {
+            border: 2px dashed #d8b4fe !important;
+        }
+
+        .opacity-75 {
+            opacity: 0.75;
+        }
+
+        /* Agar tulisan di dalam kotak otorisasi rapi */
+        .bg-light small {
+            letter-spacing: 0.5px;
+        }
+
+        .futuristic-header {
+            padding: 28px 20px 18px;
+        }
+
+        .futuristic-header h5 {
+            color: --primary();
+            font-weight: 600;
+        }
+
+        .futuristic-header small {
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .futuristic-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+            color: white;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: auto;
+            box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+        }
+
+        .coworker-card {
+            background: linear-gradient(135deg, #f5edff, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card-history {
+            background: linear-gradient(135deg, #cffbd1, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .icon-box-success {
+            background: linear-gradient(135deg, #cffbd1, #ffffff);
+            width: 55px;
+            height: 55px;
+            line-height: 50px;
+            text-align: center;
+            border: 1px solid #8ae68f;
+            border-radius: 50%;
+        }
+
+        .icon-box-success i {
+            color: #2f7e32;
+        }
+
+        .icon-box-reject {
+            background: linear-gradient(135deg, #fbcfcf, #ffffff);
+            width: 55px;
+            height: 55px;
+            line-height: 50px;
+            text-align: center;
+            border: 1px solid #dc8888;
+            border-radius: 50%;
+        }
+
+        .icon-box-reject i {
+            color: #8b3838;
+        }
+
+        .coworker-card-reject {
+            background: linear-gradient(135deg, #fbcfcf, #ffffff);
+            border-radius: 14px;
+            padding: 12px 14px;
+            box-shadow: 0 6px 16px rgba(111, 66, 193, 0.12);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+
+        .coworker-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(111, 66, 193, 0.18);
+        }
+
+        .skeleton {
+            display: inline-block;
+            background: linear-gradient(90deg,
+                    #ede9fe 25%,
+                    #f5f3ff 37%,
+                    #ede9fe 63%);
+            background-size: 400% 100%;
+            animation: pulse 1.4s ease-in-out infinite;
+            border-radius: 6px;
+        }
+
+        .skeleton-number {
+            display: inline-block;
+            /* ⬅️ WAJIB */
+            width: 2ch;
+            height: 30px;
+            /* ⬅️ samakan dengan h3 */
+            vertical-align: middle;
+            /* ⬅️ penting */
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: .5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .form-control {
+            border-radius: 12px;
+            padding-left: 42px;
+            height: 44px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .form-input {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+        .form-input .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+            /* transform: translateY(-50%); */
+            color: #6f42c1;
+            font-size: 14px;
+        }
+
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            SELECT LOADING
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  ================================ */
+        .select-loader {
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            transform: translateY(-50%);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* ===============================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            DOT LOADER (3 DOT)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   ================================ */
+        .dot-loader {
+            display: flex;
+            gap: 4px;
+        }
+
+        .dot-loader span {
+            width: 6px;
+            height: 6px;
+            background-color: #7367f0;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: dotPulse 1.2s infinite ease-in-out;
+        }
+
+        .dot-loader span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .dot-loader span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot-loader span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes dotPulse {
+            0% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.3;
+            }
+        }
+
+        .quota-card-sm {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 12px 5px;
+            border: 1px solid #edf2f7;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .highlight-purple {
+            background: #f8f7ff;
+            border: 1px solid #e9e5ff;
+        }
+
+        .q-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #718096;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .q-value-wrap {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 2px;
+        }
+
+        .q-value {
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .q-unit {
+            font-size: 9px;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+
+        /* Warna Khusus */
+        .text-purple {
+            color: #6b46c1;
+        }
+
+        .text-purple-bold {
+            color: #553c9a;
+        }
+
+        .bg-purple {
+            background-color: #6b46c1;
+        }
+
+        /* Aksen Bar di bawah card */
+        .q-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
             width: 100%;
-            height: auto;
+            height: 3px;
+            opacity: 0.6;
         }
 
 
 
-        .daterangepicker.ltr.show-calendar {
-            top: 0px !important;
+        .btn-quota-modern {
+            background: linear-gradient(135deg, #6f42c1 0%, #a855f7 100%);
+            border: none;
+            border-radius: 16px;
+            padding: 6px 6px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(111, 66, 193, 0.3);
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        /* Efek saat tombol ditekan (Mobile Touch) */
+        .btn-quota-modern:active {
+            transform: scale(0.97);
+            box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .icon-box {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .text-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .btn-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-subtitle {
+            font-size: 11px;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+
+        .arrow-icon {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Aksen Abstrak di dalam tombol */
+        .btn-quota-modern::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .badge-status-right {
+            position: absolute;
+            /* Sesuaikan top agar sejajar lurus dengan teks "SALDO CUTI" */
+            top: 20px;
+            /* Jarak dari kanan (sebelum tombol close) */
+            right: 5px;
+
+            background-color: #e8fadf;
+            color: #28a745;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 50px;
+            /* Bentuk kapsul lebih elegan */
+            text-transform: uppercase;
+            border: 1px solid #c3e6cb;
+        }
+
+        .filter-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Warna ungu lembut untuk select box */
+        .form-select-purple {
+            border-color: #d6bcfa !important;
+            /* Soft purple border */
+            color: #4a5568;
+        }
+
+        .form-select-purple:focus {
+            border-color: #9f7aea !important;
+            box-shadow: 0 0 0 0.25rem rgba(159, 122, 234, 0.25) !important;
+        }
+
+        /* Tombol warna ungu estetik */
+        .btn-purple {
+            background-color: #805ad5 !important;
+            border-color: #805ad5 !important;
+            color: #ffffff !important;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .btn-purple:hover {
+            background-color: #6b46c1 !important;
+            border-color: #6b46c1 !important;
+            box-shadow: 0 4px 6px -1px rgba(128, 90, 213, 0.2), 0 2px 4px -1px rgba(128, 90, 213, 0.1) !important;
+        }
+
+        .btn-purple:active {
+            background-color: #553c9a !important;
         }
     </style>
-    <div class="head-details">
-        <div class=" container">
-            <div class="dz-info">
-                <span class="location d-block">Form Cuti
-                    @if ($user->kontrak_kerja == 'sp')
-                        CV. SUMBER PANGAN
-                    @elseif($user->kontrak_kerja == 'sps')
-                        PT. SURYA PANGAN SEMESTA
-                    @elseif($user->kontrak_kerja == 'sip')
-                        CV. SURYA INTI PANGAN
-                    @endif
-                </span>
-                {{-- @foreach ($user as $dep) --}}
-                <h5 class="title">Department of "{{ $user->nama_departemen }}"</h5>
-                {{-- @endforeach --}}
-            </div>
-            <div class="dz-media media-65">
-                <img src="assets/images/logo/logo.svg" alt="">
-            </div>
-        </div>
-    </div>
+@endsection
+@section('content_top')
+    <div class="card">
 
-    <div class="fixed-content p-0">
-        <div class="container">
-            <div class="main-content">
-                <div class="left-content">
-                    <a id="btn_klik" href="{{ url('home') }}" class="btn-back">
-                        <svg width="18" height="18" viewBox="0 0 10 16" fill="none"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M9.03033 0.46967C9.2966 0.735936 9.3208 1.1526 9.10295 1.44621L9.03033 1.53033L2.561 8L9.03033 14.4697C9.2966 14.7359 9.3208 15.1526 9.10295 15.4462L9.03033 15.5303C8.76406 15.7966 8.3474 15.8208 8.05379 15.6029L7.96967 15.5303L0.96967 8.53033C0.703403 8.26406 0.679197 7.8474 0.897052 7.55379L0.96967 7.46967L7.96967 0.46967C8.26256 0.176777 8.73744 0.176777 9.03033 0.46967Z"
-                                fill="#a19fa8" />
-                        </svg>
-                    </a>
-                    <h5 class="mb-0">Back</h5>
-                </div>
-                <div class="mid-content">
-                </div>
+        <div class="futuristic-header text-center">
+            <div class="futuristic-icon">
+                <i class="fa-solid fa-user-clock"></i>
             </div>
+            <h5 class="mt-3 mb-1">CUTI</h5>
+            <small class="text-muted">Informasi Pengajuan Cuti</small>
         </div>
-    </div>
-    <div class="container">
-        @if (Session::has('addcutisuccess'))
-            <div id="alert_addcutisuccess" class="alert alert-success light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-                    stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                </svg>
-                <strong>Success!</strong> Anda Berhasil Pengajuan Cuti
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('addcutierror1'))
-            <div id="alert_addcutierror1" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-                    stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Anda Tidak Memiliki Kuota Cuti.
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('addcutierror2'))
-            <div id="alert_addcutierror2" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"
-                    stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Pengajuan Harus H-14 untuk cuti
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('statuscutieditsuccess'))
-            <div id="alert_statuscutieditsuccess" class="alert alert-success light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                </svg>
-                <strong>Success!</strong> Anda Berhasil Menyimpan Data Cuti
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('hapus_cuti_sukses'))
-            <div id="alert_statuscutieditsuccess" class="alert alert-success light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                    <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                    <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                </svg>
-                <strong>Success!</strong> Anda Berhasil Menghapus Data Cuti
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('tgldigunakan'))
-            <div id="alert_statuscutiediterror" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Tanggal Sudah Kamu Gunakan.
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('statuscutiediterror'))
-            <div id="alert_statuscutiediterror" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Anda Tidak Memiliki Kuota Cuti.
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('statuscutiediterror2'))
-            <div id="alert_statuscutiediterror2" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Pengajuan Harus H-14 untuk cuti
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('atasan1NULL'))
-            <div id="alert_atasan1_null" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Atasan 1 Kosong
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @elseif(Session::has('atasan2NULL'))
-            <div id="alert_atasan2_null" class="alert alert-danger light alert-lg alert-dismissible fade show">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                    fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2">
-                    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
-                    <line x1="15" y1="9" x2="9" y2="15"></line>
-                    <line x1="9" y1="9" x2="15" y2="15"></line>
-                </svg>
-                <strong>Warning!</strong> Atasan 2 Kosong
-                <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-        @endif
-        <a href="javascript:void(0);" id="addForm"
-            style="width: 80%; height: 100px; margin-left: 10%;margin-right: 10%" data-bs-toggle="modal"
-            data-bs-target="#modal_pengajuan_cuti">
-            <div class="card bg-primary">
-                <div class="card-body" style="margin-top: 0%; text-align: center;">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="#000000" width="40" height="40"
-                        viewBox="0 0 24 24" id="add-file-5" data-name="Line Color" class="icon line-color">
-                        <path id="secondary" d="M16,19h4m-2-2v4M8,13h6m0-4H8"
-                            style="fill: none; stroke: rgb(44, 169, 188); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;" />
-                        <path id="primary" d="M18,13V5L16,3H5A1,1,0,0,0,4,4V20a1,1,0,0,0,1,1h7"
-                            style="fill: none; stroke: rgb(255,255,255); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;" />
-                        <polygon id="primary-2" data-name="primary" points="16 3 16 5 18 5 16 3"
-                            style="fill: none; stroke: rgb(255,255,255); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;" />
-                    </svg>
-                    <div class="card-info">
-                        <h5 style="color: white;">TAMBAH PENGAJUAN CUTI</h5>
+        <div class="card filter-card mb-4 rounded-3 shadow-sm">
+            <div class="card-body p-3">
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label for="filterBulan" class="form-label small fw-semibold text-secondary mb-1">Bulan</label>
+                        <select class="form-select form-select-sm form-select-purple py-2" id="filterBulan">
+                            <option value="">-- Pilih Bulan --</option>
+                            <option value="01">Januari</option>
+                            <option value="02">Februari</option>
+                            <option value="03">Maret</option>
+                            <option value="04">April</option>
+                            <option value="05">Mei</option>
+                            <option value="06">Juni</option>
+                            <option value="07">Juli</option>
+                            <option value="08">Agustus</option>
+                            <option value="09">September</option>
+                            <option value="10">Oktober</option>
+                            <option value="11">November</option>
+                            <option value="12">Desember</option>
+                        </select>
                     </div>
-                </div>
-            </div>
-        </a>
-        <script>
-            $('button').click(function() {
-                $('#myModal').modal('show');
-            });
-        </script>
-
-        <!-- Modal -->
-        <div class="modal fade" id="modal_pengajuan_cuti">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <!-- Modal content-->
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Form Pengajuan Cuti</h5>
-                        <button class="btn-close" data-bs-dismiss="modal">
-                            <i class="fa-solid fa-xmark"></i>
+                    <div class="col-6">
+                        <label for="filterTahun" class="form-label small fw-semibold text-secondary mb-1">Tahun</label>
+                        <select class="form-select form-select-sm form-select-purple py-2" id="filterTahun">
+                            <option value="">-- Pilih Tahun --</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="button" id="btnSearch"
+                            class="btn btn-sm btn-purple w-100 py-2 fw-medium rounded-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass small"></i>
+                            <span>Cari Data Periode</span>
                         </button>
                     </div>
-                    <form id="form_add_cuti" class="my-2" method="post"
-                        action="{{ url('/cuti/tambah-cuti-proses/') }}" enctype="multipart/form-data">
-                        <div class="modal-body">
-                            @method('put')
-                            @csrf
-                            @if ($user->kuota_cuti_tahunan == '' || $user->kuota_cuti_tahunan == '0')
-                                <div class="alert alert-danger light alert-lg alert-dismissible fade show">
-                                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor"
-                                        stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"
-                                        class="me-2">
-                                        <polygon
-                                            points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2">
-                                        </polygon>
-                                        <line x1="15" y1="9" x2="9" y2="15"></line>
-                                        <line x1="9" y1="9" x2="15" y2="15"></line>
-                                    </svg>
-                                    <strong>Warning!</strong> Anda Tidak Memiliki Kuota Cuti.
-                                    <button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close">
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
-                            @else
-                            @endif
-                            <div class="input-group">
-                                <input type="hidden" name="id_user" value="{{ $user_karyawan->id }}">
-                                {{-- <input type="hidden" name="telp" value="{{ $data_user->telepon }}"> --}}
-                                {{-- <input type="hidden" name="email" value="{{ $data_user->email }}"> --}}
-                                {{-- <input type="hidden" name="departements" value="{{ $user->dept_id }}"> --}}
-                                {{-- <input type="hidden" name="jabatan" value="{{ $user->jabatan_id }}"> --}}
-                                {{-- <input type="hidden" name="divisi" value="{{ $user->divisi_id }}" id=""> --}}
-                                @if ($getUserAtasan == null)
-                                    <input type="hidden" name="id_user_atasan" value="">
-                                @else
-                                    <input type="hidden" name="id_user_atasan" value="{{ $getUserAtasan->id }}">
-                                @endif
-                                @if ($getUserAtasan2 == null)
-                                    <input type="hidden" name="id_user_atasan2" value="">
-                                @else
-                                    <input type="hidden" name="id_user_atasan2" value="{{ $getUserAtasan2->id }}">
-                                @endif
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="Nama" readonly>
-                                <input type="text" class="form-control" name="fullname"
-                                    value="{{ $user_karyawan->name }}" style="font-weight: bold" readonly required>
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="Kuota Cuti Tahunan" readonly>
-                                <input type="text" class="form-control" name="kuota_cuti"
-                                    value="@if ($user->kuota_cuti_tahunan == '' || $user->kuota_cuti_tahunan == '0') 0 @else{{ $user->kuota_cuti_tahunan }} @endif Hari"
-                                    style="font-weight: bold" readonly required>
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="Kategori Cuti" readonly>
-                                <select class="form-control" id="cuti" name="cuti" required>
-                                    <option value="">Pilih Cuti...</option>
-                                    <option value="Cuti Tahunan">Cuti Tahunan</option>
-                                    <option value="Diluar Cuti Tahunan">Diluar Cuti Tahunan</option>
-                                </select>
-                            </div>
-                            <div id="kategori_cuti" class="input-group">
-                                <input type="text" class="form-control" value="Pilihan Cuti" readonly>
-                                <select class="form-control" id="id_cuti" name="kategori_cuti">
-                                    <option value="">-- Pilihan Cuti --</option>
-                                    @foreach ($get_kategori_cuti as $data)
-                                        <option
-                                            @if ($user_karyawan->gender == '1') @if ($data->nama_cuti == 'Cuti Melahirkan') hidden @endif
-                                        @elseif($user_karyawan->gender == '2')
-                                            @if (($data->nama_cuti == 'Cuti Istri Melahirkan') | ($data->nama_cuti == 'Cuti Istri Keguguran')) hidden @endif @endif
-                                            value="{{ $data->id }}">{{ $data->nama_cuti }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div id="kuota_hari" class="input-group">
-                                <input type="text" class="form-control" value="Kuota Hari" readonly>
-                                <input type="text" class="form-control" name="jumlah_cuti" id="jumlah_cuti" readonly>
-                            </div>
-                            <div class="input-group">
-                                @if ($data_user->level_jabatan == '1')
-                                    <input type="text" class="form-control" value="Pengganti" readonly>
-                                    <select class="form-control" name="user_backup" required>
-                                        <option selected value="-">-</option>
-                                    </select>
-                                @else
-                                    <input type="text" class="form-control" value="Pengganti" readonly>
-                                    <select class="form-control" name="user_backup">
-                                        <option value="">Pilih Pengganti...</option>
-                                        @foreach ($get_user_backup as $data)
-                                            <option value="{{ $data->id }}">{{ $data->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                @endif
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="name_form_tanggal" value="Tanggal Cuti"
-                                    readonly>
-                                <input type="text" name="tanggal_cuti" id="date_range_cuti"
-                                    style="font-weight: bold;" required placeholder="Tanggal Cuti" class="form-control"
-                                    readonly>
-                            </div>
-                            <div class="input-group">
-                                <textarea class="form-control" name="keterangan_cuti" style="font-weight: bold" required placeholder="Keterangan"></textarea>
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="Approve By 1" readonly>
-                                <input type="text" class="form-control" name="approve_atasan"
-                                    value="@if ($getUserAtasan == null) @else {{ $getUserAtasan->name }} @endif"
-                                    readonly>
-                            </div>
-                            <div class="input-group">
-                                <input type="text" class="form-control" value="Approve By 2" readonly>
-                                <input type="text" class="form-control" name="approve_atasan2"
-                                    value="@if ($getUserAtasan2 == null) @else {{ $getUserAtasan2->name }} @endif"
-                                    readonly>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" id="btn_submit"
-                                class="btn btn-sm btn-primary float-right">Simpan</button>
-                            <button type="button" class="btn btn-sm btn-secondary"
-                                data-bs-dismiss="modal">Close</button>
-                        </div>
-                    </form>
                 </div>
+            </div>
+        </div>
+        <div class="d-grid mb-3">
+            <button type="button" class="btn-quota-modern">
+                <div class="btn-content">
+                    <div class="icon-box">
+                        <i class="fa-solid fa-chart-pie"></i>
+                    </div>
+                    <div class="text-box text-start">
+                        <span class="btn-title">Lihat Kuota Cuti</span>
+                        <span class="btn-subtitle">Cek saldo, terpakai, dan sisa cuti</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+            </button>
+        </div>
+        <div class="alert_add_cuti"></div>
+        <div id="alert_pengajuan_cuti"></div>
+        @if (session('hapus_cuti_sukses'))
+            <div
+                class="alert alert-success d-flex align-items-center gap-2 rounded-4 shadow-sm border-0 py-3 fade show alert_pengajuan_cuti">
+                <i class="fa-regular fa-circle-check fs-4 text-success"></i>
+                <div class="alert-content">
+                    <strong style="font-size: 13px;">Hapus Cuti</strong><br>
+                    <span style="font-size: 11px; color: #555;"> {{ session('hapus_cuti_sukses') }}</span>
+                </div>
+            </div>
+        @endif
+        @if (session('hapus_cuti_gagal'))
+            <div
+                class="alert alert-danger d-flex align-items-center gap-2 rounded-4 shadow-sm border-0 py-3 fade show alert_pengajuan_cuti">
+                <i class="fa-regular fa-circle-xmark fs-4 text-success"></i>
+                <div class="alert-content">
+                    <strong style="font-size: 13px;">Hapus Cuti</strong><br>
+                    <span style="font-size: 11px; color: #555;">{{ session('hapus_cuti_gagal') }}</span>
+                </div>
+            </div>
+        @endif
+        <div class="card-body px-3 px-md-4">
+            <ul class="nav profile-tabs" id="profileTab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#nav-cuti" role="tab"
+                        aria-controls="nav-cuti" aria-selected="true">
+                        <i class="fa-solid fa-file-lines"></i>
+                        <span>Cuti</span>
+                    </button>
+                </li>
+
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#histori" role="tab"
+                        aria-controls="histori" aria-selected="false">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <span>Cuti Histori</span>
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content mt-3">
+                <div class="tab-pane fade show active" id="nav-cuti" role="tabpanel" aria-labelledby="nav-cuti-tab">
+
+                    <button class="btn btn-sm light btn-primary mb-3" type="button" id="btn_tambah_cuti"><i
+                            class="fa-solid fa-plus me-2"></i>Tambah</button>
+                    <div class="content-cuti"></div>
+                </div>
+                <div class="tab-pane fade" id="histori" role="tabpanel" aria-labelledby="nav-history-tab">
+                    <div class="alert_history_cuti"></div>
+                    <div class="content-history">
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection
+@section('content')
+    <div class="offcanvas offcanvas-bottom rounded-top-5" tabindex="-1" id="off-canvas-saldo-cuti"
+        style="height: auto;">
+
+        <div class="offcanvas-header border-bottom py-3">
+            <div class="d-flex align-items-center">
+                <div class="futuristic-icon shadow-sm me-3" style="width: 45px; height: 45px; font-size: 20px;">
+                    <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <div>
+                    <h6 class="offcanvas-title fw-bold text-dark" id='title_saldo_cuti'>SALDO CUTI</h6>
+                    <small class="text-muted" id="sub_title_saldo_cuti">Lihat Detail Saldo Cuti Tahunan Karyawan</small>
+                </div>
+            </div>
+            <span class="badge badge-status-right">Active</span>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-2  overflow-auto" style="overflow-y: auto !important;">
+            <div class="row g-2 mb-4" id="get_saldo_cuti">
 
             </div>
         </div>
     </div>
+    <div class="offcanvas offcanvas-bottom rounded-top-5" tabindex="-1" id="off-canvas-cuti" style="height: 95vh;">
 
-    <hr width="90%" style="margin-left: 5%;margin-right: 5%">
-    <div class="page-content bottom-content">
-        <div class="container">
-            <div class="row">
-                <div class="col-1">
-                    <div class="detail-content">
-                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24"
-                            height="24" viewBox="0 0 512 512" version="1.1">
-                            <title>history-list</title>
-                            <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                <g id="icon" fill="#000000" transform="translate(33.830111, 42.666667)">
-                                    <path
-                                        d="M456.836556,405.333333 L456.836556,448 L350.169889,448 L350.169889,405.333333 L456.836556,405.333333 Z M328.836556,405.333333 L328.836556,448 L286.169889,448 L286.169889,405.333333 L328.836556,405.333333 Z M456.836556,341.333333 L456.836556,384 L350.169889,384 L350.169889,341.333333 L456.836556,341.333333 Z M328.836556,341.333333 L328.836556,384 L286.169889,384 L286.169889,341.333333 L328.836556,341.333333 Z M131.660221,261.176335 C154.823665,284.339779 186.823665,298.666667 222.169889,298.666667 C237.130689,298.666667 251.492003,296.099965 264.837506,291.382887 L264.838264,335.956148 C251.200633,339.466383 236.903286,341.333333 222.169889,341.333333 C175.041086,341.333333 132.37401,322.230407 101.489339,291.345231 L131.660221,261.176335 Z M456.836556,277.333333 L456.836556,320 L350.169889,320 L350.169889,277.333333 L456.836556,277.333333 Z M328.836556,277.333333 L328.836556,320 L286.169889,320 L286.169889,277.333333 L328.836556,277.333333 Z M222.169889,7.10542736e-15 C316.426487,7.10542736e-15 392.836556,76.4100694 392.836556,170.666667 C392.836556,201.752854 384.525389,230.897864 370.003903,256.000851 L317.574603,256.00279 C337.844458,233.356846 350.169889,203.451136 350.169889,170.666667 C350.169889,99.9742187 292.862337,42.6666667 222.169889,42.6666667 C151.477441,42.6666667 94.1698893,99.9742187 94.1698893,170.666667 C94.1698893,174.692297 94.3557269,178.674522 94.7192911,182.605232 L115.503223,161.830111 L145.673112,192 L72.836556,264.836556 L4.97379915e-14,192 L30.1698893,161.830111 L51.989071,183.641815 C51.6671112,179.358922 51.5032227,175.031933 51.5032227,170.666667 C51.5032227,76.4100694 127.913292,7.10542736e-15 222.169889,7.10542736e-15 Z M243.503223,64 L243.503223,159.146667 L297.903223,195.626667 L274.436556,231.04 L200.836556,182.186667 L200.836556,64 L243.503223,64 Z"
-                                        id="Combined-Shape">
-
-                                    </path>
-                                </g>
-                            </g>
-                        </svg>
-                    </div>
+        <div class="offcanvas-header border-bottom py-3">
+            <div class="d-flex align-items-center">
+                <div class="futuristic-icon shadow-sm me-3" style="width: 45px; height: 45px; font-size: 20px;">
+                    <i class="fa-solid fa-file-signature"></i>
                 </div>
-                <div class="col-11">
-                    <div class="flex-1">
-                        <h4>History</h4>
-                    </div>
+                <div>
+                    <h6 class="offcanvas-title fw-bold text-dark">Form Pengajuan Cuti</h6>
+                    <small class="text-muted">Pengajuan Cuti Karyawan </small>
                 </div>
             </div>
-            <div class="title-bar" style="margin: 0;">
-                <h6 class="title"> Filter&nbsp;Bulan&nbsp;
-                    <select class="month"
-                        style="width: max-content;border-radius: 0px; background-color:transparent; color: var(--primary); border: none;outline: none;"
-                        name="" id="month">
-                        <option value="01">Januari</option>
-                        <option value="02">Februari</option>
-                        <option value="03">Maret</option>
-                        <option value="04">April</option>
-                        <option value="05">Mei</option>
-                        <option value="06">Juni</option>
-                        <option value="07">Juli</option>
-                        <option value="08">Agustus</option>
-                        <option value="09">September</option>
-                        <option value="10">Oktober</option>
-                        <option value="11">November</option>
-                        <option value="12">Desember</option>
-                    </select>
-                    &nbsp;{{ $thnskrg }}
-                </h6>
-            </div>
-            <div class="content-history">
-            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-2  overflow-auto" style="overflow-y: auto !important;">
+            <form class="my-2" method="post" id="form_pengajuan_cuti" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="id_karyawan" value="{{ $user_karyawan->id }}">
+                <input type="text" name="kuota_cuti" value="{{ $user_karyawan->kuota_cuti_tahunan }}" hidden>
+                <div id="list_karyawan" class="d-flex flex-column gap-3"></div>
+                <!-- Form input -->
+                <div class="col-12">
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge bg-primary me-2">1</span>
+                            <h6 class="mb-0 fw-bold">Pengajuan Cuti</h6>
+                        </div>
 
+                        <div class="form-input cuti">
+                            <span class="input-icon">
+                                <i class="fa-solid fa-tags"></i>
+                            </span>
+                            <select name="cuti" id="cuti">
+                                <option value="">Pilihan Cuti</option>
+                                <option value="1">Cuti Tahunan</option>
+                                <option value="2">Cuti di luar Tahunan</option>
+                            </select>
+                        </div>
+                        <div class="alert_cuti"></div>
+                        <div class="form-input kategori_cuti">
+                            <span class="input-icon">
+                                <i class="fa-solid fa-layer-group"></i>
+                            </span>
+                            <select name="kategori_cuti" id="kategori_cuti">
+                            </select>
+                        </div>
+                        <div class="alert_kategori_cuti"></div>
+                        <div class="form-input karyawan_pengganti">
+                            <span class="input-icon">
+                                <i class="fa-solid fa-user"></i>
+                            </span>
+                            <select name="karyawan_pengganti" id="karyawan_pengganti"></select>
+                            <!-- loader -->
+                            <div class="select-loader d-none">
+                                <div class="dot-loader">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                            <div class="alert_karyawan_pengganti"></div>
+                        </div>
+                        <div class="alert-pengganti"></div>
+                        <span id="keterangan_tanggal" class="text-danger"></span>
+                        <div class="form-input tanggal_cuti kategori_cuti">
+                            <span class="input-icon">
+                                <i class="fa-solid fa-calendar-days"></i>
+                            </span>
+                            <input type="text" name="tanggal_cuti" id="daterangepicker_cuti" class="form-control"
+                                readonly placeholder="Pilih Tanggal Cuti" value="">
+                        </div>
+                        <div class="form-group tanggal_berulang">
+                            <label for="tanggal_cuti" class="form-label">Tanggal Cuti</label>
+
+                            <div id="notif_hari" class="alert alert-danger py-2 px-3 mb-2 d-none" role="alert"
+                                style="font-size: 11px; line-height: 1.3;">
+                                *Pengajuan cuti kurang dari 14 hari, atasan berpotensi tidak menoleransi.
+                            </div>
+
+                            <div id="container_tanggal">
+                                <div class="form-input tanggal_cuti mb-2 d-flex align-items-center">
+                                    <span class="input-icon">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
+                                    <input type="text" id="tanggal_cuti_berulang" name="tanggal_cuti_berulang[]"
+                                        class="form-control datepicker" readonly placeholder="Pilih Tanggal Cuti">
+
+                                    <button type="button" class="btn btn-danger btn-sm ms-2 btn-hapus"
+                                        style="display:none;">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="button" id="btn_tambah_tanggal" class="btn btn-primary btn-sm my-2">
+                                <i class="fa-solid fa-plus"></i> Tambah Tanggal
+                            </button>
+                        </div>
+                        <div class="alert_tanggal_cuti_berulang"></div>
+                        <div class="alert_tanggal_cuti"></div>
+                        <div class="form-input keterangan_cuti">
+                            <span class="input-icon">
+                                <i class="fa-solid fa-note-sticky"></i>
+                            </span>
+                            <textarea name="keterangan_cuti" id="keterangan_cuti" cols="30" rows="3" class="form-control"
+                                placeholder="Keterangan Cuti"></textarea>
+                        </div>
+                        <div class="alert_keterangan_cuti"></div>
+                    </div>
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge bg-primary me-2">2</span>
+                            <h6 class="mb-0 fw-bold">Otorisasi & Pengesahan</h6>
+                        </div>
+
+                        <div class="card border-dashed bg-white rounded-4 overflow-hidden mb-3">
+                            <div class="card-header bg-light border-0 py-2 text-center">
+                                <input type="text" name="name" id="name" value="{{ $user_karyawan->name }}"
+                                    hidden>
+                                <small class="fw-bold text-uppercase" style="font-size: 10px; color: #6b21a8;"
+                                    id="user_pengajuan">Diajukan Oleh: {{ $user_karyawan->name }}</small>
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="alert_signature"></div>
+                                <div id="sig" class="kbw-signature rounded-3" style="width: 100%; height: 200px;">
+                                    <canvas id="signature-pad"
+                                        style="width:100%; touch-action: none !important; height:200px; border:1px solid #ccc;"
+                                        hidden></canvas>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-2 px-1">
+                                    <button type="button"
+                                        class="btn btn-link btn-sm text-danger text-decoration-none p-0" id="clear">
+                                        <i class="fa-solid fa-eraser me-1"></i> Hapus
+                                    </button>
+                                    <small class="text-muted italic" style="font-size: 10px;">Tanda tangan di atas</small>
+                                </div>
+                                <textarea id="signature" name="signature" style="display: none"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 d-flex align-items-stretch">
+                            <div class="alert_atasan_1"></div>
+                            <div class="alert_atasan_2"></div>
+                            <div class="col-6">
+                                <div
+                                    class="p-2 border rounded-3 text-center bg-light opacity-75 h-100 d-flex flex-column justify-content-between">
+                                    <small class="d-block text-muted" style="font-size: 8px;">DISAHKAN OLEH-1:</small>
+                                    <div class="py-2 flex-grow-1 d-flex align-items-center justify-content-center">
+                                        <i class="fa-solid fa-clock-rotate-left text-muted"></i>
+                                    </div>
+                                    <input type="hidden" name="atasan_1" id="atasan_1" value="">
+                                    <small class="fw-bold text-break" style="font-size: 9px; line-height: 1.1;"
+                                        id="atasan1">ATASAN LANGSUNG</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div
+                                    class="p-2 border rounded-3 text-center bg-light opacity-75 h-100 d-flex flex-column justify-content-between">
+                                    <small class="d-block text-muted" style="font-size: 8px;">DISAHKAN OLEH-2:</small>
+                                    <div class="py-2 flex-grow-1 d-flex align-items-center justify-content-center">
+                                        <i class="fa-solid fa-clock-rotate-left text-muted"></i>
+                                    </div>
+                                    <input type="hidden" name="atasan_2" id="atasan_2" value="">
+                                    <small class="fw-bold text-break" style="font-size: 9px; line-height: 1.1;"
+                                        id="atasan2">MANAGER</small>
+                                </div>
+                            </div>
+                            <!-- <div class="col-4">
+                                                                                                                                                                    <div
+                                                                                                                                                                        class="p-2 border rounded-3 text-center bg-light opacity-75 h-100 d-flex flex-column justify-content-between">
+                                                                                                                                                                        <small class="d-block text-muted" style="font-size: 8px;">HRD:</small>
+                                                                                                                                                                        <div class="py-2 flex-grow-1 d-flex align-items-center justify-content-center">
+                                                                                                                                                                            <i class="fa-solid fa-clock-rotate-left text-muted"></i>
+                                                                                                                                                                        </div>
+                                                                                                                                                                        <small class="fw-bold text-break" style="font-size: 9px; line-height: 1.1;"
+                                                                                                                                                                            id="hrd_selected">HRD</small>
+                                                                                                                                                                    </div>
+                                                                                                                                                                </div> -->
+                        </div>
+                    </div>
+                    <div class="alert_error_cuti col-12"></div>
+                    <div id="btn_pengajuan"></div>
+                    <div id="btn_pengajuan_luar">
+                        <button type="button" id="btn_save_konfirmasi_cuti"
+                            class="btn btn-primary btn-sm w-100 py-3 rounded-pill fw-bold mb-2 shadow">
+                            AJUKAN PENGAJUAN CUTI
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="offcanvas offcanvas-bottom rounded-top-5" tabindex="-1" id="off-canvas-konfirmasi-save"
+        style="height: 20vh;">
+        <div class="offcanvas-header border-bottom py-3">
+            <div class="d-flex align-items-center">
+                <div class="futuristic-icon shadow-sm me-3" style="width: 45px; height: 45px; font-size: 20px;">
+                    <i class="fa-solid fa-circle-check fa-bounce"></i>
+                </div>
+                <div>
+                    <h6 class="offcanvas-title fw-bold text-dark">Konfirmasi</h6>
+                    <small class="text-muted">Pengajuan Form Cuti...</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
 
+        <div class="offcanvas-body p-2">
+
+            <div class="mt-3 text-center">
+                <button type="button" id="btn_simpan_cuti" class="btn light btn-success btn-sm me-2">
+                    <i class="fa-solid fa-save me-2"></i>Simpan
+                </button>
+                <button type="button" class="btn light btn-danger btn-sm" data-bs-dismiss="offcanvas"
+                    data-bs-target="#off-canvas-konfirmasi-save">
+                    Batal&nbsp;
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <!-- <div class="dz-spinner d-flex align-items-center flex-wrap"> -->
+                <!-- </div> -->
+            </div>
+        </div>
+    </div>
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+        <div class="offcanvas-body text-center small">
+            <h6 class="title">KONFIRMASI</h6>
+            <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
+            <form method="POST" action="{{ route('logout_user') }}">
+                @csrf
+                <a onclick="event.preventDefault(); this.closest('form').submit();"
+                    class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    &nbsp;Logout
+                </a>
+                <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                    aria-label="Close">Batal</a>
+            </form>
+        </div>
     </div>
 @endsection
 @section('js')
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.js"></script> -->
-    <script type="text/javascript" src="{{ asset('assets/assets_users/js/daterangepicker.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="http://keith-wood.name/js/jquery.signature.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
     <script type="text/javascript">
-        $('#id_cuti').on('change', function() {
-            let id_cuti = $(this).val();
-            // console.log(id_cuti);
-            $.ajax({
-                type: 'GET',
-                url: "{{ url('get_cuti') }}",
-                data: {
-                    id_cuti: id_cuti
-                },
-                cache: false,
+        window.addEventListener("pageshow", function(event) {
+            if (event.persisted) {
+                // Reinitialize JS
+                Swal.close();
+            }
+        });
+        $(document).ready(function() {
+            let menu_active = '{{ $menu_id }}';
+            var user_karyawan_id = '{{ $user_karyawan->id }}';
+            const canvas = document.getElementById('signature-pad');
+            const signaturePad = new SignaturePad(canvas);
+            var session_sukses = "{{ session('hapus_cuti_sukses') }}";
+            var session_gagal = "{{ session('hapus_cuti_gagal') }}";
+            let karyawan_status_nikah = '{{ $user_karyawan->status_nikah }}';
+            let karyawan_gender = '{{ $user_karyawan->gender }}';
 
-                success: function(msg) {
-                    $('#jumlah_cuti').val(msg + ' Hari');
-                },
-                error: function(data) {
-                    console.log('error:', data)
-                },
+
+            // console.log(tanggalHariIni);
+            // SELECT 2 
+            if (session_sukses || session_gagal) {
+                setTimeout(function() {
+                    $('.alert_pengajuan_cuti').animate({
+                        opacity: 0,
+                        marginTop: '-20px' // Sedikit efek bergerak ke atas
+                    }, 1000, function() {
+                        // Setelah animasi selesai, baru hilangkan elemen sepenuhnya
+                        $(this).slideUp('slow', function() {
+                            $(this).remove();
+                        });
+                    });
+                }, 6000);
+            }
+            $('#karyawan_pengganti').select2({
+                dropdownParent: $('#off-canvas-cuti'),
+                width: '100%',
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Karyawan Pengganti",
+                allowClear: true
+            });
+            $('#cuti').select2({
+                dropdownParent: $('#off-canvas-cuti'),
+                width: '100%',
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Kategori Cuti",
+                allowClear: true
+            });
+            $('#kategori_cuti').select2({
+                dropdownParent: $('#off-canvas-cuti'),
+                width: '100%',
+                theme: 'bootstrap-5',
+                placeholder: "Pilih Pilihan Cuti",
+                allowClear: true
+            });
+
+            function showSelectLoading(selectId) {
+                $(selectId).prop('disabled', true)
+                    .closest('.form-input')
+                    .find('.select-loader')
+                    .removeClass('d-none');
+            }
+
+            function hideSelectLoading(selectId) {
+                $(selectId).prop('disabled', false)
+                    .closest('.form-input')
+                    .find('.select-loader')
+                    .addClass('d-none');
+            }
+
+            function initCutiPicker(single, minDate) {
+
+                if ($('#daterangepicker_cuti').data('daterangepicker')) {
+                    $('#daterangepicker_cuti').data('daterangepicker').remove();
+                }
+
+                $('#daterangepicker_cuti').daterangepicker({
+                    drops: 'down',
+                    autoApply: false,
+                    singleDatePicker: single,
+                    startDate: minDate,
+                    endDate: minDate,
+                    minDate: minDate,
+                    locale: {
+                        format: 'YYYY-MM-DD'
+                    }
+                });
+            }
+
+            $('#btn_pengajuan_luar').hide();
+            $(document).on('change', '#cuti', function() {
+                let id_cuti = $(this).val();
+                let minDate;
+                $('#kategori_cuti').html('').trigger('change');
+                $('#keterangan_tanggal').empty();
+                let keterangan = '';
+                if (id_cuti == '1') {
+                    $('.kategori_cuti').hide();
+                    $('#btn_pengajuan_luar').hide();
+                    $('#btn_pengajuan').show();
+                    $('.tanggal_berulang').show();
+                    // keterangan +=
+                    //     '<small>*Cuti Tahunan dianjurkan minimal 14 hari dari tanggal pengajuan</small>';
+                } else {
+                    $('#btn_pengajuan_luar').show();
+                    $('#btn_pengajuan').hide();
+                    minDate = moment();
+                    initCutiPicker(true, minDate);
+                    $.ajax({
+                        type: 'GET',
+                        url: "{{ url('cuti/get_kategori_cuti') }}" + '/' + id_cuti,
+                        cache: false,
+                        success: function(msg) {
+                            let option = '<option value="">-- Pilihan Cuti --</option>';
+                            msg.kategori_cuti.forEach((element, index) => {
+                                let gender_ok = element.target_gender.includes(parseInt(
+                                    karyawan_gender));
+                                let status_ok = element.target_status_nikah.includes(
+                                    parseInt(karyawan_status_nikah));
+                                let allowed = gender_ok && status_ok;
+                                option +=
+                                    `<option ${allowed ? '' : 'disabled'}  value="${element.id}">${element.nama_cuti} (${element.jumlah_hari} Hari) ${allowed ? '' : ' ⛔'}</option>`;
+                            })
+                            $('.kategori_cuti').show();
+                            $('#kategori_cuti').html(option).trigger('change');
+                        },
+                        error: function(data) {
+                            // console.log('error:', data)
+                        },
+
+                    });
+                    keterangan += '<small>*Pilih Tanggal Mulai Cuti</small>';
+                    $('.tanggal_berulang').hide();
+                }
+                $('#keterangan_tanggal').html(keterangan);
 
             })
-        })
-    </script>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('#kategori_cuti').hide();
-            $('body').on("change", "#cuti", function() {
-                var id = $(this).val();
-                // console.log(id);
-                if (id == 'Diluar Cuti Tahunan') {
-                    $('#kategori_cuti').show();
-                    $('#kuota_hari').show();
-                    $('#name_form_tanggal').val('Tanggal Mulai Cuti');
-                    $('#id_cuti').on('change', function() {
-                        let id_cuti = $(this).val();
-                        // console.log(id_cuti);
-                        $.ajax({
-                            type: 'GET',
-                            url: "{{ url('get_cuti') }}",
-                            data: {
-                                id_cuti: id_cuti
-                            },
-                            cache: false,
+            $('.btn-quota-modern').on('click', function() {
+                show_saldo_cuti();
+                const offcanvasEl = document.getElementById('off-canvas-saldo-cuti');
+                const offcanvas = new bootstrap.Offcanvas(offcanvasEl);
+                offcanvas.show();
+            });
+            $('#btn_tambah_cuti').on('click', function() {
+                // console.log('asoy');
+                $('.kategori_cuti').hide();
+                load_data_karyawan_pengganti();
+                load_data_approval();
+                $('#signature-pad').removeAttr('hidden');
 
-                            success: function(msg) {
-                                $('#jumlah_cuti').val(msg + ' Hari');
-                                $('#name_form_tanggal').val('Tanggal Mulai Cuti');
-                                var start = moment();
-                                $('input[id="date_range_cuti"]').daterangepicker({
-                                    drops: 'auto',
-                                    startDate: start,
-                                    minDate: start,
-                                    singleDatePicker: true,
-                                    showDropdowns: true,
-                                    autoApply: false,
-                                    locale: {
-                                        format: 'DD/MM/YYYY'
-                                    }
-                                }, function(start, end, label) {
-                                    console.log(
-                                        "A new date selection was made: " +
-                                        start.format('YYYY-MM-DD') +
-                                        ' to ' + end.format('YYYY-MM-DD'));
-                                });
-                            },
-                            error: function(data) {
-                                console.log('error:', data)
-                            },
+                function resizeCanvas() {
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
 
-                        })
-                    })
+                    // ambil ukuran CSS asli
+                    const width = canvas.offsetWidth;
+                    const height = canvas.offsetHeight;
 
-                } else {
-                    $('#kategori_cuti').hide();
-                    $('#kuota_hari').hide();
-                    $('#id_cuti').val('');
-                    $('#name_form_tanggal').val('Tanggal Cuti');
-                    var start = moment().subtract(-14, 'days');
-                    $('input[id="date_range_cuti"]').daterangepicker({
-                        drops: 'bottom',
-                        opens: 'left',
-                        minDate: start,
-                        startDate: start,
-                        endDate: start,
-                        autoApply: false,
-                    }, function(start, end, label) {
-                        console.log("A new date selection was made: " + start.format('YYYY-MM-DD') +
-                            ' to ' + end.format('YYYY-MM-DD'));
-                    });
+                    // set ukuran canvas sebenarnya
+                    canvas.width = width * ratio;
+                    canvas.height = height * ratio;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform
+                    ctx.scale(ratio, ratio);
+
+                    signaturePad.clear();
                 }
-            });
-        });
-    </script>
-    <script>
-        $("document").ready(function() {
-            // console.log('ok');
-            setTimeout(function() {
-                // console.log('ok1');
-                $("#alert_atasan1_null").remove();
-                $("#alert_atasan2_null").remove();
-                $("#alert_addcutisuccess").remove();
-                $("#alert_addcutierror1").remove();
-                $("#alert_addcutierror2").remove();
-                $("#alert_statuscutieditsuccess").remove();
-                $("#alert_statuscutiediterror").remove();
-            }, 7000);
 
-        });
-    </script>
-    <script>
-        $(document).on('click', '#btn_submit', function(e) {
-            Swal.fire({
-                allowOutsideClick: false,
-                background: 'transparent',
-                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-                showCancelButton: false,
-                showConfirmButton: false,
-                onBeforeOpen: () => {
-                    $('#form_add_cuti').submit();
-                },
+                window.addEventListener('resize', resizeCanvas);
+                resizeCanvas();
+                const offcanvasEl = document.getElementById('off-canvas-cuti');
+                const offcanvas = new bootstrap.Offcanvas(offcanvasEl);
+                offcanvas.show();
+                var id_karyawan = '{{ $user_karyawan->id }}';
+                $.ajax({
+                    url: "{{ url('/cuti/get_saldo_cuti') }}" + '/' + id_karyawan,
+                    type: "GET",
+                    beforeSend: function() {
+                        showSkeleton('#btn_pengajuan');
+                    },
+                    success: function(data) {
+                        // console.log(data.saldo_cuti.sisa);
+                        if (data.code == 200) {
+                            if (data.saldo_cuti?.sisa > 0) {
+                                $('#btn_pengajuan').html(`
+                                <button type="button" id="btn_save_konfirmasi_cuti"
+                                    class="btn btn-primary btn-sm w-100 py-3 rounded-pill fw-bold mb-2 shadow">
+                                    AJUKAN PENGAJUAN CUTI
+                                </button>
+                            `);
+                                $(document).ready(function() {
+
+                                    const max_tanggal = data.saldo_cuti.sisa;
+
+                                    function updateButtonTambahTanggal() {
+                                        const jumlahTanggal = $(
+                                                '#container_tanggal .tanggal_cuti')
+                                            .length;
+
+                                        if (jumlahTanggal >= max_tanggal) {
+                                            $('#btn_tambah_tanggal')
+                                                .prop('disabled', true)
+                                                .addClass('disabled');
+                                        } else {
+                                            $('#btn_tambah_tanggal')
+                                                .prop('disabled', false)
+                                                .removeClass('disabled');
+                                        }
+                                    }
+
+                                    // Inisialisasi datepicker
+                                    function initDatepicker() {
+                                        $('.datepicker').datepicker({
+                                            format: 'yyyy-mm-dd',
+                                            autoclose: true,
+                                            todayHighlight: true,
+                                            startDate: new Date()
+                                        });
+                                    }
+
+                                    // Inisialisasi datepicker pertama kali
+                                    initDatepicker();
+
+                                    // Tombol tambah tanggal
+                                    $('#btn_tambah_tanggal').click(function() {
+
+                                        const jumlahTanggal = $(
+                                            '#container_tanggal .tanggal_cuti'
+                                        ).length;
+
+                                        if (jumlahTanggal >= max_tanggal) {
+
+                                            Swal.fire({
+                                                icon: 'warning',
+                                                title: 'Batas Tanggal',
+                                                text: `Maksimal ${max_tanggal} tanggal cuti.`,
+                                                confirmButtonText: 'OK'
+                                            });
+
+                                            return;
+                                        }
+
+                                        const htmlBaru = `
+                                            <div class="form-input tanggal_cuti mb-2 d-flex align-items-center">
+
+                                                <span class="input-icon">
+                                                    <i class="fa-solid fa-calendar-days"></i>
+                                                </span>
+
+                                                <input type="text"
+                                                    name="tanggal_cuti_berulang[]"
+                                                    class="form-control datepicker"
+                                                    readonly
+                                                    placeholder="Pilih Tanggal Cuti">
+
+                                                <button type="button"
+                                                    class="btn btn-danger btn-sm ms-2 btn-hapus">
+                                                    <i class="fa-solid fa-trash"></i>
+                                                </button>
+
+                                            </div>
+                                        `;
+
+                                        // HANYA SEKALI
+                                        $('#container_tanggal').append(
+                                            htmlBaru);
+
+                                        // Inisialisasi datepicker hanya untuk input yang baru
+                                        $('#container_tanggal .datepicker')
+                                            .last().datepicker({
+                                                format: 'yyyy-mm-dd',
+                                                autoclose: true,
+                                                todayHighlight: true,
+                                                startDate: new Date()
+                                            });
+
+                                        updateButtonTambahTanggal();
+                                    });
+
+                                    // Hapus tanggal
+                                    $(document).on('click', '.btn-hapus', function() {
+
+                                        $(this).closest('.tanggal_cuti')
+                                            .remove();
+
+                                        updateButtonTambahTanggal();
+                                    });
+
+                                    // Jalankan pertama kali
+                                    updateButtonTambahTanggal();
+
+                                });
+                            } else {
+                                $('#btn_pengajuan').html(`
+                                <button type="button" id="btn_save_konfirmasi_cuti"
+                                    class="btn btn-primary btn-sm w-100 py-3 rounded-pill fw-bold mb-2 shadow" disabled>
+                                    KUOTA HABIS
+                                </button>
+                                `);
+                                hideSkeleton('#btn_pengajuan');
+                            }
+                            hideSkeleton('#btn_pengajuan');
+                        }
+
+
+                    }
+                })
             });
-        });
-        $(document).on('click', '#btn_klik', function(e) {
-            Swal.fire({
-                allowOutsideClick: false,
-                background: 'transparent',
-                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-                showCancelButton: false,
-                showConfirmButton: false,
-                onBeforeOpen: () => {
-                    // Swal.showLoading()
-                },
+
+            $('#clear').on('click', () => signaturePad.clear());
+            $(document).on('click', '#btn_save_konfirmasi_cuti', function(e) {
+                const offcanvasEl = document.getElementById('off-canvas-konfirmasi-save');
+                const offcanvas = new bootstrap.Offcanvas(offcanvasEl);
+                offcanvas.show();
             });
-        });
-        window.onbeforeunload = function() {
-            Swal.fire({
-                allowOutsideClick: false,
-                background: 'transparent',
-                html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
-                showCancelButton: false,
-                showConfirmButton: false,
-                onBeforeOpen: () => {
-                    // Swal.showLoading()
-                },
+            $(document).on('click', '#btn_simpan_cuti', function(e) {
+                let btn = $(this);
+                let originalText = btn.html();
+
+                let signature_value = '';
+                if (!signaturePad.isEmpty()) {
+                    signature_value = signaturePad.toDataURL();
+                }
+                $('#signature').val(signature_value);
+                $.ajax({
+                    url: "{{ url('/cuti/proses_pengajuan_cuti') }}" + '/' + menu_active,
+                    type: "POST",
+                    data: $('#form_pengajuan_cuti').serialize(),
+                    beforeSend: function() {
+                        btn.prop('disabled', true);
+                        btn.html(
+                            `<span class="spinner-border spinner-border-sm me-2"></span>Loading... `
+                        );
+                    },
+                    error: function(data) {
+                        btn.prop('disabled', false);
+                        btn.html(originalText);
+                        const offcanvasEl1 = document.getElementById(
+                            'off-canvas-konfirmasi-save');
+                        const offcanvas1 = bootstrap.Offcanvas.getInstance(offcanvasEl1);
+                        offcanvas1.hide();
+                        $('.alert_error_cuti').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            data.responseJSON.message + '</div>').fadeIn(100);
+                        // Set timer untuk menutup secara otomatis (sama dengan animasi sukses)
+                        setTimeout(function() {
+                            $('.alert_error_cuti').animate({
+                                opacity: 0,
+                                marginTop: '-10px'
+                            }, 1000, function() {
+                                $(this).slideUp('slow', function() {
+                                    $(this).html(
+                                        ''
+                                    ); // Kosongkan isi setelah hilang
+                                    $(this).css({
+                                        'opacity': '',
+                                        'margin-top': ''
+                                    }); // Reset style untuk penggunaan berikutnya
+                                });
+                            });
+                        }, 6000);
+                        $('#alert_pengajuan_cuti').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            data.responseJSON.message + '</div>').fadeIn(100);
+                        // Set timer untuk menutup secara otomatis (sama dengan animasi sukses)
+                        setTimeout(function() {
+                            $('#alert_pengajuan_cuti').animate({
+                                opacity: 0,
+                                marginTop: '-10px'
+                            }, 1000, function() {
+                                $(this).slideUp('slow', function() {
+                                    $(this).html(
+                                        ''
+                                    ); // Kosongkan isi setelah hilang
+                                    $(this).css({
+                                        'opacity': '',
+                                        'margin-top': ''
+                                    }); // Reset style untuk penggunaan berikutnya
+                                });
+                            });
+                        }, 6000);
+                    },
+                    success: function(data) {
+                        // console.log(data);
+                        btn.prop('disabled', false);
+                        btn.html(originalText);
+                        const offcanvasEl1 = document.getElementById(
+                            'off-canvas-konfirmasi-save');
+                        const offcanvas1 = bootstrap.Offcanvas.getInstance(offcanvasEl1);
+                        offcanvas1.hide();
+                        $('#alert_pengajuan_cuti').empty();
+                        if (data.code == 200) {
+                            $('#alert_pengajuan_cuti').stop(true, true).hide().html(
+                                '<div class="alert alert-success light alert-lg alert-dismissible fade show">' +
+                                data.message + '</div>').fadeIn(100);
+                            setTimeout(function() {
+                                $('#alert_pengajuan_cuti').animate({
+                                    opacity: 0,
+                                    marginTop: '-10px'
+                                }, 1000, function() {
+                                    $(this).slideUp('slow', function() {
+                                        $(this).html(
+                                            ''
+                                        ); // Kosongkan isi setelah hilang
+                                        $(this).css({
+                                            'opacity': '',
+                                            'margin-top': ''
+                                        }); // Reset style untuk penggunaan berikutnya
+                                    });
+                                });
+                            }, 6000);
+                            $('#form_pengajuan_cuti')[0].reset();
+                            const offcanvasEl = document.getElementById('off-canvas-cuti');
+                            const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                            offcanvas.hide();
+
+                        } else if (data.code == 202) {
+                            Swal.fire({
+                                title: 'Peringatan',
+                                text: data.errors.kategori_cuti,
+                                icon: 'warning',
+                                confirmButtonText: 'OK'
+                            });
+                        } else if (data.code == 203) {
+                            Swal.fire({
+                                title: 'Peringatan',
+                                text: data.errors.kategori_cuti,
+                                icon: 'warning',
+                                confirmButtonText: 'OK'
+                            });
+                        } else if (data.code == 422) {
+                            $.each(data.errors, function(key, value) {
+                                let className = key.replace(/\.\d+$/, '');
+                                $('.alert_' + className).html(
+                                    `<div class="alert alert-danger light alert-lg alert-dismissible fade show">
+                                            ${value[0]}
+                                        </div>`
+                                ).fadeIn(100);
+                                setTimeout(function() {
+                                    $('.alert_' + key).animate({
+                                        opacity: 0,
+                                        marginTop: '-10px'
+                                    }, 1000, function() {
+                                        $(this).slideUp('slow',
+                                            function() {
+                                                $(this).html(
+                                                    ''
+                                                ); // Kosongkan isi setelah hilang
+                                                $(this).css({
+                                                    'opacity': '',
+                                                    'margin-top': ''
+                                                }); // Reset style untuk penggunaan berikutnya
+                                            });
+                                    });
+                                }, 6000);
+                                setTimeout(function() {
+                                    $('#alert_pengajuan_cuti').animate({
+                                        opacity: 0,
+                                        marginTop: '-10px'
+                                    }, 1000, function() {
+                                        $(this).slideUp('slow',
+                                            function() {
+                                                $(this).html(
+                                                    ''
+                                                ); // Kosongkan isi setelah hilang
+                                                $(this).css({
+                                                    'opacity': '',
+                                                    'margin-top': ''
+                                                }); // Reset style untuk penggunaan berikutnya
+                                            });
+                                    });
+                                }, 6000);
+                            })
+                        } else if (data.code == 500) {
+                            $('.alert_error_cuti').stop(true, true).hide().html(
+                                '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                                data.message + '</div>').fadeIn(100);
+                            setTimeout(function() {
+                                $('#alert_pengajuan_cuti').animate({
+                                    opacity: 0,
+                                    marginTop: '-10px'
+                                }, 1000, function() {
+                                    $(this).slideUp('slow', function() {
+                                        $(this).html(
+                                            ''
+                                        ); // Kosongkan isi setelah hilang
+                                        $(this).css({
+                                            'opacity': '',
+                                            'margin-top': ''
+                                        }); // Reset style untuk penggunaan berikutnya
+                                    });
+                                });
+                            }, 6000);
+                        }
+                        load_data_cuti();
+                    }
+                })
             });
-        };
-    </script>
-    <script type="text/javascript">
-        $(document).ready(function() {
+            $(document).on('click', '#btn_klik', function(e) {
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    onBeforeOpen: () => {
+                        // Swal.showLoading()
+                    },
+                });
+            });
+            window.onbeforeunload = function() {
+                Swal.fire({
+                    allowOutsideClick: false,
+                    background: 'transparent',
+                    html: ' <div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div><div class="spinner-grow text-primary spinner-grow-sm me-2" role="status"></div>',
+                    showCancelButton: false,
+                    showConfirmButton: false,
+                    onBeforeOpen: () => {
+                        // Swal.showLoading()
+                    },
+                });
+            };
             var today = moment().format('YYYY-MM-DD');
             var month = moment().format('MM');
             var day = moment().format('D');
             var year = moment().format('YYYY');
 
-            // console.log(month);
-            $('.month').val(month);
-            load_data();
+            // $('#notif_hari').hide();
+            // console.log(today);
+            $('#tanggal_cuti_berulang').on('change', function() {
+                const tanggalDipilih = moment($(this).val(), 'YYYY-MM-DD').startOf('day');
 
-            function load_data(filter_month = '') {
+                const selisihHari = tanggalDipilih.diff(today, 'days');
+                // console.log(selisihHari, today);
+
+                if (selisihHari < 13) {
+                    $('#notif_hari').removeClass('d-none');
+                } else {
+                    $('#notif_hari').addClass('d-none');
+                }
+            })
+
+
+
+            $('.month').val(month);
+
+            function showSkeleton(selector) {
+                const el = $(selector);
+                el.html(
+                    `<span class="skeleton skeleton-number" style="width:100%"></span>`
+                );
+            }
+
+            function hideSkeleton(selector, value) {
+                $(selector)
+                    .html(value);
+            }
+
+            // Filter Bulan dan tahun
+            const $filterBulan = $("#filterBulan");
+            const $filterTahun = $("#filterTahun");
+
+            // 1. Dapatkan info Bulan dan Tahun saat ini secara realtime
+            const dateSekarang = new Date();
+            const tahunSekarang = dateSekarang.getFullYear();
+            const bulanSekarang = String(dateSekarang.getMonth() + 1).padStart(2, '0'); // Hasilnya "01" - "12"
+
+            // 2. Isi data dropdown Tahun (mengambil rentang 3 tahun ke belakang)
+            for (let i = tahunSekarang; i >= 2024; i--) {
+                $filterTahun.append(`<option value="${i}">${i}</option>`);
+            }
+
+            // 3. Otomatis pilih opsi (selected) sesuai bulan & tahun aktif saat ini
+            $filterBulan.val(bulanSekarang);
+            $filterTahun.val(tahunSekarang);
+            // 4. Fungsi Utama pengkondisian filter data
+
+
+            function showSkeleton(selector) {
+                const el = $(selector);
+                el.html(
+                    `<span class="skeleton skeleton-number" style="width:100%"></span>`
+                );
+            }
+
+            function hideSkeleton(selector, value) {
+                $(selector)
+                    .html(value);
+            }
+            load_data_cuti();
+
+            function muatData() {
+                const bulanTerpilih = $filterBulan.val() || bulanSekarang;
+                const tahunTerpilih = $filterTahun.val() || tahunSekarang;
+                // --- LOGIKA MENCARI TANGGAL AKHIR DINAMIS ---
+                // Konversi string bulan ke integer (basis 10)
+                const intBulan = parseInt(bulanTerpilih, 10);
+                const intTahun = parseInt(tahunTerpilih, 10);
+
+                // Cari tahu tanggal terakhir di bulan & tahun tersebut (Otomatis deteksi Kabisat)
+                const tglTerakhir = new Date(intTahun, intBulan, 0).getDate();
+
+                // Format Tanggal Awal dan Akhir (Hasil: "01-01" s/d "31-01")
+                const tanggalMulai = `${tahunTerpilih}-${bulanTerpilih}-01`;
+                const tanggalSelesai = `${tahunTerpilih}-${bulanTerpilih}-${String(tglTerakhir).padStart(2, '0')}`;
+
+                let awal = tanggalMulai;
+                let akhir = tanggalSelesai;
+
+                // LOAD DATA
+                load_data_history(awal, akhir);
+
+                // END LOAD DATA
+
+            }
+            // end Filter bulan dan tahun
+            $("#btnSearch").on("click", function() {
+                const $btn = $(this);
+                const originalText = $btn.html();
+
+                // Beri efek loading spinner estetik agar user tahu data sedang di-refresh
+                $btn.html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Memuat...'
+                ).prop('disabled', true);
+
+                // Eksekusi refresh data
+                muatData();
+
+                // Kembalikan tombol ke kondisi normal setelah AJAX diproses (simulasi jeda 500ms)
+                setTimeout(function() {
+                    $btn.html(originalText).prop('disabled', false);
+                }, 500);
+            });
+
+            muatData()
+
+
+            // FUNCTION
+            function load_data_approval() {
                 $.ajax({
-                    url: "{{ url('/cuti/get_filter_month') }}",
-                    data: {
-                        filter_month: filter_month,
-                    },
+                    url: "{{ url('/cuti/get_approval') }}" + '/' + menu_active,
                     type: "GET",
-                    error: function() {
-                        alert('Something is wrong');
+                    beforeSend: function() {
+                        showSkeleton('#atasan1');
+                        showSkeleton('#atasan2');
+                    },
+                    error: function(data) {
+                        $('.alert-approval').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            data.responseText + '</div>').fadeIn(100);
+                        setTimeout(function() {
+                            $('.alert-approval').animate({
+                                opacity: 0,
+                                marginTop: '-10px'
+                            }, 1000, function() {
+                                $(this).slideUp('slow', function() {
+                                    $(this).html(
+                                        ''); // Kosongkan isi setelah hilang
+                                    $(this).css({
+                                        'opacity': '',
+                                        'margin-top': ''
+                                    }); // Reset style untuk penggunaan berikutnya
+                                });
+                            });
+                        }, 6000);
                     },
                     success: function(data) {
-                        console.log(data);
-                        if (data == '' || data == null) {
-                            $('.content-history').append(function() {
-                                var notif =
-                                    "<div class='notification-content' style='background-color: white;'>";
-                                var history =
-                                    "<div class='notification text-center'><h6>Tidak Ada Data</h6><div class='notification-footer'>";
-                                var history2 = history + "</div></div></div>";
-                                return notif + history2;
-                            });
+                        $('#atasan1').empty();
+                        $('#atasan2').empty();
+                        // console.log(data);
+                        let atasan1 = '';
+                        let atasan2 = '';
+                        let id_atasan1 = '';
+                        let id_atasan2 = '';
+                        if (data.code == 200) {
+                            atasan1 += data.atasan1 ? data.atasan1.karyawan ? data.atasan1.karyawan
+                                .name : '-' : '-';
+                            atasan2 += data.atasan2 ? data.atasan2.karyawan ? data.atasan2.karyawan
+                                .name : '-' : '-';
+                            id_atasan1 += data.atasan1 ? data.atasan1.karyawan ? data.atasan1.karyawan
+                                .id : '' : '';
+                            id_atasan2 += data.atasan2 ? data.atasan2.karyawan ? data.atasan2.karyawan
+                                .id : '' : '';
                         } else {
-                            count = data.length;
-                            $.each(data, function(count) {
-                                $('.content-history').append(function() {
-                                    var notif =
-                                        "<div class='notification-content' style='background-color: white;'>";
-                                    if (data[count].status_cuti == 0 || data[count]
-                                        .status_cuti == 'NOT APPROVE') {
-                                        var notif1 =
-                                            "<a href='javascript:void(0);' data-bs-toggle='offcanvas' data-bs-target='#delete" +
-                                            data[count].id +
-                                            "' aria-controls='offcanvasBottom'>";
-                                        var notif2 =
-                                            "<small class='badge light badge-danger' style='float: right;padding-right:10px; box-shadow: 0px 0px 4px;'>";
-                                        var notif3 =
-                                            "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none'><path d='M3 6.52381C3 6.12932 3.32671 5.80952 3.72973 5.80952H8.51787C8.52437 4.9683 8.61554 3.81504 9.45037 3.01668C10.1074 2.38839 11.0081 2 12 2C12.9919 2 13.8926 2.38839 14.5496 3.01668C15.3844 3.81504 15.4756 4.9683 15.4821 5.80952H20.2703C20.6733 5.80952 21 6.12932 21 6.52381C21 6.9183 20.6733 7.2381 20.2703 7.2381H3.72973C3.32671 7.2381 3 6.9183 3 6.52381Z' fill='#1C274C' /><path opacity='0.5' d='M11.5956 22.0001H12.4044C15.1871 22.0001 16.5785 22.0001 17.4831 21.1142C18.3878 20.2283 18.4803 18.7751 18.6654 15.8686L18.9321 11.6807C19.0326 10.1037 19.0828 9.31524 18.6289 8.81558C18.1751 8.31592 17.4087 8.31592 15.876 8.31592H8.12405C6.59127 8.31592 5.82488 8.31592 5.37105 8.81558C4.91722 9.31524 4.96744 10.1037 5.06788 11.6807L5.33459 15.8686C5.5197 18.7751 5.61225 20.2283 6.51689 21.1142C7.42153 22.0001 8.81289 22.0001 11.5956 22.0001Z' fill='#1C274C' /><path fill-rule='evenodd' clip-rule='evenodd' d='M9.42543 11.4815C9.83759 11.4381 10.2051 11.7547 10.2463 12.1885L10.7463 17.4517C10.7875 17.8855 10.4868 18.2724 10.0747 18.3158C9.66253 18.3592 9.29499 18.0426 9.25378 17.6088L8.75378 12.3456C8.71256 11.9118 9.01327 11.5249 9.42543 11.4815Z' fill='#1C274C' /><path fill-rule='evenodd' clip-rule='evenodd' d='M14.5747 11.4815C14.9868 11.5249 15.2875 11.9118 15.2463 12.3456L14.7463 17.6088C14.7051 18.0426 14.3376 18.3592 13.9254 18.3158C13.5133 18.2724 13.2126 17.8855 13.2538 17.4517L13.7538 12.1885C13.795 11.7547 14.1625 11.4381 14.5747 11.4815Z' fill='#1C274C'/></svg></small></a>";
-                                        var notif4 =
-                                            "<div class='offcanvas offcanvas-bottom' tabindex='-1' id='delete" +
-                                            data[count].id +
-                                            "' aria-labelledby='offcanvasBottomLabel'><div class='offcanvas-body text-center small'><h5 class='title'>KONFIRMASI HAPUS</h5><p>Apakah Anda Ingin Menghapus Pengajuan Cuti?</p><a id='btn_klik' href='delete_cuti/" +
-                                            data[count].id +
-                                            "' class='btn btn-sm btn-danger light pwa-btn'>Hapus</a>";
-                                        var notif5 = notif + notif1 + notif2 + notif3 +
-                                            notif4 +
-                                            "<a href='javascrpit:void(0);' class='btn btn-sm light btn-primary ms-2' data-bs-dismiss='offcanvas' aria-label='Close'>Batal</a></div></div>";
-                                        // return notif5;
-                                    } else if (data[count].status_cuti == 3) {
-                                        var notif1 =
-                                            "<a href='javascript:void(0);' data-bs-toggle='offcanvas' data-bs-target='#download" +
-                                            data[count].id +
-                                            "' aria-controls='offcanvasBottom'><small class='badge light badge-success' style='float: right;padding-right:10px; box-shadow: 0px 0px 4px;'>";
-                                        var notif2 = notif + notif1 +
-                                            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' fill='#000000' height='18' width='18' version='1.1' id='Capa_1' viewBox='0 0 48 48' xml:space='preserve'><g><g><path d='M47.987,21.938c-0.006-0.091-0.023-0.178-0.053-0.264c-0.011-0.032-0.019-0.063-0.033-0.094    c-0.048-0.104-0.109-0.202-0.193-0.285c-0.001-0.001-0.001-0.001-0.001-0.001L42,15.586V10c0-0.022-0.011-0.041-0.013-0.063    c-0.006-0.088-0.023-0.173-0.051-0.257c-0.011-0.032-0.019-0.063-0.034-0.094c-0.049-0.106-0.11-0.207-0.196-0.293l-9-9    c-0.086-0.086-0.187-0.148-0.294-0.197c-0.03-0.013-0.06-0.022-0.09-0.032c-0.086-0.03-0.174-0.047-0.264-0.053    C32.038,0.01,32.02,0,32,0H7C6.448,0,6,0.448,6,1v14.586l-5.707,5.707c0,0-0.001,0.001-0.002,0.002    c-0.084,0.084-0.144,0.182-0.192,0.285c-0.014,0.031-0.022,0.062-0.033,0.094c-0.03,0.086-0.048,0.173-0.053,0.264    C0.011,21.96,0,21.978,0,22v19c0,0.552,0.448,1,1,1h5v5c0,0.552,0.448,1,1,1h34c0.552,0,1-0.448,1-1v-5h5c0.552,0,1-0.448,1-1V22    C48,21.978,47.989,21.96,47.987,21.938z M44.586,21H42v-2.586L44.586,21z M38.586,9H33V3.414L38.586,9z M8,2h23v8    c0,0.552,0.448,1,1,1h8v5v5H8v-5V2z M6,18.414V21H3.414L6,18.414z M40,46H8v-4h32V46z M46,40H2V23h5h34h5V40z' /><path d='M18.254,26.72c-0.323-0.277-0.688-0.473-1.097-0.586c-0.408-0.113-0.805-0.17-1.19-0.17h-3.332V38h2.006v-4.828h1.428    c0.419,0,0.827-0.074,1.224-0.221c0.397-0.147,0.748-0.374,1.054-0.68c0.306-0.306,0.552-0.688,0.74-1.148    c0.187-0.459,0.281-0.994,0.281-1.606c0-0.68-0.105-1.247-0.315-1.7C18.843,27.364,18.577,26.998,18.254,26.72z M16.971,31.005    c-0.306,0.334-0.697,0.501-1.173,0.501h-1.156v-3.825h1.156c0.476,0,0.867,0.147,1.173,0.442c0.306,0.295,0.459,0.765,0.459,1.411    C17.43,30.18,17.277,30.67,16.971,31.005z' /><polygon points='30.723,38 32.78,38 32.78,32.832 35.857,32.832 35.857,31.081 32.764,31.081 32.764,27.8 36.112,27.8     36.112,25.964 30.723,25.964   ' /><path d='M24.076,25.964H21.05V38h3.009c1.553,0,2.729-0.524,3.528-1.572c0.799-1.049,1.198-2.525,1.198-4.429    c0-1.904-0.399-3.386-1.198-4.446C26.788,26.494,25.618,25.964,24.076,25.964z M26.55,33.843c-0.13,0.528-0.315,0.967-0.552,1.318    c-0.238,0.351-0.521,0.615-0.85,0.79c-0.329,0.176-0.686,0.264-1.071,0.264h-0.969v-8.466h0.969c0.385,0,0.742,0.088,1.071,0.264    c0.329,0.175,0.612,0.439,0.85,0.79c0.238,0.351,0.422,0.793,0.552,1.326s0.196,1.156,0.196,1.87    C26.746,32.702,26.68,33.316,26.55,33.843z' /></g></g></svg></small></a>";
-                                        // return notif5;
+                            atasan1 += '-';
+                            atasan2 += '-';
+                            id_atasan1 += '';
+                            id_atasan2 += '';
+                        }
+                        $('#atasan_1').val(id_atasan1);
+                        $('#atasan_2').val(id_atasan2);
+                        hideSkeleton('#atasan1', atasan1);
+                        hideSkeleton('#atasan2', atasan2);
+                    }
+                })
+            }
 
-                                        var offcanvas =
-                                            "<div class='offcanvas offcanvas-bottom' tabindex='-1' id='download" +
-                                            data[count].id +
-                                            "' aria-labelledby='offcanvasBottomLabel'><div class='offcanvas-body text-center small'>";
-                                        var form =
-                                            "<h5 class='title'>FORM PENGAJUAN CUTI</h5>";
-                                        var offcanvas1 =
-                                            "<p>Apakah Anda Ingin Download Form Pengajuan Cuti?</p>";
-                                        var offcanvas2 =
-                                            "<a href='cetak_form_cuti/cetak/" + data[
-                                                count].id +
-                                            "' class='btn btn-sm btn-danger light pwa-btn'>";
-                                        var notif5 = notif2 + offcanvas + form +
-                                            offcanvas1 + offcanvas2 +
-                                            "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' fill='#000000' height='18' width='18' version='1.1' id='Capa_1' viewBox='0 0 48 48' xml:space='preserve'><g><g><path d='M47.987,21.938c-0.006-0.091-0.023-0.178-0.053-0.264c-0.011-0.032-0.019-0.063-0.033-0.094    c-0.048-0.104-0.109-0.202-0.193-0.285c-0.001-0.001-0.001-0.001-0.001-0.001L42,15.586V10c0-0.022-0.011-0.041-0.013-0.063    c-0.006-0.088-0.023-0.173-0.051-0.257c-0.011-0.032-0.019-0.063-0.034-0.094c-0.049-0.106-0.11-0.207-0.196-0.293l-9-9    c-0.086-0.086-0.187-0.148-0.294-0.197c-0.03-0.013-0.06-0.022-0.09-0.032c-0.086-0.03-0.174-0.047-0.264-0.053    C32.038,0.01,32.02,0,32,0H7C6.448,0,6,0.448,6,1v14.586l-5.707,5.707c0,0-0.001,0.001-0.002,0.002    c-0.084,0.084-0.144,0.182-0.192,0.285c-0.014,0.031-0.022,0.062-0.033,0.094c-0.03,0.086-0.048,0.173-0.053,0.264    C0.011,21.96,0,21.978,0,22v19c0,0.552,0.448,1,1,1h5v5c0,0.552,0.448,1,1,1h34c0.552,0,1-0.448,1-1v-5h5c0.552,0,1-0.448,1-1V22    C48,21.978,47.989,21.96,47.987,21.938z M44.586,21H42v-2.586L44.586,21z M38.586,9H33V3.414L38.586,9z M8,2h23v8    c0,0.552,0.448,1,1,1h8v5v5H8v-5V2z M6,18.414V21H3.414L6,18.414z M40,46H8v-4h32V46z M46,40H2V23h5h34h5V40z' /><path d='M18.254,26.72c-0.323-0.277-0.688-0.473-1.097-0.586c-0.408-0.113-0.805-0.17-1.19-0.17h-3.332V38h2.006v-4.828h1.428    c0.419,0,0.827-0.074,1.224-0.221c0.397-0.147,0.748-0.374,1.054-0.68c0.306-0.306,0.552-0.688,0.74-1.148    c0.187-0.459,0.281-0.994,0.281-1.606c0-0.68-0.105-1.247-0.315-1.7C18.843,27.364,18.577,26.998,18.254,26.72z M16.971,31.005    c-0.306,0.334-0.697,0.501-1.173,0.501h-1.156v-3.825h1.156c0.476,0,0.867,0.147,1.173,0.442c0.306,0.295,0.459,0.765,0.459,1.411    C17.43,30.18,17.277,30.67,16.971,31.005z' /><polygon points='30.723,38 32.78,38 32.78,32.832 35.857,32.832 35.857,31.081 32.764,31.081 32.764,27.8 36.112,27.8     36.112,25.964 30.723,25.964   ' /><path d='M24.076,25.964H21.05V38h3.009c1.553,0,2.729-0.524,3.528-1.572c0.799-1.049,1.198-2.525,1.198-4.429    c0-1.904-0.399-3.386-1.198-4.446C26.788,26.494,25.618,25.964,24.076,25.964z M26.55,33.843c-0.13,0.528-0.315,0.967-0.552,1.318    c-0.238,0.351-0.521,0.615-0.85,0.79c-0.329,0.176-0.686,0.264-1.071,0.264h-0.969v-8.466h0.969c0.385,0,0.742,0.088,1.071,0.264    c0.329,0.175,0.612,0.439,0.85,0.79c0.238,0.351,0.422,0.793,0.552,1.326s0.196,1.156,0.196,1.87    C26.746,32.702,26.68,33.316,26.55,33.843z' /></g> </g></svg>&nbsp;Download</a><a href='javascrpit:void(0);' class='btn btn-sm light btn-primary ms-2' data-bs-dismiss='offcanvas' aria-label='Close'>Batal</a></div></div>";
-                                    } else {
-                                        var notif5 = notif;
+            function load_data_karyawan_pengganti() {
+                showSelectLoading('#karyawan_pengganti');
+                $.ajax({
+                    // url: "{{ url('/cuti/get_karyawan_pengganti') }}" + '/' + karyawan_holding,
+                    url: "{{ url('/cuti/get_karyawan_pengganti') }}" + '/' + user_karyawan_id,
+                    type: "GET",
+                    // beforeSend: function() {
+                    //     showSkeleton('.karyawan_pengganti');
+                    // },
+                    error: function(data) {
+                        hideSelectLoading('#karyawan_pengganti');
+                        $('.alert-pengganti').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            data.responseText + '</div>').fadeIn(100);
+                        setTimeout(function() {
+                            $('.alert-pengganti').animate({
+                                opacity: 0,
+                                marginTop: '-10px'
+                            }, 1000, function() {
+                                $(this).slideUp('slow', function() {
+                                    $(this).html(
+                                        ''); // Kosongkan isi setelah hilang
+                                    $(this).css({
+                                        'opacity': '',
+                                        'margin-top': ''
+                                    }); // Reset style untuk penggunaan berikutnya
+                                });
+                            });
+                        }, 6000);
+                    },
+                    success: function(data) {
+                        // console.log(data);
+                        hideSelectLoading('#karyawan_pengganti');
+                        let option = '<option value="">Pilih Karyawan Pengganti...</option>';
+                        let select_karyawan =
+                            ' <span class="input-icon"><i class="fa-solid fa-user"></i></span>';
+                        if (data.code == 200) {
+                            if (data.karyawan_pengganti.length == 0) {
+                                $('.alert-pengganti').stop(true, true).hide().html(
+                                    '<div class="alert alert-warning light alert-lg alert-dismissible fade show">Tidak ada karyawan pengganti tersedia</div>'
+                                ).fadeIn(100);
+                                setTimeout(function() {
+                                    $('.alert-pengganti').animate({
+                                        opacity: 0,
+                                        marginTop: '-10px'
+                                    }, 1000, function() {
+                                        $(this).slideUp('slow', function() {
+                                            $(this).html(
+                                                ''
+                                            ); // Kosongkan isi setelah hilang
+                                            $(this).css({
+                                                'opacity': '',
+                                                'margin-top': ''
+                                            }); // Reset style untuk penggunaan berikutnya
+                                        });
+                                    });
+                                }, 6000);
+                            } else {
+                                data.karyawan_pengganti.forEach((element, index) => {
+                                    option +=
+                                        `<option value="${element.karyawan?.id ?? '-'}">${element.karyawan?.name ?? '-'}</option>`;
+                                });
+                            }
+                        } else {
+                            $('.alert-pengganti').stop(true, true).hide().html(
+                                '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                                data.message + '</div>').fadeIn(100);
+                            setTimeout(function() {
+                                $('.alert-pengganti').animate({
+                                    opacity: 0,
+                                    marginTop: '-10px'
+                                }, 1000, function() {
+                                    $(this).slideUp('slow', function() {
+                                        $(this).html(
+                                            ''); // Kosongkan isi setelah hilang
+                                        $(this).css({
+                                            'opacity': '',
+                                            'margin-top': ''
+                                        }); // Reset style untuk penggunaan berikutnya
+                                    });
+                                });
+                            }, 6000);
+                        }
+                        // hideSkeleton('.karyawan_pengganti', option);
+                        $('#karyawan_pengganti').html(option).trigger('change');
+                    }
+                })
+            }
+
+            function load_data_cuti() {
+                let cuti = '';
+                $.ajax({
+                    url: "{{ url('/cuti/get_cuti') }}" + '/' + menu_active,
+                    type: "GET",
+                    beforeSend: function() {
+                        showSkeleton('.content-cuti');
+                    },
+                    error: function(data) {
+                        // console.log(data);
+                        $('.alert_add_cuti').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            data.responseJSON.message + '</div>').fadeIn(100);
+                        setTimeout(function() {
+                            $('.alert_add_cuti').animate({
+                                opacity: 0,
+                                marginTop: '-10px'
+                            }, 1000, function() {
+                                $(this).slideUp('slow', function() {
+                                    $(this).html(
+                                        ''); // Kosongkan isi setelah hilang
+                                    $(this).css({
+                                        'opacity': '',
+                                        'margin-top': ''
+                                    }); // Reset style untuk penggunaan berikutnya
+                                });
+                            });
+                        }, 6000);
+                        cuti +=
+                            `<div class="text-center mt-3 mb-3"><small class="text-muted">${data.responseJSON.message}</small></div>`;
+                        hideSkeleton('.content-cuti', cuti);
+                    },
+                    success: function(data) {
+                        // console.log(data);
+                        if (data.code == 200) {
+                            if (data.cuti == '' || data.cuti == null) {
+                                cuti += `  <div class="text-center text-muted py-4">
+                                        <i class="fa-solid fa-file-lines fa-bounce fa-2x"></i>
+                                        <p class="mb-0">Belum ada data cuti</p>
+                                    </div>`;
+                            } else {
+                                data.cuti.forEach(element => {
+                                    if (element.nama_cuti == 1) {
+                                        element.nama_cuti = 'Cuti Tahunan';
+                                    } else if (element.nama_cuti == 2) {
+                                        element.nama_cuti = element.kategori_cuti.nama_cuti
                                     }
-                                    var history =
-                                        "<a id='btn_klik' href='detail/edit/" + data[
-                                            count].id + "'><div class='notification'>";
-                                    if (data[count].nama_cuti == 'Cuti Tahunan') {
-                                        var history1 = "<h6>" + data[count].nama_cuti +
-                                            "</h6>";
-                                    } else {
-                                        var history1 = "<h6>" + data[count].nama_cuti +
-                                            " <p>(" + data[count].kategori_cuti
-                                            .nama_cuti + ")</p></h6>";
+                                    if (element.status_cuti == 0) {
+                                        var progressValue = 33;
+                                        var progressColor = 'bg-primary';
+                                        var card = 'coworker-card';
+                                    } else if (element.status_cuti == 1) {
+                                        var progressValue = 66;
+                                        var progressColor = 'bg-primary';
+                                        var card = 'coworker-card';
+                                    } else if (element.status_cuti == 2) {
+                                        var progressValue = 100;
+                                        var progressColor = 'bg-success';
+                                        var card = 'coworker-card-history';
                                     }
-                                    var history2 =
-                                        "<div class='notification-footer'><span><svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none'><path fill-rule='evenodd' clip-rule='evenodd' d='M7 4.01833C6.46047 4.04114 6.07192 4.09237 5.72883 4.20736C4.53947 4.60599 3.60599 5.53947 3.20736 6.72883C3 7.3475 3 8.11402 3 9.64706C3 9.74287 3 9.79078 3.01296 9.82945C3.03787 9.90378 3.09622 9.96213 3.17055 9.98704C3.20922 10 3.25713 10 3.35294 10H20.6471C20.7429 10 20.7908 10 20.8294 9.98704C20.9038 9.96213 20.9621 9.90378 20.987 9.82945C21 9.79078 21 9.74287 21 9.64706C21 8.11402 21 7.3475 20.7926 6.72883C20.394 5.53947 19.4605 4.60599 18.2712 4.20736C17.9281 4.09237 17.5395 4.04114 17 4.01833L17 6.5C17 7.32843 16.3284 8 15.5 8C14.6716 8 14 7.32843 14 6.5L14 4H10L10 6.5C10 7.32843 9.32843 8 8.50001 8C7.67158 8 7 7.32843 7 6.5L7 4.01833Z' fill='#222222' /><path d='M3 11.5C3 11.2643 3 11.1464 3.07322 11.0732C3.14645 11 3.2643 11 3.5 11H20.5C20.7357 11 20.8536 11 20.9268 11.0732C21 11.1464 21 11.2643 21 11.5V12C21 15.7712 21 17.6569 19.8284 18.8284C18.6569 20 16.7712 20 13 20H11C7.22876 20 5.34315 20 4.17157 18.8284C3 17.6569 3 15.7712 3 12V11.5Z' fill='#2A4157' fill-opacity='0.24' /><path d='M8.5 2.5L8.5 6.5' stroke='#222222' stroke-linecap='round' /><path d='M15.5 2.5L15.5 6.5' stroke='#222222' stroke-linecap='round' /></svg>";
-                                    var history3 = new Date(data[count].tanggal)
-                                        .toLocaleDateString() + "</span>";
-                                    if (data[count].status_cuti == 0) {
-                                        var status =
-                                            "<small class='badge light badge-danger'><i class='far fa-edit'></i> Tambahkan TTD</small>";
-                                    } else if (data[count].status_cuti == 1) {
-                                        if (data[count].ttd_atasan1 == null || data[
-                                                count].ttd_atasan1 == '') {
-                                            var status =
-                                                "<small class='badge light badge-primary'><i class='fa fa-spinner'></i> Menunggu Approve Atasan1</small>";
-                                        }
-                                    } else if (data[count].status_cuti == 2) {
-                                        if (data[count].ttd_atasan2 == null || data[
-                                                count].ttd_atasan2 == '') {
-                                            var status =
-                                                "<small class='badge light badge-primary'><i class='fa fa-spinner'></i> Menunggu Approve Atasan2</small>";
-                                        }
-                                    } else if (data[count].status_cuti ==
-                                        'NOT APPROVE') {
-                                        var status =
-                                            "<small class='badge light badge-danger'><i class='fa fa-minus'></i> Permintaan Ditolak </small>";
-                                    } else if (data[count].status_cuti == 3) {
-                                        var status =
-                                            "<small class='badge light badge-success'> <svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none'><path d='M8.5 12.5L10.5 14.5L15.5 9.5' stroke='#1C274C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' /><path d='M7 3.33782C8.47087 2.48697 10.1786 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 10.1786 2.48697 8.47087 3.33782 7' stroke='#1C274C' stroke-width='1.5' stroke-linecap='round' /></svg>Permintaan Disetujui</small>";
-                                    }
-                                    var history4 = history + history1 + history2 +
-                                        history3 + status + "</div></div></a></div>";
-                                    return notif5 + history4;
+
+                                    let indicator = `
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div class="progress-bar ${progressColor} progress-animated border-0" style="width: ${progressValue}%"></div>
+                                    </div>
+                                    <small class="text-muted" style="font-size: 7pt;">Progress Approval(${progressValue}%)</small>
+                                `;
+                                    cuti += `<a class="btn_klik" href="{{ url('/cuti/editCuti') }}/${element.id}"><div class="coworker-card d-flex align-items-center mb-3">
+                                     <div class="avatar-wrapper">
+                                     <i class="fa-solid fa-circle-dot"></i>
+                                        </div>
+                                        {{-- INFO --}}
+                                        <div class="flex-grow-1 ms-3 text-start">
+                                            <h6 class="mb-1 fw-semibold">${element.nama_cuti}</h6>
+
+                                            <div class="text-muted small">
+                                                ${formatLabel(element.tanggal_mulai)}
+                                                <span class="mx-1">-</span>
+                                                ${formatLabel(element.tanggal_selesai)}
+                                                <div class="d-flex align-items-center">
+                                                <i class="fa fa-calendar me-1"></i><span style="font-size: 9pt;" class="ms-2 price-item">${formatLabel(element.tanggal_pengajuan)}</span>
+                                               </div>
+
+                                            </div>
+                                               ${indicator}
+                                        </div>
+                                        {{-- ICON --}}
+                                        <div class="icon-box">
+                                         <i class="fa-regular fa-file-lines"></i>
+                                        </div>
+                                    </div></a>`;
                                 });
 
-                            });
+                            }
+                        } else {
+                            $('.alert_add_cuti').stop(true, true).hide().html(
+                                '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                                data.message + '</div>').fadeIn(100);
+                            cuti +=
+                                `<div class="text-center mt-3 mb-3"><small class="text-muted">${data.message}</small></div>`;
+                            setTimeout(function() {
+                                $('.alert_add_cuti').animate({
+                                    opacity: 0,
+                                    marginTop: '-10px'
+                                }, 1000, function() {
+                                    $(this).slideUp('slow', function() {
+                                        $(this).html(
+                                            ''); // Kosongkan isi setelah hilang
+                                        $(this).css({
+                                            'opacity': '',
+                                            'margin-top': ''
+                                        }); // Reset style untuk penggunaan berikutnya
+                                    });
+                                });
+                            }, 6000);
                         }
+                        hideSkeleton('.content-cuti', cuti);
+                    }
+                })
+            }
+
+            function formatLabel(date) {
+                const d = new Date(date);
+
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+
+                return `${day}-${month}-${year}`;
+            }
+
+
+
+            function show_saldo_cuti() {
+                $('#get_saldo_cuti').empty();
+                var data_saldo_cuti = '';
+                var id_karyawan = '{{ $user_karyawan->id }}';
+                $.ajax({
+                    url: "{{ url('/cuti/get_saldo_cuti') }}" + '/' + id_karyawan,
+                    type: "GET",
+                    beforeSend: function() {
+                        showSkeleton('#get_saldo_cuti');
+                    },
+                    error: function(data) {
+                        data_saldo_cuti +=
+                            `<div class="text-center mt-3 mb-3"><small class="text-muted">${data.responseJSON.message}</small></div>`;
+                        hideSkeleton('#get_saldo_cuti', data_saldo_cuti);
+                    },
+                    success: function(data) {
+                        // console.log(data);
+                        if (data.code == 200) {
+                            var kuota = data.saldo_cuti.kuota;
+                            var terpakai = data.saldo_cuti.terpakai;
+                            var sisa = data.saldo_cuti.sisa;
+                            var periode = data.saldo_cuti.periode_group.nama_period;
+                            var no_form = data.saldo_cuti.periode_group.legal_number_period;
+                        } else if (data.code == 400) {
+                            var kuota = 0;
+                            var terpakai = 0;
+                            var sisa = 0;
+                            var periode = '-';
+                            var no_form = '-';
+                        } else {
+                            var kuota = '<span class="text-danger">Error</span>';
+                            var terpakai = '<span class="text-danger">Error</span>';
+                            var sisa = '<span class="text-danger">Error</span>';
+                            var periode = '<span class="text-danger">Error</span>';
+                            var no_form = '<span class="text-danger">Error</span>';
+                        }
+                        data_saldo_cuti += `<div class="col-4">
+                            <div class="quota-card-sm text-center">
+                                <span class="q-label">Saldo</span>
+                                <div class="q-value-wrap">
+                                    <span class="q-value text-dark">${kuota}</span>
+                                    <small class="q-unit">Hari</small>
+                                </div>
+                                <div class="q-bar bg-info"></div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="quota-card-sm text-center">
+                                <span class="q-label">Terpakai</span>
+                                <div class="q-value-wrap">
+                                    <span class="q-value text-danger">${terpakai}</span>
+                                    <small class="q-unit">Hari</small>
+                                </div>
+                                <div class="q-bar bg-danger"></div>
+                            </div>
+                        </div>
+
+                        <div class="col-4">
+                            <div class="quota-card-sm text-center highlight-purple">
+                                <span class="q-label text-purple">Sisa</span>
+                                <div class="q-value-wrap">
+                                    <span class="q-value text-purple-bold">${sisa}</span>
+                                    <small class="q-unit">Hari</small>
+                                </div>
+                                <div class="q-bar bg-purple"></div>
+                            </div>
+                        </div>`;
+                        hideSkeleton('#get_saldo_cuti', data_saldo_cuti);
+                        $('#title_saldo_cuti').html(periode);
+                        $('#sub_title_saldo_cuti').html(no_form);
+
+                    }
+                })
+            }
+
+            function load_data_history(awal, akhir) {
+                $('.content-history').empty();
+                $('.alert_history_cuti').empty();
+                $('.alert_add_cuti').empty();
+                $.ajax({
+                    url: "{{ url('/cuti/history/get_history_cuti') }}",
+                    data: {
+                        awal: awal,
+                        akhir: akhir,
+                    },
+                    type: "GET",
+                    beforeSend: function() {
+                        showSkeleton('.content-history');
+                    },
+                    error: function(data) {
+                        $('.alert_history_cuti').stop(true, true).hide().html(
+                            '<div class="alert alert-danger light alert-lg alert-dismissible fade show">' +
+                            '<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" class="me-2"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>' +
+                            '<strong>Info!</strong>&nbsp;' + data.responseJSON.message +
+                            '<button class="btn-close" data-bs-dismiss="alert" aria-label="btn-close"></button>'
+                        ).fadeIn();
+                        setTimeout(function() {
+                            $('.alert_history_cuti').animate({
+                                opacity: 0,
+                                marginTop: '-10px'
+                            }, 1000, function() {
+                                $(this).slideUp('slow', function() {
+                                    $(this).html(
+                                        ''); // Kosongkan isi setelah hilang
+                                    $(this).css({
+                                        'opacity': '',
+                                        'margin-top': ''
+                                    }); // Reset style untuk penggunaan berikutnya
+                                });
+                            });
+                        }, 6000);
+
+                    },
+                    success: function(data) {
+                        // console.log(data);
+                        $('.content-history').empty();
+                        let history = '';
+                        if (data.code == 200) {
+                            if (data.history == '' || data.history == null) {
+                                history +=
+                                    ` <div class="text-center text-muted py-4"><i class="fa-solid fa-clock-rotate-left fa-bounce fa-2x"></i><p class="mb-0">Belum ada data History cuti</p></div>`;
+                            } else {
+                                data.history.forEach(element => {
+                                    // Logika Nama Cuti
+                                    var nama_cuti = element.nama_cuti;
+                                    // Contoh jika menggunakan Progress Bar (Ganti statusBadge di atas)
+                                    if (element.status_cuti == 0) {
+                                        var progressValue = 33;
+                                        var progressColor = 'bg-primary';
+                                        var card = 'coworker-card';
+                                        var icon_box = 'icon-box';
+                                    } else if (element.status_cuti == 1) {
+                                        var progressValue = 66;
+                                        var progressColor = 'bg-primary';
+                                        var card = 'coworker-card';
+                                        var icon_box = 'icon-box';
+                                    } else if (element.status_cuti == 2) {
+                                        var progressValue = 100;
+                                        var progressColor = 'bg-success';
+                                        var card = 'coworker-card-history';
+                                        var icon_box = 'icon-box-success';
+                                    } else if (element.status_cuti == 5) {
+                                        var progressValue = 100;
+                                        var progressColor = 'bg-danger';
+                                        var card = 'coworker-card-reject';
+                                        var icon_box = 'icon-box-reject';
+                                    }
+
+                                    let indicator = `
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div class="progress-bar ${progressColor} progress-animated border-0" style="width: ${progressValue}%"></div>
+                                    </div>
+                                    <small class="text-muted" style="font-size: 7pt;">Progress Approval(${progressValue}%)</small>
+                                `;
+                                    history += `<a class="btn_klik" href="{{ url('/cuti/history/history_detail') }}/${element.id}">
+                                <div class="${card} d-flex align-items-center mb-3">
+                                    <div class="avatar-wrapper">
+                                        <i class="fa-solid fa-circle-dot"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3 text-start">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <h6 class="mb-1 fw-semibold">${nama_cuti}</h6>
+                                        </div>
+
+                                    <div class="text-muted small">
+                             ${formatLabel(element.tanggal_mulai)}<span class="mx-1">-</span>${formatLabel(element.tanggal_selesai)}
+                                <div class="d-flex align-items-center mt-1">
+                                    <i class="fa fa-calendar me-1"></i>
+                                    <span style="font-size: 9pt;" class="ms-1 price-item">${formatLabel(element.tanggal_pengajuan)}</span>
+                                </div>
+                            </div>
+                            ${indicator}
+                        </div>
+                        <div class="${icon_box}">
+                        <i class="fa-regular fa-file-lines"></i>
+                        </div>
+                    </div>
+                </a>`;
+                                });
+                            }
+                        } else {
+                            // ... (sisanya sama seperti kode asli Anda)
+                        }
+                        hideSkeleton('.content-history', history);
                     }
                 });
             }
-            $('#month').change(function() {
-                filter_month = $(this).val();
-                // console.log(filter_month);
-                $('.content-history').empty();
-                load_data(filter_month);
 
-
-            })
         });
     </script>
 @endsection

@@ -65,6 +65,73 @@
         .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__rendered {
             font-size: 0.8rem;
         }
+
+        .applicant-filter-panel {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .applicant-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
+            gap: 1.5rem 1.25rem;
+        }
+
+        .applicant-filter-grid+.applicant-filter-grid {
+            margin-top: 1.5rem;
+        }
+
+        .applicant-filter-field,
+        .applicant-filter-date,
+        .applicant-filter-action {
+            min-width: 0;
+        }
+
+        .applicant-filter-date {
+            grid-column: span 2;
+        }
+
+        .applicant-filter-action {
+            align-self: stretch;
+            display: flex;
+            align-items: stretch;
+        }
+
+        .applicant-filter-grid .select2-container {
+            width: 100% !important;
+        }
+
+        .applicant-filter-grid .form-floating-outline,
+        .applicant-filter-grid #reportrange,
+        .applicant-filter-grid #reportrange button,
+        .applicant-filter-grid #btn_filter {
+            width: 100%;
+        }
+
+        .applicant-filter-grid #reportrange button {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 1199.98px) {
+            .applicant-filter-grid {
+                grid-template-columns: repeat(2, minmax(220px, 1fr));
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .applicant-filter-panel {
+                padding: 1rem;
+            }
+
+            .applicant-filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .applicant-filter-date {
+                grid-column: auto;
+            }
+        }
     </style>
 @endsection
 @section('isi')
@@ -81,10 +148,10 @@
                     </div>
                     <div class="card-body">
                         <div id="collapseFilterWrapper" class="sticky-top bg-white" style="z-index: 1020;">
-                            <div class="card-body">
+                            <div class="applicant-filter-panel">
 
-                                <div class="row gy-4 mb-4">
-                                    <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="applicant-filter-grid">
+                                    <div class="applicant-filter-field">
                                         <div class="form-floating form-floating-outline">
                                             <select type="text" class="form-control" name="departemen_filter[]"
                                                 id="departemen_filter" multiple>
@@ -97,7 +164,7 @@
                                             <label for="departemen_filter">Departemen</label>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6 col-sm-6">
+                                    <div class="applicant-filter-field">
                                         <div class="form-floating form-floating-outline">
                                             <select type="text" class="form-control" name="divisi_filter[]"
                                                 id="divisi_filter" multiple>
@@ -106,7 +173,7 @@
                                             <label for="divisi_filter">Divisi</label>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6 col-sm-6">
+                                    <div class="applicant-filter-field">
                                         <div class="form-floating form-floating-outline">
                                             <select type="text" class="form-control" name="bagian_filter[]"
                                                 id="bagian_filter" multiple>
@@ -115,7 +182,7 @@
                                             <label for="bagian_filter">Bagian</label>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6 col-sm-6">
+                                    <div class="applicant-filter-field">
                                         <div class="form-floating form-floating-outline">
                                             <select type="text" class="form-control" name="jabatan_filter[]"
                                                 id="jabatan_filter" multiple>
@@ -126,8 +193,8 @@
                                     </div>
                                 </div>
 
-                                <div class="row gy-4 align-items-end">
-                                    <div class="col-lg-3 col-md-6 col-sm-6">
+                                <div class="applicant-filter-grid">
+                                    <div class="applicant-filter-field">
                                         <div class="form-floating form-floating-outline">
                                             <select type="text" class="form-control" name="status[]" id="status_filter"
                                                 multiple>
@@ -150,7 +217,7 @@
                                             <label for="status">Status</label>
                                         </div>
                                     </div>
-                                    <div class="col-lg-6 col-md-6col-sm-12">
+                                    <div class="applicant-filter-date">
                                         <div class="form-floating form-floating-outline">
                                             <div id="reportrange" style="white-space: nowrap;">
                                                 <button class="btn btn-outline-secondary w-100 ">
@@ -165,7 +232,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-lg-2 col-md-12 col-sm-12 d-flex justify-content-end">
+                                    <div class="applicant-filter-action">
                                         <button type="button" class="btn btn-primary w-100" id="btn_filter">
                                             <i class="mdi mdi-filter-outline"></i>&nbsp;Filter
                                         </button>
@@ -266,13 +333,38 @@
 
     <!-- {{-- start datatable  --}} -->
     <script>
+        $(document).ready(function() {
+            var menu_id = $('#asoy_sub').val();
+            // console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
+            var formData = new FormData();
+
+            //ambil data dari form
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('menu_id', menu_id);
+            // console.log(formData);
+
+            $.ajax({
+                type: "POST",
+
+                url: "{{ url('/recruitment/update_menu') }}",
+                data: formData,
+                contentType: false,
+                processData: false,
+                error: function() {
+                    alert('Something is wrong!');
+                    // console.log(formData);
+                },
+            });
+        });
         var holding_id = '{{ $holding->id }}';
         var holding = '{{ $holding->holding_code }}';
         $('#departemen_filter').change(function(e) {
             departemen_filter_dept = $(this).val() || '';
             // $('#table_recruitment').DataTable().destroy();
             var url =
-                "@if (Auth::user()->is_admin == 'hrd'){{ url('hrd/report_recruitment/get_divisi') }}@else{{ url('report_recruitment/get_divisi') }}@endif" +
+                "{{ url('report_recruitment/get_divisi') }}" +
                 '/' + holding_id;
             // console.log(departemen_filter_dept, divisi_filter_dept, bagian_filter_dept, jabatan_filter_dept);
             $.ajax({
@@ -297,16 +389,19 @@
                     $('#divisi_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Divisi...",
+                        width: '100%',
                         allowClear: true
                     });
                     $('#bagian_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Divisi...",
+                        width: '100%',
                         allowClear: true
                     });
                     $('#jabatan_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Divisi...",
+                        width: '100%',
                         allowClear: true
                     });
                     // langsung pilih opsi pertama kalau ada
@@ -322,7 +417,7 @@
 
                 error: function(data) {
                     Swal.close();
-                    console.log('error:', data)
+                    // console.log('error:', data)
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal',
@@ -340,7 +435,7 @@
             // $('#table_recruitment').DataTable().destroy();
             $.ajax({
                 type: 'GET',
-                url: "@if (Auth::user()->is_admin == 'hrd'){{ url('hrd/report_recruitment/get_bagian') }}@else{{ url('report_recruitment/get_bagian') }}@endif" +
+                url: "{{ url('report_recruitment/get_bagian') }}" +
                     '/' + holding_id,
                 data: {
                     holding: holding_id,
@@ -358,11 +453,13 @@
                     $('#bagian_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Bagian...",
+                        width: '100%',
                         allowClear: true
                     });
                     $('#jabatan_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Bagian...",
+                        width: '100%',
                         allowClear: true
                     });
 
@@ -411,6 +508,7 @@
                     $('#jabatan_filter').select2('destroy').select2({
                         theme: "bootstrap-5",
                         placeholder: "Pilih Jabatan...",
+                        width: '100%',
                         allowClear: true
                     });
                     // langsung pilih opsi pertama kalau ada
@@ -439,26 +537,31 @@
         $('#departemen_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Departemen",
+            width: '100%',
             allowClear: true
         });
         $('#divisi_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Divisi",
+            width: '100%',
             allowClear: true
         });
         $('#bagian_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Bagian",
+            width: '100%',
             allowClear: true
         });
         $('#jabatan_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Jabatan",
+            width: '100%',
             allowClear: true
         });
         $('#status_filter').select2({
             theme: 'bootstrap-5',
             placeholder: "Pilih Status",
+            width: '100%',
             allowClear: true
         });
         var start = moment().startOf('month');
@@ -474,7 +577,7 @@
             lend = end.format('YYYY-MM-DD');
             $('#start_date').val(lstart);
             $('#end_date').val(lend);
-            console.log(start, end);
+            // console.log(start, end);
 
         }
 

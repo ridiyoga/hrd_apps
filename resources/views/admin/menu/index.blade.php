@@ -129,6 +129,7 @@
                 <div class="card-header">
                     <div class="d-flex align-items-center justify-content-between">
                         <h5 class="card-title m-0 me-2">DATA MASTER MENU</h5>
+                        <input type="hidden" id="menu_id_add">
                         <div>
                             <!-- <button id="toggleDark" class="btn btn-sm btn-outline-secondary">Toggle Dark</button> -->
                             <a href="#" class="btn btn-sm btn-primary ms-2" id="btnAddRoot">+ Tambah Menu</a>
@@ -139,13 +140,15 @@
                 <div class="card-body">
                     <div class="modal fade" id="modal_tambah_access_karyawan" data-bs-backdrop="static" tabindex="-1">
                         <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                            <form method="post" id="form_add_access_karyawan" class="modal-content" enctype="multipart/form-data">
+                            <form method="post" id="form_add_access_karyawan" class="modal-content"
+                                enctype="multipart/form-data">
                                 @csrf
                                 <input type="hidden" value="" id="id" name="id">
                                 <input type="hidden" name="id_karyawan" id="id_karyawan" value="">
                                 <div class="modal-header">
                                     <h4 class="modal-title" id="backDropModalTitle">Tambah Access Karyawan</h4>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     <div class="col-md-12">
@@ -155,7 +158,9 @@
                                             <div class="card-body">
                                                 <div class="d-flex align-items-start align-items-sm-center gap-4">
 
-                                                    <img src="{{asset('admin/assets/img/avatars/1.png')}}" alt="user-avatar" class="d-block w-px-120 h-px-120 rounded" id="template_foto_karyawan" />
+                                                    <img src="{{ asset('admin/assets/img/avatars/1.png') }}"
+                                                        alt="user-avatar" class="d-block w-px-120 h-px-120 rounded"
+                                                        id="template_foto_karyawan" />
 
                                                     <table>
                                                         <tr>
@@ -212,7 +217,8 @@
                                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                                         Close
                                     </button>
-                                    <button type="button" id="btn_save_add_access" class="btn btn-primary">Save</button>
+                                    <button type="button" id="btn_save_add_access"
+                                        class="btn btn-primary">Save</button>
                                 </div>
                             </form>
                         </div>
@@ -226,7 +232,8 @@
                                         <div class="modal-content">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Menu</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                <button type="button" class="btn-close"
+                                                    data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body">
                                                 <input type="hidden" name="id" id="menu_id">
@@ -240,29 +247,33 @@
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">Nama Menu</label>
-                                                    <input type="text" class="form-control" name="name" id="name" value="">
+                                                    <input type="text" class="form-control" name="name"
+                                                        id="name" value="">
                                                 </div>
                                                 <div class="mb-3">
-                                                    <label class="form-label">Route (kosongi jika sebagai Parent)</label>
-                                                    <input type="text" class="form-control" name="route" id="route" value="">
+                                                    <label class="form-label">Route (kosongi jika sebagai
+                                                        Parent)</label>
+                                                    <input type="text" class="form-control" name="route"
+                                                        id="route" value="">
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">Icon (mdi class)</label>
-                                                    <input type="text" class="form-control" name="icon" id="icon" value="" placeholder="mdi-folder">
+                                                    <input type="text" class="form-control" name="icon"
+                                                        id="icon" value="" placeholder="mdi-folder">
                                                 </div>
                                                 <div class="mb-3">
                                                     <label class="form-label">Parent(Kosongi Jika Tidak Ada )</label>
                                                     <select class="form-select" name="parent_id" id="parent_id">
                                                         <option value="">-- Pilih Parent --</option>
-                                                        @foreach($parenPts as $p)
-                                                        <option value="{{ $p->id }}">{{ $p->name }}</option>
-                                                        @endforeach
+
                                                     </select>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button class="btn btn-primary" id="menuSaveBtn" type="button">Save</button>
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-bs-dismiss="modal">Cancel</button>
+                                                <button class="btn btn-primary" id="menuSaveBtn"
+                                                    type="button">Save</button>
                                             </div>
                                         </div>
                                     </form>
@@ -270,7 +281,7 @@
                             </div>
                             <div id="menuTreeArea">
                                 <ul class="tree" id="menuTree">
-                                    @foreach($get_menus as $menu)
+                                    @foreach ($get_menus as $menu)
                                     @include('admin.menu.tree_item', ['item' => $menu])
                                     @endforeach
                                 </ul>
@@ -280,7 +291,8 @@
                             <h5 class="mb-3">Help & Sample Icons</h5>
                             <h5 class="small-muted">Cari Icon di Web MDI Icon</h5>
                             <div class="">
-                                <a type="button" class="btn btn-outline-primary" href="https://pictogrammers.com/library/mdi/" target="_blank">
+                                <a type="button" class="btn btn-outline-primary"
+                                    href="https://pictogrammers.com/library/mdi/" target="_blank">
                                     <i class="mdi mdi-material-design"></i><span>&nbsp;MDI ICON</span>
                                 </a>
                             </div>
@@ -301,6 +313,31 @@
 <!-- For convenience use CDN version that attaches Sortable to window -->
 <script src="https://unpkg.com/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
+    $(document).ready(function() {
+        var menu_id = $('#asoy').val();
+        // console.log(menu_id);
+        $('#menu_id_add').val(menu_id);
+
+        var formData = new FormData();
+
+        //ambil data dari form
+        formData.append('_token', '{{ csrf_token() }}');
+        formData.append('menu_id', menu_id);
+        // console.log(formData);
+
+        $.ajax({
+            type: "POST",
+
+            url: "{{ url('/recruitment/update_menu') }}",
+            data: formData,
+            contentType: false,
+            processData: false,
+            error: function() {
+                alert('Something is wrong!');
+                // console.log(formData);
+            },
+        });
+    })
     $(document).on("click", ".label", function(e) {
         e.stopPropagation();
 
@@ -328,8 +365,8 @@
         return arr;
     }
     /* ----------------------------
-   Init Sortable for all lists
-   ---------------------------- */
+       Init Sortable for all lists
+       ---------------------------- */
     function initSortables() {
         // destroy existing if needed (not implemented here) then:
         $('#menuTree').find('ul, #menuTree').each(function() {
@@ -365,6 +402,7 @@
             var name = $('#name').val();
             var route = $('#route').val();
             var icon = $('#icon').val();
+            var menu_id_add = $('#menu_id_add').val();
             var parent_id = $('#parent_id').val();
             var kategori = $('#kategori').val();
             var url = "{{ url('menu/store') }}/" + holding;
@@ -375,6 +413,7 @@
                 data: {
                     '_token': "{{ csrf_token() }}",
                     'menu_id': menu_id,
+                    'menu_id_add': menu_id_add,
                     'name': name,
                     'route': route,
                     'kategori': kategori,
@@ -392,7 +431,7 @@
                     });
                 },
                 success: function(resp) {
-                    console.log(resp);
+                    // console.log(resp);
                     if (resp.code == 200) {
                         Swal.fire({
                             icon: 'success',
@@ -442,10 +481,30 @@
             e.stopPropagation();
             const parentId = $(this).closest('li').data('id');
             const kategori = $(this).data('kategori');
+            const parent = $(this).data('parent');
             $('#menuForm')[0].reset();
             $('#menu_id').val('');
             $('#kategori').val(kategori);
             $('#parent_id').val(parentId);
+            // console.log(parentId, kategori, parent);
+            $.ajax({
+                url: "{{ url('menu/get_parent_options') }}/" + parentId + "/" + holding,
+                type: "GET",
+                success: function(resp) {
+                    // console.log(resp);
+                    if (resp.code == 200) {
+                        resp = resp.data;
+                    } else {
+                        resp = [];
+                    }
+                    let options = '<option value="">-- Pilih Parent --</option>';
+                    resp.forEach(function(item) {
+                        options +=
+                            `<option selected value="${item.id}">${item.name}</option>`;
+                    });
+                    $('#parent_id').html(options);
+                }
+            })
             $('#menuModal .modal-title').text('Tambah Sub Menu');
             new bootstrap.Modal($('#menuModal')).show();
         });
@@ -453,25 +512,45 @@
         $(document).on('click', '.btn-edit', function(e) {
             e.stopPropagation();
             const $li = $(this).closest('li');
+            // console.log($li);
             const id = $li.data('id');
-            const name = $li.find('.tree-text').text().trim();
+            const name = $li.data('name') || '';
             const icon = $li.data('icon') || '';
             const route = $li.data('route') || '';
             const kategori = $li.data('kategori') || '';
-            console.log(id, name, icon, route, kategori);
+            const parentId = $li.data('parent') || '';
+            // console.log(id, name, icon, route, kategori);
             $('#menu_id').val(id);
             $('#name').val(name);
             $('#icon').val(icon);
             $('#route').val(route);
             $('#kategori').val(kategori);
-            $('#parent_id').val($li.data('parent') || '');
             $('#menuModal .modal-title').text('Edit Menu');
+            $.ajax({
+                url: "{{ url('menu/get_parent_options') }}/" + parentId + "/" + holding,
+                type: "GET",
+                success: function(resp) {
+                    // console.log(resp);
+                    if (resp.code == 200) {
+                        resp = resp.data;
+                    } else {
+                        resp = [];
+                    }
+                    let options = '<option value="">-- Pilih Parent --</option>';
+                    resp.forEach(function(item) {
+                        options +=
+                            `<option selected value="${item.id}">${item.name}</option>`;
+                    });
+                    $('#parent_id').html(options);
+                }
+            })
             new bootstrap.Modal($('#menuModal')).show();
         });
         $(document).on('click', '.btn-delete', function(e) {
             e.stopPropagation();
             const $li = $(this).closest('li');
             const id = $li.data('id');
+            var menu_id_add = $('#menu_id_add').val();
 
             Swal.fire({
                 icon: 'warning',
@@ -481,7 +560,7 @@
             }).then(res => {
                 if (res.isConfirmed) {
                     $.ajax({
-                        url: "{{ url('menu/delete') }}/" + id,
+                        url: "{{ url('menu/delete') }}/" + id + '/' + menu_id_add,
                         type: "GET",
                         beforeSend: function() {
                             Swal.fire({
@@ -494,7 +573,7 @@
                             });
                         },
                         success: function(resp) {
-                            console.log(resp);
+                            // console.log(resp);
                             if (resp.code == 200) {
                                 $li.remove();
                                 Swal.fire({
@@ -525,7 +604,7 @@
         });
         // Save Order
         $('#btnSaveOrder').on('click', function() {
-            console.log('test');
+            // console.log('test');
             const tree = buildTreePayload($('#menuTree'));
 
             Swal.fire({
@@ -541,7 +620,7 @@
                 },
                 method: 'post',
                 success: function(resp) {
-                    console.log(resp);
+                    // console.log(resp);
                     Swal.close();
                     if (resp.status == 'ok') {
                         Swal.fire('Saved', 'Order updated', 'success');
@@ -562,5 +641,4 @@
         });
     });
 </script>
-
 @endsection

@@ -428,7 +428,9 @@ class RekapDataController extends Controller
             'departemen' => $departemen,
             'pengganti' => $pengganti,
         ];
-        $pdf = PDF::loadView('users/cuti/form_cuti', $data);
+        $pdf = PDF::setOptions([
+            'chroot' => [storage_path('app/public')],
+        ])->loadView('users/cuti/form_cuti', $data);
         return $pdf->download('FORM_PENGAJUAN_CUTI_' . Auth::user()->name . '_' . date('Y-m-d H:i:s') . '.pdf');
     }
     public function ImportAbsensi(Request $request)

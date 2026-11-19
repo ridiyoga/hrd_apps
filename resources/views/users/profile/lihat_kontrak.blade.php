@@ -1,105 +1,287 @@
-@extends('users.profile.layouts.main')
+@extends('users.layouts.main')
 @section('title') APPS | KARYAWAN - SP @endsection
 @section('css')
 <style>
-    @media (max-width: 600px) {
-        #my_camera video {
-            max-width: 90%;
-            max-height: 100%;
+    .card {
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, .15);
+    }
+
+    .futuristic-header {
+        padding: 28px 20px 18px;
+    }
+
+    .futuristic-header h5 {
+        color: --primary();
+        font-weight: 600;
+    }
+
+    .futuristic-header small {
+        color: rgba(255, 255, 255, 0.65);
+    }
+
+    .futuristic-icon {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: linear-gradient(145deg, #7b2ff7, #9b6dff);
+        color: white;
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        box-shadow: 0 0 25px rgba(155, 109, 255, 0.8);
+    }
+
+    /* Container Timeline */
+    .card-body-wrapper {
+        margin-top: -35px;
+        /* Pulling content up to overlap header */
+        background: #ffffff;
+        border-radius: 30px 30px 0 0;
+        padding: 25px 20px;
+    }
+
+    /* Timeline Styling */
+    .dz-timeline {
+        list-style: none;
+        padding-left: 15px;
+        position: relative;
+    }
+
+    .dz-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 2px;
+        height: 100%;
+        background: #f0f0f0;
+    }
+
+    /* Item Kontrak */
+    .contract-item-modern {
+        position: relative;
+        padding-bottom: 30px;
+        padding-left: 25px;
+    }
+
+    .contract-item-modern::before {
+        content: '';
+        position: absolute;
+        left: -4px;
+        top: 5px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6366f1;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        z-index: 2;
+    }
+
+    .timeline-card-inner {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: transform 0.2s ease;
+    }
+
+    .timeline-card-inner:active {
+        transform: scale(0.98);
+    }
+
+    /* Status Badges */
+    .status-badge {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 8px;
+        text-transform: uppercase;
+    }
+
+    .btn-back {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 10px 25px;
+        border: 1.5px solid #e2e8f0;
+        color: #64748b;
+        transition: all 0.3s;
+    }
+
+    .btn-back:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .border-dashed {
+        border-top-style: dashed !important;
+        border-top-width: 1px !important;
+        border-color: #e2e8f0 !important;
+    }
+
+    /* Mempercantik tampilan mobile agar tidak terlalu rapat */
+    @media (max-width: 576px) {
+        .timeline-card-inner {
+            padding: 12px;
         }
     }
 </style>
 @endsection
-@section('content')
-<div class="fixed-content p-0" style=" border-radius: 10px; margin-top: 0%;box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); ">
-    <div class=" container" style="margin-top: -5%;">
-
-        <div class="dz-banner-heading">
+@section('content_top')
+<div class="card shadow-lg border-0 rounded-4">
+    {{-- Header --}}
+    <div class="futuristic-header text-center">
+        <div class="futuristic-icon">
+            <i class="fa-solid fa-file-signature"></i>
         </div>
-        <div class="row">
-            <div class="col-md-12 text-center" style="margin: 0; padding: 0;">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="title">Kontrak</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="skill-section">
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="skill-bar">
-                                        <table style="text-align: left; font-size: small;">
-                                            <tr>
-                                                <td>Kontrak</td>
-                                                <td>&nbsp;</td>
-                                                <td>:</td>
-                                                <td>&nbsp;@if($user_karyawan->kontrak_kerja=='SP')CV.&nbsp;SUMBER&nbsp;PANGAN @elseif($user_karyawan->kontrak_kerja=='SPS')PT.&nbsp;SURYA&nbsp;PANGAN&nbsp;SEMESTA @elseif($user_karyawan->kontrak_kerja=='SIP') CV. SUMBER INTI PANGAN @endif</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Tanggal&nbsp;Join</td>
-                                                <td>&nbsp;</td>
-                                                <td>:</td>
-                                                <td>&nbsp;{{\Carbon\Carbon::parse($user_karyawan->tgl_join)->isoFormat('DD/MM/YYYY') }}</td>
-                                            <tr>
-                                                <td>Lama Kontrak</td>
-                                                <td>&nbsp;</td>
-                                                <td>:</td>
-                                                <td>&nbsp;{{$user_karyawan->lama_kontrak_kerja}}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Tanggal&nbsp;Kontrak</td>
-                                                <td>&nbsp;</td>
-                                                <td>:</td>
-                                                <td>&nbsp; {{\Carbon\Carbon::parse($user_karyawan->tgl_mulai_kontrak)->isoFormat('DD/MM/YYYY') }}&nbsp;-&nbsp;{{\Carbon\Carbon::parse($user_karyawan->tgl_selesai_kontrak)->isoFormat('DD/MM/YYYY') }}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Kategori</td>
-                                                <td>&nbsp;</td>
-                                                <td>:</td>
-                                                <td>&nbsp; <span class="badge light badge-primary">{{$user_karyawan->kategori}}</span></td>
-                                            </tr>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="border-top">
-                            <div class="row">
-                                <div class="col-4">
-                                </div>
-                                <div class="col-4">
-                                    <a id="btn_klik" type="button" href="{{url('profile')}}" class="btn btn-light mt-1 btn-sm btn-rounded btn-block">KEMBALI</a>
-                                </div>
-                                <div class="col-4">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <h5 class="mt-3 mb-1">Kontrak Kerja</h5>
+        <small class="text-muted">Timeline Informasi Kontrak Kerja</small>
+    </div>
+    <div class="card-body p-4">
+        @foreach ($karyawan_kontrak as $item)
+        <div class="d-flex justify-content-between align-items-start mt-4">
+            <div>
+                <h6 class="fw-bold mb-0" style="color: #2d3748; font-size: 0.95rem;">
+                    Kontrak Kerja
+                </h6>
+                <span class="text-muted" style="font-size: 0.75rem;">
+                    <i class="fa-regular fa-hashtag me-1"></i> No: {{ $item->nomor_kontrak ?? '-' }}
+                </span>
+            </div>
+
+            {{-- Badge Status Otomatis --}}
+            @php
+            $is_active = \Carbon\Carbon::parse($item->tanggal_selesai)->isFuture();
+            $status_label = $is_active ? 'Aktif' : 'Expired';
+            $status_class = $is_active ? 'light badge-success text-success' : 'light badge-danger';
+            @endphp
+            <span class="badge {{ $status_class }} rounded-pill px-2 py-1" style="font-size: 10px;">
+                {{ $status_label }}
+            </span>
+        </div>
+
+        <div class="row g-2 mt-2">
+            <div class="col-6">
+                <div class="p-2 rounded-3 border-0" style="background: #f8faff;">
+                    <small class="text-muted d-block" style="font-size: 10px;">Mulai</small>
+                    <span class="fw-semibold text-dark" style="font-size: 0.85rem;">
+                        {{ $item->tanggal_mulai != null ? \Carbon\Carbon::parse($item->tanggal_mulai)->format('d M Y') : '-' }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="p-2 rounded-3 border-0" style="background: #fff5f5;">
+                    <small class="text-muted d-block" style="font-size: 10px;">Berakhir</small>
+                    <span class="fw-semibold text-danger" style="font-size: 0.85rem;">
+                        {{ $item->tanggal_selesai != null ? \Carbon\Carbon::parse($item->tanggal_selesai)->format('d M Y') : '-' }}
+                    </span>
                 </div>
             </div>
         </div>
+
+
+        {{-- Tombol Download/Detail --}}
+        <div class="mt-3 d-flex gap-2">
+            <a href="{{url('profile/kontrak_download/' . $item->id_kontrak)}}" target="_blank" type="button" class="btn btn-sm btn-primary-light flex-grow-1 border-0" {{$is_active ? '' : 'disabled'}} style="border-radius: 8px; font-size: 11px; background: #eef2ff; color: #6366f1;">
+                <i class="fa-solid fa-download me-1"></i> File
+            </a>
+        </div>
+        @endforeach
+    </div>
+    {{-- Button --}}
+    <div class="text-center mt-4 mb-3">
+        <a href="{{ url('profile/'.$menu_id) }}"
+            class="btn btn-sm btn-outline-secondary px-4 shadow-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i>
+            Kembali
+        </a>
     </div>
 </div>
-
-</div>
-<div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout" aria-labelledby="offcanvasBottomLabel">
+@endsection
+@section('content')
+<div class="offcanvas offcanvas-bottom" tabindex="-1" id="offcanvas_logout"
+    aria-labelledby="offcanvasBottomLabel">
     <div class="offcanvas-body text-center small">
-        <h5 class="title">KONFIRMASI LOGOUT APP</h5>
+        <h6 class="title">KONFIRMASI</h6>
         <p>Apakah Anda Ingin Keluar Dari Aplikasi Ini ?</p>
-        <a id="btn_klik" href="{{url('/logout')}}" class="btn btn-sm btn-danger light pwa-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M5.46967 12.5303C5.17678 12.2374 5.17678 11.7626 5.46967 11.4697L7.46967 9.46967C7.76257 9.17678 8.23744 9.17678 8.53033 9.46967C8.82323 9.76256 8.82323 10.2374 8.53033 10.5303L7.81066 11.25L15 11.25C15.4142 11.25 15.75 11.5858 15.75 12C15.75 12.4142 15.4142 12.75 15 12.75L7.81066 12.75L8.53033 13.4697C8.82323 13.7626 8.82323 14.2374 8.53033 14.5303C8.23744 14.8232 7.76257 14.8232 7.46967 14.5303L5.46967 12.5303Z" fill="#1C274C" />
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9453 1.25H15.0551C16.4227 1.24998 17.525 1.24996 18.392 1.36652C19.2921 1.48754 20.05 1.74643 20.6519 2.34835C21.2538 2.95027 21.5127 3.70814 21.6337 4.60825C21.7503 5.47522 21.7502 6.57754 21.7502 7.94513V16.0549C21.7502 17.4225 21.7503 18.5248 21.6337 19.3918C21.5127 20.2919 21.2538 21.0497 20.6519 21.6517C20.05 22.2536 19.2921 22.5125 18.392 22.6335C17.525 22.75 16.4227 22.75 15.0551 22.75H13.9453C12.5778 22.75 11.4754 22.75 10.6085 22.6335C9.70836 22.5125 8.95048 22.2536 8.34857 21.6517C7.94963 21.2527 7.70068 20.7844 7.54305 20.2498C6.59168 20.2486 5.79906 20.2381 5.15689 20.1518C4.39294 20.0491 3.7306 19.8268 3.20191 19.2981C2.67321 18.7694 2.45093 18.1071 2.34822 17.3431C2.24996 16.6123 2.24998 15.6865 2.25 14.5537V9.44631C2.24998 8.31349 2.24996 7.38774 2.34822 6.65689C2.45093 5.89294 2.67321 5.2306 3.20191 4.7019C3.7306 4.17321 4.39294 3.95093 5.15689 3.84822C5.79906 3.76188 6.59168 3.75142 7.54305 3.75017C7.70068 3.21562 7.94963 2.74729 8.34857 2.34835C8.95048 1.74643 9.70836 1.48754 10.6085 1.36652C11.4754 1.24996 12.5778 1.24998 13.9453 1.25ZM7.25197 17.0042C7.25555 17.6487 7.2662 18.2293 7.30285 18.7491C6.46836 18.7459 5.848 18.7312 5.35676 18.6652C4.75914 18.5848 4.46611 18.441 4.26257 18.2374C4.05903 18.0339 3.91519 17.7409 3.83484 17.1432C3.7516 16.5241 3.75 15.6997 3.75 14.5V9.5C3.75 8.30029 3.7516 7.47595 3.83484 6.85676C3.91519 6.25914 4.05903 5.9661 4.26257 5.76256C4.46611 5.55902 4.75914 5.41519 5.35676 5.33484C5.848 5.2688 6.46836 5.25415 7.30285 5.25091C7.2662 5.77073 7.25555 6.35129 7.25197 6.99583C7.24966 7.41003 7.58357 7.74768 7.99778 7.74999C8.41199 7.7523 8.74964 7.41838 8.75194 7.00418C8.75803 5.91068 8.78643 5.1356 8.89448 4.54735C8.9986 3.98054 9.16577 3.65246 9.40923 3.40901C9.68599 3.13225 10.0746 2.9518 10.8083 2.85315C11.5637 2.75159 12.5648 2.75 14.0002 2.75H15.0002C16.4356 2.75 17.4367 2.75159 18.1921 2.85315C18.9259 2.9518 19.3144 3.13225 19.5912 3.40901C19.868 3.68577 20.0484 4.07435 20.1471 4.80812C20.2486 5.56347 20.2502 6.56459 20.2502 8V16C20.2502 17.4354 20.2486 18.4365 20.1471 19.1919C20.0484 19.9257 19.868 20.3142 19.5912 20.591C19.3144 20.8678 18.9259 21.0482 18.1921 21.1469C17.4367 21.2484 16.4356 21.25 15.0002 21.25H14.0002C12.5648 21.25 11.5637 21.2484 10.8083 21.1469C10.0746 21.0482 9.68599 20.8678 9.40923 20.591C9.16577 20.3475 8.9986 20.0195 8.89448 19.4527C8.78643 18.8644 8.75803 18.0893 8.75194 16.9958C8.74964 16.5816 8.41199 16.2477 7.99778 16.25C7.58357 16.2523 7.24966 16.59 7.25197 17.0042Z" fill="#1C274C" />
-            </svg>
-            &nbsp;Logout
-        </a>
-        <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas" aria-label="Close">Batal</a>
+        <form method="POST" action="{{ route('logout_user') }}">
+            @csrf
+            <a onclick="event.preventDefault(); this.closest('form').submit();" class="btn_klik btn btn-sm btn-danger light pwa-btn">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                &nbsp;Logout
+            </a>
+            <a href="javascrpit:void(0);" class="btn btn-sm light btn-primary ms-2" data-bs-dismiss="offcanvas"
+                aria-label="Close">Batal</a>
+        </form>
     </div>
 </div>
 @endsection
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
+    window.addEventListener("pageshow", function(event) {
+        if (event.persisted) {
+            // Reinitialize JS
+            Swal.close();
+        }
+    });
+
+    function highlightText(element, keyword) {
+        let originalText = element.textContent;
+
+        if (!keyword) {
+            element.innerHTML = originalText;
+            return;
+        }
+
+        const regex = new RegExp(`(${keyword})`, 'gi');
+        element.innerHTML = originalText.replace(
+            regex,
+            `<span class="highlight-keyword">$1</span>`
+        );
+    }
+    $(document).on('keyup', '#search_karyawan', function() {
+        let keyword = $(this).val().toLowerCase();
+
+        $('.user-item').each(function() {
+            let searchText = $(this).data('search');
+
+            let nameEl = $(this).find('strong')[0]; // nama karyawan
+            let jabatanEls = $(this).find('small'); // jabatan
+
+            if (searchText.includes(keyword)) {
+                $(this).show();
+
+                // highlight nama
+                if (nameEl) highlightText(nameEl, keyword);
+
+                // highlight jabatan
+                jabatanEls.each(function() {
+                    highlightText(this, keyword);
+                });
+
+            } else {
+                $(this).hide();
+            }
+
+            // reset highlight jika kosong
+            if (keyword === '') {
+                if (nameEl) nameEl.innerHTML = nameEl.textContent;
+                jabatanEls.each(function() {
+                    this.innerHTML = this.textContent;
+                });
+            }
+        });
+    });
     $(document).on('click', '#btn_klik', function(e) {
         Swal.fire({
             allowOutsideClick: false,
@@ -124,61 +306,5 @@
             },
         });
     };
-</script>
-<script>
-    var status_nomor = "{{old('status_nomor',Auth::user()->status_nomor)}}";
-    var status_alamat = "{{old('status_alamat',Auth::user()->status_alamat)}}";
-    if (status_nomor == 'ya') {
-        $('#content_nomor_wa').hide();
-    } else if (status_nomor == 'tidak') {
-        $('#content_nomor_wa').show();
-    } else {
-        $('#content_nomor_wa').hide();
-    }
-    if (status_alamat == 'ya') {
-        $('#content_alamat_domisili').hide();
-    } else if (status_alamat == 'tidak') {
-        $('#content_alamat_domisili').show();
-    } else {
-        $('#content_alamat_domisili').hide();
-    }
-    $(document).on("click", "#status_nomor", function() {
-        var isChecked = $(this).is(':checked')
-        if (isChecked) {
-            $('#content_nomor_wa').hide();
-        } else {
-            $('#content_nomor_wa').show();
-        }
-    });
-    $(document).on("click", "#status_alamat_ya", function() {
-        var isChecked = $(this).is(':checked')
-        if (isChecked) {
-            $('#content_alamat_domisili').hide();
-
-        }
-    });
-    $(document).on("click", "#status_alamat_tidak", function() {
-        var isChecked = $(this).is(':checked')
-        if (isChecked) {
-            $('#content_alamat_domisili').show();
-        }
-    });
-
-    function password_show_hide() {
-        var x = document.getElementById("password");
-        var show_eye = document.getElementById("show_eye");
-        var hide_eye = document.getElementById("hide_eye");
-        hide_eye.classList.remove("d-none");
-        if (x.type === "password") {
-            x.type = "text";
-            show_eye.style.display = "none";
-            hide_eye.style.display = "block";
-        } else {
-            x.type = "password";
-            show_eye.style.display = "block";
-            hide_eye.style.display = "none";
-
-        }
-    }
 </script>
 @endsection

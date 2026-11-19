@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class RecruitmentKesehatanPengobatan extends Model
 {
     use HasFactory;
+    protected $keyType = 'string';
     protected $table = 'recruitment_cv_kesehatan_pengobatan';
     public $incrementing = false;
     protected $primaryKey = 'id_pengobatan';

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\ActivityLog;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -56,17 +57,72 @@ class LoginRequest extends FormRequest
         // dd($credentials);
         // 4. Lakukan Otentikasi
         // Catatan: Jika Anda menggunakan Guard selain 'web', Anda perlu menyebutkannya (misal: Auth::guard('admin')->attempt(...))
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+        $user = \App\Models\User::where($field, $loginInput)->first();
+        if (! $user) {
+
             RateLimiter::hit($this->throttleKey());
 
-            // Lempar exception. Pesan error akan ditampilkan di bawah field 'username'.
+            ActivityLog::create([
+                'user_name' => $loginInput,
+                'menu_name' => 'login',
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'users',
+                'activity' => 'auth',
+                'description' => 'Username / Email tidak ditemukan',
+                'keterangan' => 'Failed',
+            ]);
+
             throw ValidationException::withMessages([
-                'username' => trans('Username salah'),
-                'password' => trans('Password salah'),
+                'username' => 'Username / Email tidak ditemukan.',
             ]);
         }
 
+        if (! \Hash::check($this->get('password'), $user->password)) {
+
+            RateLimiter::hit($this->throttleKey());
+
+            ActivityLog::create([
+                'user_name' => $loginInput,
+                'menu_name' => 'login',
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'users',
+                'activity' => 'auth',
+                'description' => 'Password salah',
+                'keterangan' => 'Failed',
+            ]);
+
+            throw ValidationException::withMessages([
+                'password' => 'Password salah.',
+            ]);
+        }
+
+        // Login berhasil
+        Auth::login($user, $this->boolean('remember'));
+
         RateLimiter::clear($this->throttleKey());
+        // if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+
+        //     RateLimiter::hit($this->throttleKey());
+        //     ActivityLog::create([
+        //         'user_name' => $credentials['username'],
+        //         'menu_name' => 'login',
+        //         'holding_id' => '-',
+        //         'holding_category' => '-',
+        //         'table' => 'users',
+        //         'activity' => 'auth',
+        //         'description' => 'Gagal login karena username/password salah',
+        //         'keterangan' => 'Failed',
+        //     ]);
+
+        //     // Lempar exception. Pesan error akan ditampilkan di bawah field 'username'.
+        //     throw ValidationException::withMessages([
+        //         'username' => trans('Username salah'),
+        //         'password' => trans('Password salah'),
+        //     ]);
+        // }
+        // RateLimiter::clear($this->throttleKey());
     }
 
     /**

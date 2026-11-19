@@ -59,38 +59,104 @@ let menu, animate;
     window.Helpers.mainMenu = menu;
   });
 
-  // Initialize menu togglers and bind click on each
-  let menuToggler = document.querySelectorAll('.layout-menu-toggle');
-  menuToggler.forEach(item => {
-    item.addEventListener('click', event => {
-      event.preventDefault();
-      window.Helpers.toggleCollapsed();
+  let sidebarResizeTimer = null;
+  let sidebarTableSyncTimers = [];
+
+  function adjustVisibleTables() {
+    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.dataTable) {
+      const tables = window.jQuery.fn.dataTable.tables({ visible: true, api: true });
+
+      tables.columns.adjust();
+
+      if (tables.responsive && typeof tables.responsive.recalc === 'function') {
+        tables.responsive.recalc();
+      }
+    }
+
+    $(window).trigger('admin:sidebar-resize');
+  }
+
+  function syncSidebarTables() {
+    sidebarTableSyncTimers.forEach(window.clearTimeout);
+    sidebarTableSyncTimers = [];
+
+    [0, 80, 160, 260, 340].forEach(function (delay) {
+      sidebarTableSyncTimers.push(
+        window.setTimeout(function () {
+          window.requestAnimationFrame(adjustVisibleTables);
+        }, delay)
+      );
     });
+  }
+
+  function queueSidebarResize() {
+    window.clearTimeout(sidebarResizeTimer);
+    sidebarResizeTimer = window.setTimeout(function () {
+      $(window).trigger('resize');
+      adjustVisibleTables();
+    }, 310);
+  }
+
+  function setDesktopSidebarCollapsed(collapsed) {
+    const $html = $('html');
+    const $layoutMenu = $('#layout-menu');
+    const wasCollapsed = $html.hasClass('layout-menu-collapsed');
+
+    $html.toggleClass('layout-menu-collapsed', collapsed);
+    $html.removeClass('layout-menu-hover');
+    $layoutMenu.toggleClass('menu-collapsed', collapsed);
+    syncSidebarTables();
+
+    if (wasCollapsed !== collapsed) {
+      queueSidebarResize();
+    }
+  }
+
+  if (!window.Helpers.isSmallScreen()) {
+    setDesktopSidebarCollapsed(true);
+  }
+
+  let sidebarWasSmallScreen = window.Helpers.isSmallScreen();
+
+  $(window).on('resize.sidebarAdmin', function () {
+    const isSmallScreen = window.Helpers.isSmallScreen();
+
+    if (isSmallScreen === sidebarWasSmallScreen) {
+      return;
+    }
+
+    sidebarWasSmallScreen = isSmallScreen;
+
+    if (isSmallScreen) {
+      $('html').removeClass('layout-menu-collapsed layout-menu-hover');
+      $('#layout-menu').removeClass('menu-collapsed');
+      return;
+    }
+
+    setDesktopSidebarCollapsed(true);
   });
 
-  // Display menu toggle (layout-menu-toggle) on hover with delay
-  let delay = function (elem, callback) {
-    let timeout = null;
-    elem.onmouseenter = function () {
-      // Set timeout to be a timer which will invoke callback after 300ms (not for small screen)
-      if (!Helpers.isSmallScreen()) {
-        timeout = setTimeout(callback, 300);
-      } else {
-        timeout = setTimeout(callback, 0);
-      }
-    };
+  // Initialize menu togglers and bind click on each
+  $('.layout-menu-toggle').on('click.sidebarAdmin', function (event) {
+    event.preventDefault();
 
-    elem.onmouseleave = function () {
-      // Clear any timers set to timeout
-      document.querySelector('.layout-menu-toggle').classList.remove('d-block');
-      clearTimeout(timeout);
-    };
-  };
-  if (document.getElementById('layout-menu')) {
-    delay(document.getElementById('layout-menu'), function () {
-      // not for small screen
-      if (!Helpers.isSmallScreen()) {
-        document.querySelector('.layout-menu-toggle').classList.add('d-block');
+    if (window.Helpers.isSmallScreen()) {
+      window.Helpers.toggleCollapsed();
+    }
+  });
+
+  const $desktopSidebar = $('#layout-menu');
+
+  if ($desktopSidebar.length) {
+    $desktopSidebar.on('mouseenter.sidebarAdmin', function () {
+      if (!window.Helpers.isSmallScreen()) {
+        setDesktopSidebarCollapsed(false);
+      }
+    });
+
+    $desktopSidebar.on('mouseleave.sidebarAdmin', function () {
+      if (!window.Helpers.isSmallScreen()) {
+        setDesktopSidebarCollapsed(true);
       }
     });
   }

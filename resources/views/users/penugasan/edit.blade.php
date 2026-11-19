@@ -315,7 +315,7 @@ APPS | KARYAWAN - SP
                             @else
                             <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/penugasan/'.$penugasan->ttd_id_diajukan_oleh.'.png') }}" style="width: 100%; font-size: small;" alt="">
                             @endif
-                            {{-- <img width="100%" src="{{ asset('assets/assets_users/images/users/user_icon.jpg') }}" alt="/"> --}}
+                            {{-- <img width="100%" src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/"> --}}
                             {{-- <img src="{{ url('signature/'.$penugasan->ttd_proses_finance.'.png') }}" alt=""> --}}
                             <p style="text-align: center;font-weight: bold">{{ $penugasan->waktu_ttd_id_diajukan_oleh }}</p>
                         </div>
@@ -368,7 +368,7 @@ APPS | KARYAWAN - SP
                             @else
                             <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/penugasan/'.$penugasan->ttd_id_diminta_oleh.'.png') }}" style="width: 100%; font-size: small;" alt="">
                             @endif
-                            {{-- <img width="100%" src="{{ asset('assets/assets_users/images/users/user_icon.jpg') }}" alt="/"> --}}
+                            {{-- <img width="100%" src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/"> --}}
                             {{-- <img src="{{ url('signature/'.$penugasan->ttd_id_diminta_oleh.'.png') }}" alt=""> --}}
                         </div>
                         <p style="margin-top: 10%; text-align: center;font-weight: bold">{{ $penugasan->waktu_ttd_id_diminta_oleh }}</p>
@@ -421,7 +421,7 @@ APPS | KARYAWAN - SP
                             @else
                             <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/penugasan/'.$penugasan->ttd_id_disahkan_oleh.'.png') }}" style="width: 100%; font-size: small;" alt="">
                             @endif
-                            {{-- <img width="100%" src="{{ asset('assets/assets_users/images/users/user_icon.jpg') }}" alt="/"> --}}
+                            {{-- <img width="100%" src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/"> --}}
                             {{-- <img src="{{ url('signature/'.$penugasan->ttd_id_disahkan_oleh.'.png') }}" alt=""> --}}
                         </div>
                         <p style="margin-top: 10%; text-align: center;font-weight: bold">{{ $penugasan->waktu_ttd_id_disahkan_oleh }}</p>
@@ -479,7 +479,7 @@ APPS | KARYAWAN - SP
                             @else
                             <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/penugasan/'.$penugasan->ttd_proses_hrd.'.png') }}" style="width: 100%; font-size: small;" alt="">
                             @endif
-                            {{-- <img width="100%" src="{{ asset('assets/assets_users/images/users/user_icon.jpg') }}" alt="/"> --}}
+                            {{-- <img width="100%" src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/"> --}}
                             {{-- <img src="{{ url('signature/'.$penugasan->ttd_proses_hrd.'.png') }}" alt=""> --}}
                         </div>
                         <p style="margin-top: 10%; text-align: center;font-weight: bold">{{ $penugasan->waktu_ttd_proses_hrd }}</p>
@@ -537,7 +537,7 @@ APPS | KARYAWAN - SP
                             @else
                             <img src="{{ url('https://hrd.sumberpangan.store:4430/public/signature/penugasan/'.$penugasan->ttd_proses_finance.'.png') }}" style="width: 50%;margin-left: 25%;margin-right: 25%" alt="">
                             @endif
-                            {{-- <img width="100%" src="{{ asset('assets/assets_users/images/users/user_icon.jpg') }}" alt="/"> --}}
+                            {{-- <img width="100%" src="{{ asset('admin/assets/img/avatars/1.png') }}" alt="/"> --}}
                             {{-- <img src="{{ url('signature/'.$penugasan->ttd_proses_finance.'.png') }}" alt=""> --}}
                             <p style="text-align: center;font-weight: bold">{{ $penugasan->waktu_ttd_proses_finance }}</p>
                         </div>

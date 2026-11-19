@@ -10,7 +10,8 @@ use Spatie\Permission\Traits\HasRoles;
 class Role extends Model
 {
     use HasFactory, HasRoles;
-    protected $fillable = ['role_name', 'role_description'];
+    protected $keyType = 'string';
+    protected $fillable = ['role_name', 'role_description', 'kategori'];
     public function users()
     {
         return $this->hasMany(User::class);

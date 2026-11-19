@@ -17,6 +17,7 @@ class UserCareer extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'users_career';
+    protected $keyType = 'string';
     public $incrementing = false;
     protected $guarded = ['id'];
 

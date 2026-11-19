@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\DiterimaManagerMail;
+use App\Mail\DiterimaWawancaraMail;
+use App\Mail\LoloslangsungMail;
+use App\Mail\LolosposisilainMail;
+use App\Mail\ManagerlainMail;
+use App\Mail\TidaklolosMail;
 use App\Models\ActivityLog;
 use App\Models\Departemen;
 use App\Models\Jabatan;
@@ -19,10 +25,12 @@ use App\Models\WaktuUjian;
 use App\Models\PgSiswa;
 use App\Models\EssaySiswa;
 use App\Models\DetailEssay;
+use App\Models\District;
 use App\Models\Holding;
 use App\Models\InterviewAdmin;
 use App\Models\InterviewUser;
 use App\Models\Karyawan;
+use App\Models\KaryawanJabatan;
 use App\Models\KaryawanKeahlian;
 use App\Models\KaryawanKesehatan;
 use App\Models\KaryawanKesehatanKecelakaan;
@@ -30,6 +38,7 @@ use App\Models\KaryawanKesehatanPengobatan;
 use App\Models\KaryawanKesehatanRS;
 use App\Models\KaryawanPendidikan;
 use App\Models\KaryawanRiwayat;
+use App\Models\Kecamatan;
 use App\Models\Menu;
 use App\Models\Pembobotan;
 use App\Models\RecruitmentCV;
@@ -47,6 +56,7 @@ use App\Models\Site;
 use App\Models\UjianEsaiJawabDetail;
 use App\Models\UjianKategori;
 use App\Models\UsersCareer;
+use App\Services\BroadcastServices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Ramsey\Uuid\Uuid;
@@ -62,6 +72,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use RealRashid\SweetAlert\Facades\Alert;
 use DB;
 use DivisionByZeroError;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB as FacadesDB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\Rules\Exists;
@@ -69,8 +80,32 @@ use PhpParser\Builder\Function_;
 
 class RecruitmentController extends Controller
 {
-    public function pg_recruitment($holding)
+    protected BroadcastServices $mekari;
+
+    public function __construct(BroadcastServices $mekari)
     {
+        $this->mekari = $mekari;
+    }
+    private function formatPhoneIndonesia($number)
+    {
+        $number = preg_replace('/[^0-9]/', '', $number);
+
+        if (str_starts_with($number, '0')) {
+            return '62' . substr($number, 1);
+        }
+
+        if (str_starts_with($number, '8')) {
+            return '62' . $number;
+        }
+
+        return $number;
+    }
+    public function pg_recruitment($holding, Request $request)
+    {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
         // dd($get_role);
         if (count($get_role) == 0) {
@@ -92,13 +127,24 @@ class RecruitmentController extends Controller
                 ->orderBy('sort_order')
                 ->get();
         }
+
+        // $menu_active = Menu::where('url', 'pg-data-recruitment')->first();
         // $holding = request()->segment(count(request()->segments()));
         $holdings = Holding::where('holding_code', $holding)->first();
+        $aktif = Recruitment::where('holding_recruitment', $holdings->id)
+            ->where('status_recruitment', 0)
+            ->where('end_recruitment', '>=', now()->toDateString())->count();
+        $kadaluarsa = Recruitment::where('holding_recruitment', $holdings->id)
+            ->where('status_recruitment', 0)
+            ->where('end_recruitment', '<', now()->toDateString())->count();
         // dd($table);
         return view('admin.recruitment-users.recruitment.index', [
             // return view('karyawan.index', [
             'title'             => 'Data Recruitment',
             'menus'             => $menus,
+            'aktif'             => $aktif,
+            'kadaluarsa'        => $kadaluarsa,
+            // 'menu_active'       => $menu_active,
             'holding'           => $holdings,
             'site'              => Site::where('site_holding_category', $holdings->id)->get(),
             'departemen'        => Departemen::where('holding', $holdings->id)->orderBy('nama_departemen', 'ASC')->get(),
@@ -139,7 +185,12 @@ class RecruitmentController extends Controller
             'Sites' => function ($query) {
                 $query;
             }
-        ])->where('holding_recruitment', $holdings->id)
+        ])->with(['jumlahPelamar' => function ($query) {
+            $query->where('status', '0');
+        }])->with(['jumlahRanking' => function ($query) {
+            $query->where('status_lanjutan', null)->where('status', '1a');
+        }])
+            ->where('holding_recruitment', $holdings->id)
             // ->whereBetween('created_at', [$now, $now1])
             ->whereBetween('created_recruitment', [$now, $now1])
             ->orderBy('created_at', 'DESC');
@@ -186,10 +237,31 @@ class RecruitmentController extends Controller
                     return $status;
                 })
                 ->addColumn('pelamar', function ($row) use ($holding) {
-                    $url = url('/pg/data-list-pelamar/' . $row->id . '/' . $holding);
-                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-info">
+                    $notifikasi = $row->jumlahPelamar()
+                        ->whereHas('AuthLogin.recruitmentCV', function ($query) {
+                            $query->whereNotNull('nama_lengkap')
+                                ->where('nama_lengkap', '<>', '');
+                        })->where('status', '0')
+                        ->count();
+                    $url = url('/pg-data-recruitment/data-list-pelamar/' . $row->id . '/' . $holding);
+                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-info position-relative">
                                 <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
-                                Lihat&nbsp;Pelamar
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    ' . $notifikasi . '
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </a>';
+                    return $btn;
+                })
+                ->addColumn('ranking', function ($row) use ($holding) {
+                    $notifikasi = $row->jumlahRanking->count();
+                    $url = url('/pg-data-recruitment/data-list-ranking/' . $row->id . '/' . $holding);
+                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-primary position-relative">
+                                <i class="tf-icons mdi mdi-chevron-triple-up me-1"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    ' . $notifikasi . '
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
                             </a>';
                     return $btn;
                 })
@@ -280,7 +352,7 @@ class RecruitmentController extends Controller
                             data-tanggal_akhir="' . $row->end_recruitment . '"
                             data-deadline="' . $row->deadline_recruitment . '"
                             data-holding="' . $holdings->id . '"
-                            data-desc="' . $row->desc_recruitment . '"
+                            data-desc="' . e($row->desc_recruitment) . '"
                             type="button"
                             class="btn btn-icon btn-warning waves-effect waves-light">
                                 <span class="tf-icons mdi mdi-pencil-outline"></span>
@@ -307,6 +379,476 @@ class RecruitmentController extends Controller
                     'end_recruitment',
                     'desc_recruitment',
                     'pelamar',
+                    'status_recruitment',
+                    'deadline_recruitment',
+                    'penggantian_penambahan',
+                    'surat_penambahan',
+                    'option',
+                    'ranking',
+                    'kuota'
+                ])
+                ->make(true);
+        }
+    }
+    public function dt_recruitment_aktif(Request $request, $holding)
+    {
+        $holdings = Holding::where('holding_code', $holding)->first();
+
+        // $now = Carbon::parse($request->start_date)->startOfDay();
+        // $now1 = Carbon::parse($request->end_date)->endOfDay();
+        // dd($request->start_date);
+
+        $query = Recruitment::with([
+            'Jabatan' => function ($query) {
+                $query->with([
+                    'Bagian' => function ($query) {
+                        $query->with([
+                            'Divisi' => function ($query) {
+                                $query->with([
+                                    'Departemen' => function ($query) {
+                                        $query->orderBy('nama_departemen', 'ASC');
+                                    }
+                                ]);
+                            }
+                        ]);
+                    }
+                ]);
+                $query->orderBy('nama_jabatan', 'ASC');
+            },
+        ])->with([
+            'Sites' => function ($query) {
+                $query;
+            }
+        ])->with(['jumlahPelamar' => function ($query) {
+            $query->where('status', '0');
+        }])->with(['jumlahRanking' => function ($query) {
+            $query->where('status_lanjutan', null)->where('status', '1a');
+        }])
+            ->where('holding_recruitment', $holdings->id)
+            // ->whereBetween('created_at', [$now, $now1])
+            // ->whereBetween('created_recruitment', [$now, $now1])
+            ->where('status_recruitment', 0)->where('end_recruitment', '>=', now()->toDateString())
+            ->orderBy('created_at', 'DESC');
+        if (!empty($request->departemen_filter)) {
+            $query->whereIn('nama_dept', (array)$request->departemen_filter ?? []);
+        }
+
+        if (!empty($request->divisi_filter)) {
+            $query->whereIn('nama_divisi', (array)$request->divisi_filter ?? []);
+        }
+
+        if (!empty($request->bagian_filter)) {
+            $query->whereIn('nama_bagian', (array)$request->bagian_filter ?? []);
+        }
+
+        if (!empty($request->jabatan_filter)) {
+            $query->whereIn('nama_jabatan', (array)$request->jabatan_filter ?? []);
+        }
+        // $table = $query->limit(2)->get();
+        $table = $query->get();
+        if (request()->ajax()) {
+            return DataTables::of($table)
+                ->addColumn('legal_number', function ($row) {
+                    return $row->legal_number;
+                })
+                ->addColumn('status_recruitment', function ($row) use ($holdings) {
+                    if ($row->status_recruitment == 0) {
+                        $status = '<button id="btn_status_aktif"
+                            data-id="' . $row->id . '"
+                            data-holding="' . $holdings->id . '"
+                            type="button" class="btn btn-sm btn-success ">
+                            <i class="tf-icons mdi mdi-account-search"> </i>
+                            &nbsp;AKTIF
+                        </button>';
+                    } else {
+                        $status = '<button id="btn_status_naktif"
+                            data-id="' . $row->id . '"
+                            data-holding="' . $holdings->id . '"
+                            type="button" class="btn btn-sm btn-danger ">
+                            <i class="tf-icons mdi mdi-account-off"></i>
+                            &nbspN&nbsp;AKTIF
+                        </button>';
+                    }
+                    return $status;
+                })
+                ->addColumn('pelamar', function ($row) use ($holding) {
+                    $notifikasi = $row->jumlahPelamar()
+                        ->whereHas('AuthLogin.recruitmentCV', function ($query) {
+                            $query->whereNotNull('nama_lengkap')
+                                ->where('nama_lengkap', '<>', '');
+                        })->where('status', '0')
+                        ->count();
+                    $url = url('/pg-data-recruitment/data-list-pelamar/' . $row->id . '/' . $holding);
+                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-info position-relative">
+                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    ' . $notifikasi . '
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </a>';
+                    return $btn;
+                })
+                ->addColumn('ranking', function ($row) use ($holding) {
+                    $notifikasi = $row->jumlahRanking->count();
+                    $url = url('/pg-data-recruitment/data-list-ranking/' . $row->id . '/' . $holding);
+                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-primary position-relative">
+                                <i class="tf-icons mdi mdi-chevron-triple-up me-1"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    ' . $notifikasi . '
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </a>';
+                    return $btn;
+                })
+                ->addColumn('created_at', function ($row) {
+                    return Carbon::parse($row->created_at)->format('d-m-Y');
+                })
+                ->addColumn('penempatan', function ($row) {
+                    return $row->Sites->site_name ?? '-';
+                })
+                ->addColumn('nama_jabatan', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_jabatan = 'vv';
+                    } else {
+                        $nama_jabatan = $row->Jabatan->nama_jabatan ?? '-';
+                    }
+                    return $nama_jabatan;
+                })
+                ->addColumn('nama_bagian', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_bagian = 'a';
+                    } else {
+                        $nama_bagian = $row->Jabatan->Bagian->nama_bagian ?? '-';
+                    }
+                    return $nama_bagian;
+                })
+                ->addColumn('nama_divisi', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_divisi = 'v';
+                    } else {
+                        $nama_divisi = $row->Jabatan->Bagian->Divisi->nama_divisi ?? '-';
+                    }
+                    return $nama_divisi;
+                })
+                ->addColumn('nama_departemen', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_departemen = 'vv';
+                    } else {
+                        $nama_departemen = $row->Jabatan->Bagian->Divisi->Departemen->nama_departemen ?? '-';
+                    }
+                    return $nama_departemen;
+                })
+
+
+                ->addColumn('desc_recruitment', function ($row) {
+                    $desc = htmlspecialchars($row->desc_recruitment, ENT_QUOTES, 'UTF-8');
+                    $btn = '<button id="btn_lihat_syarat"
+                                data-id="' . $row->id . '"
+                                data-desc="' . $desc . '" 
+                                type="button" class="btn btn-sm btn-info ">
+                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                Lihat&nbsp;Syarat
+                            </button>';
+                    return $btn;
+                })
+                ->addColumn('deadline_recruitment', function ($row) {
+                    return $row->deadline_recruitment ?? '-';
+                })
+                ->addColumn('penggantian_penambahan', function ($row) {
+                    if ($row->penggantian_penambahan == '1') {
+                        return '<span class="badge bg-label-success">Penggantian</span>';
+                    } else {
+                        return '<span class="badge bg-label-info">Penambahan</span>';
+                    }
+                })
+                ->addColumn('surat_penambahan', function ($row) {
+                    if ($row->surat_penambahan != null) {
+                        return '<a type="button" href="' . asset('/storage/surat_penambahan/' . $row->surat_penambahan) . '" class="btn btn-sm btn-danger" target="_blank" id="btn_ktp" accept="application/pdf"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Lihat&nbsp;Surat</button>';
+                    } else {
+                        return '-';
+                    }
+                })
+                ->addColumn('kuota', function ($row) {
+                    return $row->kuota ?? '-';
+                })
+                ->addColumn('option', function ($row) use ($holdings) {
+                    $btn =
+                        '<button id="btn_edit_recruitment"
+                            data-id="' . $row->id . '"
+                            data-penggantian_penambahan="' . $row->penggantian_penambahan . '"
+                            data-surat_penambahan="' . $row->surat_penambahan . '"
+                            data-kuota="' . $row->kuota . '"
+                            data-penempatan="' . $row->penempatan . '"
+                            data-dept="' . $row->nama_dept . '"
+                            data-divisi="' . $row->nama_divisi . '"
+                            data-bagian="' . $row->nama_bagian . '"
+                            data-jabatan="' . $row->nama_jabatan . '"
+                            data-tanggal_awal="' . $row->created_recruitment . '"
+                            data-tanggal_akhir="' . $row->end_recruitment . '"
+                            data-deadline="' . $row->deadline_recruitment . '"
+                            data-holding="' . $holdings->id . '"
+                            data-desc="' . e($row->desc_recruitment) . '"
+                            type="button"
+                            class="btn btn-icon btn-warning waves-effect waves-light">
+                                <span class="tf-icons mdi mdi-pencil-outline"></span>
+                        </button>
+                        <button type="button" id="btn_delete_recruitment"
+                            data-id="' . $row->id . '"
+                            data-holding="' . $holdings->id . '"
+                            class="btn btn-icon btn-danger waves-effect waves-light">
+                            <span class="tf-icons mdi mdi-delete-outline"></span>
+                        </button>
+                        ';
+                    return $btn;
+                })
+
+                ->rawColumns([
+                    'legal_number',
+                    'created_at',
+                    'penempatan',
+                    'nama_departemen',
+                    'nama_divisi',
+                    'nama_bagian',
+                    'nama_jabatan',
+                    'created_recruitment',
+                    'end_recruitment',
+                    'desc_recruitment',
+                    'pelamar',
+                    'ranking',
+                    'status_recruitment',
+                    'deadline_recruitment',
+                    'penggantian_penambahan',
+                    'surat_penambahan',
+                    'option',
+                    'kuota'
+                ])
+                ->make(true);
+        }
+    }
+    public function dt_recruitment_kadaluarsa(Request $request, $holding)
+    {
+        $holdings = Holding::where('holding_code', $holding)->first();
+
+        // $now = Carbon::parse($request->start_date)->startOfDay();
+        // $now1 = Carbon::parse($request->end_date)->endOfDay();
+        // dd($request->start_date);
+
+        $query = Recruitment::with([
+            'Jabatan' => function ($query) {
+                $query->with([
+                    'Bagian' => function ($query) {
+                        $query->with([
+                            'Divisi' => function ($query) {
+                                $query->with([
+                                    'Departemen' => function ($query) {
+                                        $query->orderBy('nama_departemen', 'ASC');
+                                    }
+                                ]);
+                            }
+                        ]);
+                    }
+                ]);
+                $query->orderBy('nama_jabatan', 'ASC');
+            },
+        ])->with([
+            'Sites' => function ($query) {
+                $query;
+            }
+        ])->with(['jumlahPelamar' => function ($query) {
+            $query->where('status', '0');
+        }])->with(['jumlahRanking' => function ($query) {
+            $query->where('status_lanjutan', null)->where('status', '1a');
+        }])
+            ->where('holding_recruitment', $holdings->id)
+            // ->whereBetween('created_at', [$now, $now1])
+            // ->whereBetween('created_recruitment', [$now, $now1])
+            ->orderBy('created_at', 'DESC');
+        if (!empty($request->departemen_filter)) {
+            $query->whereIn('nama_dept', (array)$request->departemen_filter ?? []);
+        }
+
+        if (!empty($request->divisi_filter)) {
+            $query->whereIn('nama_divisi', (array)$request->divisi_filter ?? []);
+        }
+
+        if (!empty($request->bagian_filter)) {
+            $query->whereIn('nama_bagian', (array)$request->bagian_filter ?? []);
+        }
+
+        if (!empty($request->jabatan_filter)) {
+            $query->whereIn('nama_jabatan', (array)$request->jabatan_filter ?? []);
+        }
+        // $table = $query->limit(2)->get();
+        $table = $query->where('status_recruitment', 0)->where('end_recruitment', '<', now()->toDateString())->get();
+        if (request()->ajax()) {
+            return DataTables::of($table)
+                ->addColumn('legal_number', function ($row) {
+                    return $row->legal_number;
+                })
+                ->addColumn('status_recruitment', function ($row) use ($holdings) {
+                    if ($row->status_recruitment == 0) {
+                        $status = '<button id="btn_status_aktif"
+                            data-id="' . $row->id . '"
+                            data-holding="' . $holdings->id . '"
+                            type="button" class="btn btn-sm btn-success ">
+                            <i class="tf-icons mdi mdi-account-search"> </i>
+                            &nbsp;AKTIF
+                        </button>';
+                    } else {
+                        $status = '<button id="btn_status_naktif"
+                            data-id="' . $row->id . '"
+                            data-holding="' . $holdings->id . '"
+                            type="button" class="btn btn-sm btn-danger ">
+                            <i class="tf-icons mdi mdi-account-off"></i>
+                            &nbspN&nbsp;AKTIF
+                        </button>';
+                    }
+                    return $status;
+                })
+                ->addColumn('pelamar', function ($row) use ($holding) {
+                    $notifikasi = $row->jumlahPelamar()
+                        ->whereHas('AuthLogin.recruitmentCV', function ($query) {
+                            $query->whereNotNull('nama_lengkap')
+                                ->where('nama_lengkap', '<>', '');
+                        })->where('status', '0')
+                        ->count();
+                    $url = url('/pg-data-recruitment/data-list-pelamar/' . $row->id . '/' . $holding);
+                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-info position-relative">
+                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    ' . $notifikasi . '
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </a>';
+                    return $btn;
+                })
+                ->addColumn('ranking', function ($row) use ($holding) {
+                    $notifikasi = $row->jumlahRanking->count();
+                    $url = url('/pg-data-recruitment/data-list-ranking/' . $row->id . '/' . $holding);
+                    $btn = '<a href="' . $url . '" class="btn btn-sm btn-primary position-relative">
+                                <i class="tf-icons mdi mdi-chevron-triple-up me-1"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    ' . $notifikasi . '
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </a>';
+                    return $btn;
+                })
+                ->addColumn('created_at', function ($row) {
+                    return Carbon::parse($row->created_at)->format('d-m-Y');
+                })
+                ->addColumn('penempatan', function ($row) {
+                    return $row->Sites->site_name ?? '-';
+                })
+                ->addColumn('nama_jabatan', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_jabatan = 'vv';
+                    } else {
+                        $nama_jabatan = $row->Jabatan->nama_jabatan ?? '-';
+                    }
+                    return $nama_jabatan;
+                })
+                ->addColumn('nama_bagian', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_bagian = 'a';
+                    } else {
+                        $nama_bagian = $row->Jabatan->Bagian->nama_bagian ?? '-';
+                    }
+                    return $nama_bagian;
+                })
+                ->addColumn('nama_divisi', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_divisi = 'v';
+                    } else {
+                        $nama_divisi = $row->Jabatan->Bagian->Divisi->nama_divisi ?? '-';
+                    }
+                    return $nama_divisi;
+                })
+                ->addColumn('nama_departemen', function ($row) {
+                    if (!$row->Jabatan) {
+                        $nama_departemen = 'vv';
+                    } else {
+                        $nama_departemen = $row->Jabatan->Bagian->Divisi->Departemen->nama_departemen ?? '-';
+                    }
+                    return $nama_departemen;
+                })
+
+
+                ->addColumn('desc_recruitment', function ($row) {
+                    $desc = htmlspecialchars($row->desc_recruitment, ENT_QUOTES, 'UTF-8');
+                    $btn = '<button id="btn_lihat_syarat"
+                                data-id="' . $row->id . '"
+                                data-desc="' . $desc . '" 
+                                type="button" class="btn btn-sm btn-info ">
+                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                Lihat&nbsp;Syarat
+                            </button>';
+                    return $btn;
+                })
+                ->addColumn('deadline_recruitment', function ($row) {
+                    return $row->deadline_recruitment ?? '-';
+                })
+                ->addColumn('penggantian_penambahan', function ($row) {
+                    if ($row->penggantian_penambahan == '1') {
+                        return '<span class="badge bg-label-success">Penggantian</span>';
+                    } else {
+                        return '<span class="badge bg-label-info">Penambahan</span>';
+                    }
+                })
+                ->addColumn('surat_penambahan', function ($row) {
+                    if ($row->surat_penambahan != null) {
+                        return '<a type="button" href="' . asset('/storage/surat_penambahan/' . $row->surat_penambahan) . '" class="btn btn-sm btn-danger" target="_blank" id="btn_ktp" accept="application/pdf"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Lihat&nbsp;Surat</button>';
+                    } else {
+                        return '-';
+                    }
+                })
+                ->addColumn('kuota', function ($row) {
+                    return $row->kuota ?? '-';
+                })
+                ->addColumn('option', function ($row) use ($holdings) {
+                    $btn =
+                        '<button id="btn_edit_recruitment"
+                            data-id="' . $row->id . '"
+                            data-penggantian_penambahan="' . $row->penggantian_penambahan . '"
+                            data-surat_penambahan="' . $row->surat_penambahan . '"
+                            data-kuota="' . $row->kuota . '"
+                            data-penempatan="' . $row->penempatan . '"
+                            data-dept="' . $row->nama_dept . '"
+                            data-divisi="' . $row->nama_divisi . '"
+                            data-bagian="' . $row->nama_bagian . '"
+                            data-jabatan="' . $row->nama_jabatan . '"
+                            data-tanggal_awal="' . $row->created_recruitment . '"
+                            data-tanggal_akhir="' . $row->end_recruitment . '"
+                            data-deadline="' . $row->deadline_recruitment . '"
+                            data-holding="' . $holdings->id . '"
+                            data-desc="' . e($row->desc_recruitment) . '"
+                            type="button"
+                            class="btn btn-icon btn-warning waves-effect waves-light">
+                                <span class="tf-icons mdi mdi-pencil-outline"></span>
+                        </button>
+                        <button type="button" id="btn_delete_recruitment"
+                            data-id="' . $row->id . '"
+                            data-holding="' . $holdings->id . '"
+                            class="btn btn-icon btn-danger waves-effect waves-light">
+                            <span class="tf-icons mdi mdi-delete-outline"></span>
+                        </button>
+                        ';
+                    return $btn;
+                })
+
+                ->rawColumns([
+                    'legal_number',
+                    'created_at',
+                    'penempatan',
+                    'nama_departemen',
+                    'nama_divisi',
+                    'nama_bagian',
+                    'nama_jabatan',
+                    'created_recruitment',
+                    'end_recruitment',
+                    'desc_recruitment',
+                    'pelamar',
+                    'ranking',
                     'status_recruitment',
                     'deadline_recruitment',
                     'penggantian_penambahan',
@@ -348,21 +890,20 @@ class RecruitmentController extends Controller
                 'max'               => ':attribute maksimal 5MB'
             ];
 
-
+        $id_recruitment = Uuid::uuid4();
         try {
             $validator = Validator::make($request->all(), $rules, $customessages);
             if ($validator->fails()) {
-                return response()->json([
-                    'code' => 400,
-                    'message' => 'Validasi gagal',
-                    'errors' => $validator->errors()
-                ]);
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                // dd($nama_menu->name);
+
             }
             $tanggal = date('ymd');
             $st = Holding::where('holding_code', $holding)->first();
             //mencari nomor terakhir
             $today = date('Y-m-d');
-            $no_terakhir = Recruitment::where('created_at', $today)->orderBy('created_at', 'desc')->first();
+            $no_terakhir = Recruitment::whereDate('created_at', $today)->where('holding_recruitment', $request->holding_recruitment)->latest('created_at')->first();
             if ($no_terakhir == null) {
                 $no = '001';
             } else {
@@ -370,6 +911,7 @@ class RecruitmentController extends Controller
                 $hasil = $legal_terakhir + 1;
                 $no = str_pad($hasil, 3, '0', STR_PAD_LEFT);
             }
+            // dd($today, $no_terakhir->legal_number, $no_terakhir->created_at, $no);
             //mencari nomor terakhir end
             // Surat Penambahan
             if ($request->surat_penambahan != null) {
@@ -382,7 +924,7 @@ class RecruitmentController extends Controller
             // Surat Penambahan End
             Recruitment::insert(
                 [
-                    'id'                        => Uuid::uuid4(),
+                    'id'                        => $id_recruitment,
                     'legal_number'              => $st->holding_category . '/REC/' . $st->holding_number . '00' . $tanggal . '/' . $no,
                     'holding_recruitment'       => $request->holding_recruitment,
                     'penempatan'                => $request->penempatan,
@@ -403,22 +945,36 @@ class RecruitmentController extends Controller
             );
 
             // Merekam aktivitas pengguna
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            $divisi = Divisi::where('id', $request->nama_divisi)->first();
+            $jabatan = Jabatan::where('id', $request->nama_jabatan)->first();
+            // dd($st->id, $st->holding_categori);
             ActivityLog::create([
                 'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_recruitment,
+                'holding_id' => $st->id,
+                'holding_category' => $st->holding_category,
+                'table' => 'recruitment_cv',
                 'activity' => 'create',
-                'description' => 'Menambahkan data Recruitment baru ' . $request->name,
+                'description' => 'Menambahkan data Recruitment baru ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                'keterangan' => 'Success',
             ]);
             return response()->json([
                 'code' => 200,
-                'message' => 'Data Berhasil Disimpan'
+                'message' => 'Data Berhasil Disimpan',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
+
 
 
     function update(Request $request)
@@ -472,7 +1028,6 @@ class RecruitmentController extends Controller
                 $surat_penambahan = $request->old_file;
             }
             $data = Recruitment::where('id', $request->id)->update([
-                'id'                        => Uuid::uuid4(),
                 'holding_recruitment'       => $request->holding_recruitment,
                 'penempatan'                => $request->penempatan,
                 'penggantian_penambahan'    => $request->penggantian_penambahan,
@@ -489,10 +1044,28 @@ class RecruitmentController extends Controller
                 'created_at'                => date('Y-m-d H:i:s'),
             ]);
             if ($data) {
+                // Merekam aktivitas pengguna
+                $holding = Holding::where('id', $request->holding_recruitment)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $request->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $request->nama_jabatan)->first();
                 ActivityLog::create([
-                    'user_id' => Auth::user()->id,
+                    'user_id' => $request->user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $holding->id,
+                    'holding_category' => $holding->holding_category,
+                    'table' => 'recruitment_cv',
                     'activity' => 'update',
-                    'description' => 'Update data Recruitment Description' . Auth::user()->name,
+                    'description' => 'Update data Recruitment ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Data Berhasil Disimpan',
                 ]);
             }
             return response()->json([
@@ -507,77 +1080,151 @@ class RecruitmentController extends Controller
         }
     }
 
-    function delete($id)
+    function delete($id, $holding, $menu_id)
     {
         // dd($id);
 
-        $holding = request()->segment(count(request()->segments()));
-        $data = DB::table('recruitment_user')->where('recruitment_admin_id', $id)->first();
-        if ($data == null) {
-            $hapus_first    = Recruitment::where('id', $id)->where('holding_recruitment', $holding)->first();
-            $hapus          = Recruitment::where('id', $id)->where('holding_recruitment', $holding)->delete();
-            if ($hapus_first->surat_penambahan != NULL) {
+        // $holding = request()->segment(count(request()->segments()));
+        try {
+            $data = RecruitmentUser::where('recruitment_admin_id', $id)->first();
+            if ($data == null) {
+                $hapus_first    = Recruitment::where('id', $id)->where('holding_recruitment', $holding)->first();
+                Recruitment::where('id', $id)->where('holding_recruitment', $holding)->delete();
+                // dd($id);
+                if ($hapus_first->surat_penambahan != NULL) {
 
-                Storage::disk('surat_penambahan')->delete($hapus_first->surat_penambahan);
-                return redirect()->back()->with('success', 'data berhasil dihapus');
-            }
-            if ($hapus) {
+                    Storage::disk('surat_penambahan')->delete($hapus_first->surat_penambahan);
+                }
+                $holdings = Holding::where('id', $holding)->first();
+                $nama_menu = Menu::where('id', $menu_id)->first();
+                $user_name = User::where('id', Auth::user()->id)->first();
+                $divisi = Divisi::where('id', $hapus_first->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $hapus_first->nama_jabatan)->first();
+                // dd($nama_menu->name);
                 ActivityLog::create([
-                    'user_id' => Auth::user()->id,
-                    'activity' => 'hapus',
-                    'description' => 'Hapus data Recruitment' . Auth::user()->name,
+                    'user_id' => $user_name->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'id_table' => $hapus_first->id,
+                    'table' => 'recruitment_cv',
+                    'activity' => 'delete',
+                    'description' => 'Menghapus data Recruitment ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
                 ]);
-                return redirect()->back()->with('success', 'data berhasil dihapus');
-            } else {
-                return redirect()->back()->with('error', 'Data  Gagal dihapus');
             }
-        } else {
-            dd('stop');
+            return response()->json([
+                'code' => 200,
+                'message' => 'Data Berhasil Disimpan'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
-    function update_status($id, $holding)
+    function update_status($id, $holding, $menu_id)
     {
         // dd($id);
         $holdings = Holding::where('holding_code', $holding)->first();
 
         $recruitment = Recruitment::where('id', $id)->where('holding_recruitment', $holdings->id)->first();
+        $nama_menu = Menu::where('id', $menu_id)->first();
+        $user_name = User::where('id', Auth::user()->id)->first();
+        $divisi = Divisi::where('id', $recruitment->nama_divisi)->first();
+        $jabatan = Jabatan::where('id', $recruitment->nama_jabatan)->first();
         if ($recruitment->status_recruitment == 0) {
             Recruitment::where('id', $id)->where('holding_recruitment', $holdings->id)->update([
                 'status_recruitment' => 1,
+            ]);
+            ActivityLog::create([
+                'user_id' => Auth::user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id,
+                'holding_id' => $holdings->id,
+                'holding_category' => $holdings->holding_category,
+                'table' => 'recruitment_user',
+                'activity' => 'update',
+                'description' => 'Update data Recruitment Status Close ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                'keterangan' => 'Success',
             ]);
         } else {
             Recruitment::where('id', $id)->where('holding_recruitment', $holdings->id)->update([
                 'status_recruitment' => 0,
             ]);
+            ActivityLog::create([
+                'user_id' => Auth::user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id,
+                'holding_id' => $holdings->id,
+                'holding_category' => $holdings->holding_category,
+                'table' => 'recruitment_user',
+                'activity' => 'update',
+                'description' => 'Update data Recruitment Status Open ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                'keterangan' => 'Success',
+            ]);
         }
-        ActivityLog::create([
-            'user_id' => Auth::user()->id,
-            'activity' => 'update',
-            'description' => 'Update data Recruitment Status Close ' . Auth::user()->name,
-        ]);
+        // ActivityLog::create([
+        //     'user_id' => Auth::user()->id,
+        //     'activity' => 'update',
+        //     'description' => 'Update data Recruitment Status Close ' . Auth::user()->name,
+        // ]);
         return redirect()->back()->with('success', 'Data Berhasil di Diupdate');
     }
 
-    function pg_list_pelamar($id, $holding)
+    function pg_list_pelamar($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $get_recruitment_user_id = RecruitmentUser::where('recruitment_admin_id', $id)
             ->whereDate('tanggal_konfirmasi', '<', date('Y-m-d H:i:s'))
             ->where('tanggal_konfirmasi', '!=', null)
             ->where('feedback', null)
+            ->where('status_user', '1')
             ->get();
         if ($get_recruitment_user_id != null) {
             foreach ($get_recruitment_user_id as $ii) {
                 RecruitmentUser::where('id', $ii->id)->update([
                     'status'        => '3',
-                    'status_user'   => '3'
+                    'status_user'   => '3',
+                    'updated_at'    => date('Y-m-d H:i:s'),
                 ]);
-                RecruitmentUserRecord::insert([
-                    'id' => Uuid::uuid4(),
-                    'recruitment_user_id' => $ii->id,
-                    'status' => '3',
-                    'status_user' => '3',
-                    'created_at' => date('Y-m-d H:i:s'),
+                $add_record = RecruitmentUserRecord::where('recruitment_user_id', $ii->id)->where('status', '3')->where('status_user', '3')->count();
+                if ($add_record == 0) {
+                    RecruitmentUserRecord::insert([
+                        'id' => Uuid::uuid4(),
+                        'recruitment_user_id' => $ii->id,
+                        'status' => '3',
+                        'status_user' => '3',
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ]);
+                }
+                $cv = RecruitmentCV::where('users_career_id', $ii->users_career_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $ii->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $ii->nama_jabatan)->first();
+                // dd($divisi);
+                ActivityLog::create([
+                    'user_id' => $request->user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_name' => 'Data Recruitment',
+                    'id_table' => $request->recruitment_user_id,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'table' => 'recruitment_user',
+                    'activity' => 'update',
+                    'description' => 'pelamar otomatis tertolak karena tidak konfirmasi ' . $cv->nama_lengkap . ' pada ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
                 ]);
             }
         }
@@ -615,26 +1262,22 @@ class RecruitmentController extends Controller
     function user_meta($id, $holding)
     {
         $holdings = Holding::where('holding_code', $holding)->first();
-        $user_meta =  RecruitmentUser::with([
-            'AuthLogin' => function ($query) {
-                $query->with([
-                    'recruitmentCV' => function ($query) {
-                        $query->orderBy('nama_lengkap');
-                    }
-                ]);
-            }
-        ])
+        $user_meta =  RecruitmentUser::with('AuthLogin.recruitmentCV')
             ->where('holding', $holdings->id)
             ->where('status', '0')
             ->where('recruitment_admin_id', $id)
+            ->whereHas('AuthLogin.recruitmentCV', function ($query) {
+                $query->whereNotNull('nama_lengkap')
+                    ->where('nama_lengkap', '!=', '');
+            })
             ->get();
         return DataTables::of($user_meta)
 
             ->addColumn('pelamar', function ($row) {
-                return $row->AuthLogin->recruitmentCV->nama_lengkap;
+                return $row->AuthLogin->recruitmentCV->nama_lengkap ?? '-';
             })
             ->addColumn('no_wa', function ($row) {
-                return $row->AuthLogin->nomor_whatsapp;
+                return $row->AuthLogin->nomor_whatsapp ?? '-';
             })
 
             ->addColumn('status', function ($row) {
@@ -646,7 +1289,10 @@ class RecruitmentController extends Controller
                 }
             })
             ->addColumn('lihat_cv', function ($row) use ($holding) {
-                return '<a href="/pg/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
+                return '<a href="/pg-data-recruitment/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
+            })
+            ->addColumn('created_at', function ($row) {
+                return $row->created_at;
             })
 
             ->rawColumns(['pelamar', 'no_wa', 'status', 'lihat_cv'])
@@ -672,10 +1318,10 @@ class RecruitmentController extends Controller
         return DataTables::of($user_kandidat)
 
             ->addColumn('pelamar', function ($row) {
-                return $row->AuthLogin->recruitmentCV->nama_lengkap;
+                return $row->AuthLogin->recruitmentCV->nama_lengkap ?? '-';
             })
             ->addColumn('no_wa', function ($row) {
-                return $row->AuthLogin->nomor_whatsapp;
+                return $row->AuthLogin->nomor_whatsapp ?? '-';
             })
             ->addColumn('tanggal_wawancara', function ($row) {
                 return $row->tanggal_wawancara;
@@ -705,7 +1351,7 @@ class RecruitmentController extends Controller
                 }
             })
             ->addColumn('lihat_cv', function ($row) use ($holding) {
-                return '<a href="/pg/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
+                return '<a href="/pg-data-recruitment/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
             })
 
             ->rawColumns(['pelamar', 'no_wa', 'tanggal_wawancara', 'waktu_wawancara', 'waktu_wawancara', 'feedback', 'status', 'lihat_cv'])
@@ -730,10 +1376,10 @@ class RecruitmentController extends Controller
         return DataTables::of($user_wait)
 
             ->addColumn('pelamar', function ($row) {
-                return $row->AuthLogin->recruitmentCV->nama_lengkap;
+                return $row->AuthLogin->recruitmentCV->nama_lengkap ?? '-';
             })
             ->addColumn('no_wa', function ($row) {
-                return $row->AuthLogin->nomor_whatsapp;
+                return $row->AuthLogin->nomor_whatsapp ?? '-';
             })
 
             ->addColumn('status', function ($row) {
@@ -745,7 +1391,7 @@ class RecruitmentController extends Controller
                 }
             })
             ->addColumn('lihat_cv', function ($row) use ($holding) {
-                return '<a href="/pg/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
+                return '<a href="/pg-data-recruitment/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
             })
 
             ->rawColumns(['pelamar', 'no_wa', 'status', 'lihat_cv'])
@@ -770,10 +1416,10 @@ class RecruitmentController extends Controller
         return DataTables::of($user_reject)
 
             ->addColumn('pelamar', function ($row) {
-                return $row->AuthLogin->recruitmentCV->nama_lengkap;
+                return $row->AuthLogin->recruitmentCV->nama_lengkap ?? '-';
             })
             ->addColumn('no_wa', function ($row) {
-                return $row->AuthLogin->nomor_whatsapp;
+                return $row->AuthLogin->nomor_whatsapp ?? '-';
             })
             ->addColumn('alasan', function ($row) {
                 return $row->alasan;
@@ -787,14 +1433,18 @@ class RecruitmentController extends Controller
                 }
             })
             ->addColumn('lihat_cv', function ($row) use ($holding) {
-                return '<a href="/pg/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
+                return '<a href="/pg-data-recruitment/pelamar-detail/' . $row->id . '/' . $holding . '" type="button" class="btn btn-sm btn-info"><i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>Detail&nbsp;CV</a>';
             })
 
             ->rawColumns(['pelamar', 'no_wa', 'alasan', 'status', 'lihat_cv'])
             ->make(true);
     }
-    function pelamar_detail($id, $holding)
+    function pelamar_detail($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $data_cv =  RecruitmentUser::with([
             'AuthLogin' => function ($query) use ($id) {
@@ -809,8 +1459,8 @@ class RecruitmentController extends Controller
                                 $query->orderBy('id', 'ASC');
                             }
                         ])->with([
-                            'kecamatanKTP' => function ($query) {
-                                $query->orderBy('id', 'ASC');
+                            'kecamatanKTP' => function ($query1) {
+                                $query1->orderBy('id', 'ASC');
                             }
                         ])->with([
                             'desaKTP' => function ($query) {
@@ -853,6 +1503,7 @@ class RecruitmentController extends Controller
         ])
             ->where('id', $id)
             ->first();
+        // dd($data_cv);
         $kesehatan = RecruitmentKesehatan::where('id_user', $data_cv->AuthLogin->id)->first();
         $kesehatan_pengobatan = RecruitmentKesehatanPengobatan::where('id_user', $data_cv->AuthLogin->id)->get();
         $kesehatan_rs = RecruitmentKesehatanRS::where('id_user', $data_cv->AuthLogin->id)->get();
@@ -866,16 +1517,26 @@ class RecruitmentController extends Controller
         // dd($pekerjaan);
         // dd($pendidikan);
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.recruitment.user_detail', [
             'ti$pekerjaan_counttle' => 'Data Recruitment',
             'holding'   => $holdings,
@@ -963,7 +1624,13 @@ class RecruitmentController extends Controller
         $keahlian_count = RecruitmentKeahlian::where('id_user', $data_cv->AuthLogin->id)->count();
         $keahlian = RecruitmentKeahlian::where('id_user', $data_cv->AuthLogin->id)->get();
 
-        $pdf = Pdf::loadView('admin.recruitment-users.recruitment.user_detail_pdf', [
+        // dd($pekerjaan_count);
+
+        $pdf = Pdf::setOption([
+            'isRemoteEnabled' => true,
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true
+        ])->loadView('admin.recruitment-users.recruitment.user_detail_pdf', [
             'ti$pekerjaan_counttle' => 'Data Recruitment',
         ], compact(
             'data_cv',
@@ -977,6 +1644,7 @@ class RecruitmentController extends Controller
             'kesehatan_rs',
             'kesehatan_kecelakaan'
         ));
+        // $pdf->setWarnings(true);
         return $pdf->stream($data_cv->Authlogin->recruitmentCV->nama_lengkap . ' CV.pdf');
     }
     function pelamar_nilai_pdf($id)
@@ -1108,6 +1776,7 @@ class RecruitmentController extends Controller
             'koefisien_interview',
             'koefisien_total',
             'ctn',
+            'table',
         ));
         return $pdf->stream($table->Cv->nama_lengkap . ' NILAI.pdf');
     }
@@ -1143,7 +1812,7 @@ class RecruitmentController extends Controller
         } elseif ($request->status == '1' && $request->online == '2') {
             $tempat_wawancara = 'nullable';
             $link_wawancara = 'required';
-            $map = null;
+            $map = '-';
         }
         $rules =
             [
@@ -1171,59 +1840,119 @@ class RecruitmentController extends Controller
         }
         if ($request->status == '1') {
             if ($request->online == '1') {
-                $tempat_wawancara = $site->site_name;
+                $tempat_wawancara = 'Lokasi : ' . $site->site_name;
             } elseif ($request->online == '2') {
-                $tempat_wawancara = $request->link_wawancara;
+                $tempat_wawancara = 'Link Zoom: ' . $request->link_wawancara;
             }
         }
+        // dd($tempat_wawancara);
         if ($request->status == '1') {
             // mencari nama PT
 
+            // Lolos administrasi
+            $path = "/qontak/chat/v1/broadcasts/whatsapp/direct";
+            $payload = [
+                "to_number" => $this->formatPhoneIndonesia($request->nomor_whatsapp),
+                "to_name" => $request->nama,
+                "message_template_id" => "c51f9820-add1-4ca9-8c5c-2dbea15f6063",
+                "channel_integration_id" => "2cde26dd-8c36-4b9e-97d1-4b64634fd72f",
+                "language" => ["code" => "id"],
+                "parameters" => [
+                    "body" => [
+                        [
+                            "key" => "1",
+                            "value" => "nama",
+                            "value_text" => "$request->nama"
+                        ],
+                        [
+                            "key" => "2",
+                            "value" => "holding",
+                            "value_text" => "$holdings->holding_name"
+                        ],
+                        [
+                            "key" => "3",
+                            "value" => "date",
+                            "value_text" => "$hari"
+                        ],
+                        [
+                            "key" => "4",
+                            "value" => "time",
+                            "value_text" => "$request->waktu_wawancara"
+                        ],
+                        [
+                            "key" => "5",
+                            "value" => "location",
+                            "value_text" => "$tempat_wawancara"
+                        ],
+                        [
+                            "key" => "6",
+                            "value" => "link_address",
+                            "value_text" => "$map"
+                        ],
+                        [
+                            "key" => "7",
+                            "value" => "id_user",
+                            "value_text" => "$request->recruitment_user_id"
+                        ],
+                    ]
 
-            Carbon::setLocale('id');
-            //kirim pesan ke whatsapp
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://api.fonnte.com/send',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 0,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => array(
-                    'target' => $request->nomor_whatsapp,
-                    'message' =>
-                    "
-Halo $request->nama,
-Terima kasih telah melamar di $holdings->holding_name. Setelah proses seleksi administrasi, kami mengundang Anda untuk mengikuti wawancara tahap pertama pada:
+                ]
+            ];
+            $response = $this->mekari->request('POST', $path, $payload);
 
-📅 Hari/Tanggal : $hari
-🕒 Pukul : $request->waktu_wawancara WIB
-📍 Lokasi/Link Zoom : $tempat_wawancara, $map
+            //             Carbon::setLocale('id');
+            //             //kirim pesan ke whatsapp
+            //             $curl = curl_init();
+            //             curl_setopt_array($curl, array(
+            //                 CURLOPT_URL => 'https://api.fonnte.com/send',
+            //                 CURLOPT_RETURNTRANSFER => true,
+            //                 CURLOPT_ENCODING => '',
+            //                 CURLOPT_MAXREDIRS => 10,
+            //                 CURLOPT_TIMEOUT => 0,
+            //                 CURLOPT_FOLLOWLOCATION => true,
+            //                 CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            //                 CURLOPT_CUSTOMREQUEST => 'POST',
+            //                 CURLOPT_POSTFIELDS => array(
+            //                     'target' => $request->nomor_whatsapp,
+            //                     'message' =>
+            //                     "
+            // Halo $request->nama,
+            // Terima kasih telah melamar di $holdings->holding_name. Setelah proses seleksi administrasi, kami mengundang Anda untuk mengikuti wawancara tahap pertama pada:
 
-Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
+            // 📅 Hari/Tanggal : $hari
+            // 🕒 Pukul : $request->waktu_wawancara WIB
+            // 📍 $tempat_wawancara, $map
 
-https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment_user_id
-",
+            // Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
 
-                    'countryCode' => '62', //optional
-                ),
-                CURLOPT_HTTPHEADER => array(
-                    'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
-                ),
-            ));
-            $response = curl_exec($curl);
-            if (curl_errno($curl)) {
-                $error_msg = curl_error($curl);
-            }
-            curl_close($curl);
+            // https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment_user_id
+            //                         ",
 
-            if (isset($error_msg)) {
-                echo $error_msg;
-            }
+            //                     'countryCode' => '62', //optional
+            //                 ),
+            //                 CURLOPT_HTTPHEADER => array(
+            //                     'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
+            //                 ),
+            //             ));
+            //             $response = curl_exec($curl);
+            //             if (curl_errno($curl)) {
+            //                 $error_msg = curl_error($curl);
+            //             }
+            //             curl_close($curl);
+
+            //             if (isset($error_msg)) {
+            //                 echo $error_msg;
+            //             }
             // end kirim pesan ke whatsapp
+
+            $email      = $request->email;
+            $nama       = $request->nama;
+            $e_holding  = $holdings->holding_name;
+            $pukul      = $request->waktu_wawancara;
+            $maps       = $map ?? '-';
+            $user_id    = $request->recruitment_user_id;
+            Cache::put("Wawancara:$email", true, now()->addHours(2));
+            Mail::to($email)->send(new DiterimaWawancaraMail($nama, $pukul, $tempat_wawancara, $maps, $e_holding, $hari, $user_id));
         }
 
         // $holding = request()->segment(count(request()->segments()));
@@ -1237,7 +1966,6 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                 'tempat_wawancara'   => $tempat_wawancara,
                 'waktu_wawancara'    => $request->waktu_wawancara,
                 'updated_at' => date('Y-m-d H:i:s')
-
             ]
         );
         RecruitmentUserRecord::insert(
@@ -1249,13 +1977,44 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                 'created_at'            => date('Y-m-d H:i:s'),
             ]
         );
+
+        if ($request->status == 1) {
+            $status_log = 'Lolos';
+        } elseif ($request->status == 2) {
+            $status_log = 'Daftar Tunggu';
+        } else {
+            $status_log = 'Tidak Lolos';
+        }
+        $cv = RecruitmentCV::where('users_career_id', $recruitment_admin_id->users_career_id)->first();
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        $divisi = Divisi::where('id', $recruitment_admin_id->nama_divisi)->first();
+        $jabatan = Jabatan::where('id', $recruitment_admin_id->nama_jabatan)->first();
+        // dd($divisi);
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => $nama_menu->name,
+            'id_table' => $request->recruitment_user_id,
+            'holding_id' => $holdings->id,
+            'holding_category' => $holdings->holding_category,
+            'table' => 'recruitment_user',
+            'activity' => 'update',
+            'description' => 'mengubah status pelamar ' . $cv->nama_lengkap . ' pada ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan . ' menjadi ' . $status_log,
+            'keterangan' => 'Success',
+        ]);
         // Merekam aktivitas pengguna
-        return redirect('/pg/data-list-pelamar/' . $recruitment_admin_id->recruitment_admin_id . '/' . $holding . '')->with('success', 'data berhasil ditambahkan');
+        return redirect('/pg-data-recruitment/data-list-pelamar/' . $recruitment_admin_id->recruitment_admin_id . '/' . $holding . '')->with('success', 'data berhasil ditambahkan');
     }
 
-    function pg_data_interview($holding)
+    function pg_data_interview($holding, Request $request)
     {
         // Hapus pelamar kadaluarsa
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $get_recruitment_user_id = RecruitmentUser::where('status', '1')
             ->whereDate('tanggal_wawancara', '<', date('Y-m-d'))
@@ -1271,19 +2030,27 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                 'status' => '2a'
             ]);
         }
-
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         $departemen = Departemen::where('holding', $holdings->id)->orderBy('nama_departemen', 'ASC')->get();
-        $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
         // end Hapus pelamar kadaluar
         $holding = request()->segment(count(request()->segments()));
         return view('admin.recruitment-users.interview.data_interview', [
@@ -1366,7 +2133,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                 })
                 ->addColumn('ujian', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="' . url("/dt/data-data_ujian_user/$row->recruitment_user_id/$holding") . '" type="button" class="btn btn-info"><small>Lihat</small></a>';
+                    return '<a href="' . url("/pg-data-interview/dt/data-data_ujian_user/$row->recruitment_user_id/$holding") . '" type="button" class="btn btn-info"><small>Lihat</small></a>';
                 })
                 ->addColumn('nama_lengkap', function ($row) {
                     return $row->recruitmentUser->Cv->nama_lengkap;
@@ -1506,7 +2273,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                 })
                 ->addColumn('ujian', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="' . url("/dt/data-data_ujian_user/$row->recruitment_user_id/$holding") . '" type="button" class="btn btn-info"><small>Lihat</small></a>';
+                    return '<a href="' . url("/pg-data-interview/dt/data-data_ujian_user/$row->recruitment_user_id/$holding") . '" type="button" class="btn btn-info"><small>Lihat</small></a>';
                 })
                 ->addColumn('nama_jabatan', function ($row) {
                     return $row->recruitmentUser->Jabatan->nama_jabatan;
@@ -1715,8 +2482,12 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                 ->make(true);
         }
     }
-    public function data_ujian_user($id, $holding)
+    public function data_ujian_user($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $user_recruitment = RecruitmentUser::where('id', $id)->with([
             'Cv' => function ($query) {
@@ -1724,16 +2495,26 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
             }
         ])->first();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
 
         $user_interview = RecruitmentInterview::where('recruitment_user_id', $id)->first();
         return view('admin.recruitment-users.interview.data_ujian_user', [
@@ -1790,6 +2571,30 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                     }
                 }
             }
+            if ($request->terlambat == 1) {
+                $terlambat = 'tepat waktu';
+            } else {
+                $terlambat = 'terlambat';
+            }
+            $get_holding = RecruitmentUser::where('id', $konfirmasi->recruitment_user_id)->first();
+            $holdings = Holding::where('id', $get_holding->holding)->first();
+            $cv = RecruitmentCV::where('users_career_id', $get_holding->users_career_id)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            // dd($get_holding);
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => $holdings->id,
+                'holding_category' => $holdings->holding_category,
+                'table' => 'recruitment_interview',
+                'activity' => 'update',
+                'description' => 'Mengabsen pelamar ' . $cv->nama_lengkap . ' ' . $terlambat,
+                'keterangan' => 'Success',
+            ]);
             return response()->json([
                 'code' => 200,
                 'message' => 'Data Berhasil Diupdate'
@@ -1856,12 +2661,12 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                         ]);
                     }
                     $tempat = $site->site_name;
-                    $map = $site->gm_link;
+                    $map = 'Lokasi : ' . $site->gm_link;
                 } elseif ($request->online == 2) {
                     $link_wawancara = 'required';
                     $tempat_wawancara = 'nullable';
-                    $tempat = $request->link_wawancara;
-                    $map = null;
+                    $tempat = 'Link Zoom : ' . $request->link_wawancara;
+                    $map = '-';
                 }
                 $validator = Validator::make(
                     $request->all(),
@@ -1902,48 +2707,125 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->recruitment
                         'created_at'                => date('Y-m-d H:i:s'),
                     ]
                 );
+                $get_holding = RecruitmentUser::where('id', $request->id)->first();
+                $holdings = Holding::where('id', $get_holding->holding)->first();
+                $cv = RecruitmentCV::where('users_career_id', $get_holding->users_career_id)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $get_holding->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $get_holding->nama_jabatan)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'table' => 'recruitment_user',
+                    'activity' => 'update',
+                    'description' => 'mengubah status pelamar menjadi lolos interview manager ' . $cv->nama_lengkap . ' pada lowongan ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
 
-                // dd($get_wa);
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://api.fonnte.com/send',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => array(
-                        'target' => $get_wa->Authlogin->nomor_whatsapp,
-                        'message' =>
-                        "Halo " . $get_wa->Cv->nama_lengkap . " ,
 
-Selamat, Anda lolos tahap wawancara awal. Kami mengundang Anda untuk melanjutkan ke wawancara bersama Manager pada:
-📅 Hari/Tanggal : $hari
-🕒 Pukul : $request->waktu_wawancara WIB
-📍 Lokasi/Link Zoom : $tempat, $map
 
-Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
-https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
+                //                 $curl = curl_init();
+                //                 curl_setopt_array($curl, array(
+                //                     CURLOPT_URL => 'https://api.fonnte.com/send',
+                //                     CURLOPT_RETURNTRANSFER => true,
+                //                     CURLOPT_ENCODING => '',
+                //                     CURLOPT_MAXREDIRS => 10,
+                //                     CURLOPT_TIMEOUT => 0,
+                //                     CURLOPT_FOLLOWLOCATION => true,
+                //                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                //                     CURLOPT_CUSTOMREQUEST => 'POST',
+                //                     CURLOPT_POSTFIELDS => array(
+                //                         'target' => $get_wa->Authlogin->nomor_whatsapp,
+                //                         'message' =>
+                //                         "Halo " . $get_wa->Cv->nama_lengkap . " ,
 
-",
-                        'countryCode' => '62', //optional
-                    ),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
-                    ),
-                ));
+                // Selamat, Anda lolos tahap wawancara awal. Kami mengundang Anda untuk melanjutkan ke wawancara bersama Manager pada:
+                // 📅 Hari/Tanggal : $hari
+                // 🕒 Pukul : $request->waktu_wawancara WIB
+                // 📍 $tempat, $map
 
-                $response = curl_exec($curl);
-                if (curl_errno($curl)) {
-                    $error_msg = curl_error($curl);
-                }
-                curl_close($curl);
+                // Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
+                // https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
 
-                if (isset($error_msg)) {
-                    echo $error_msg;
-                }
+                // ",
+                //                         'countryCode' => '62', //optional
+                //                     ),
+                //                     CURLOPT_HTTPHEADER => array(
+                //                         'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
+                //                     ),
+                //                 ));
+
+                //                 $response = curl_exec($curl);
+                //                 if (curl_errno($curl)) {
+                //                     $error_msg = curl_error($curl);
+                //                 }
+                //                 curl_close($curl);
+
+                //                 if (isset($error_msg)) {
+                //                     echo $error_msg;
+                //                 }
+
+                // wawancara manager
+                $path = "/qontak/chat/v1/broadcasts/whatsapp/direct";
+                $payload = [
+                    "to_number" => $this->formatPhoneIndonesia($get_wa->Authlogin->nomor_whatsapp),
+                    "to_name" => $get_wa->Cv->nama_lengkap,
+                    "message_template_id" => "666cfa79-7fbb-43b1-93f1-6cf3b5690eed",
+                    "channel_integration_id" => "2cde26dd-8c36-4b9e-97d1-4b64634fd72f",
+                    "language" => ["code" => "id"],
+                    "parameters" => [
+                        "body" => [
+                            [
+                                "key" => "1",
+                                "value" => "nama",
+                                "value_text" => $get_wa->Cv->nama_lengkap
+                            ],
+                            [
+                                "key" => "2",
+                                "value" => "hari",
+                                "value_text" => "$hari"
+                            ],
+                            [
+                                "key" => "3",
+                                "value" => "waktu_wawancara",
+                                "value_text" => "$request->waktu_wawancara"
+                            ],
+                            [
+                                "key" => "4",
+                                "value" => "tempat",
+                                "value_text" => "$tempat"
+                            ],
+                            [
+                                "key" => "5",
+                                "value" => "map",
+                                "value_text" => "$map"
+                            ],
+                            [
+                                "key" => "6",
+                                "value" => "id_user",
+                                "value_text" => "$request->id"
+                            ],
+                        ]
+
+                    ]
+                ];
+                $response = $this->mekari->request('POST', $path, $payload);
+
+                // Kirim email
+
+                $email      = $get_wa->Authlogin->email;
+                $nama       = $get_wa->Cv->nama_lengkap;
+                $pukul      = $request->waktu_wawancara;
+                $maps       = $map ?? '-';
+                $user_id    = $request->id;
+                Cache::put("Manager:$email", true, now()->addHours(2));
+                Mail::to($email)->send(new DiterimaManagerMail($nama, $hari, $pukul, $tempat, $maps, $user_id));
             } elseif ($request->status == '2b') {
                 // dd($request->all);
                 $site_krj = Site::where('id', $request->tempat_bekerja)->first();
@@ -1975,7 +2857,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
 
                     [
                         'status_lanjutan'       => $request->status,
-                        'tempat_bekerja'        => $site_krj->site_name,
+                        'tempat_bekerja'        => $request->tempat_bekerja,
                         'tanggal_diterima'      => $request->tanggal_diterima,
                         'gaji'                  => $request->gaji,
                         'notes'                 => $request->notes_langsung,
@@ -1999,52 +2881,185 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                     }
                 ])->where('id', $request->id)->first();
                 // dd($get_wa);
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://api.fonnte.com/send',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => array(
-                        'target' => $get_wa->Authlogin->nomor_whatsapp,
-                        'message' =>
-                        "Halo " . $get_wa->Cv->nama_lengkap . ",
+                $get_holding = RecruitmentUser::where('id', $request->id)->first();
+                $holdings = Holding::where('id', $get_holding->holding)->first();
+                $cv = RecruitmentCV::where('users_career_id', $get_holding->users_career_id)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $get_holding->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $get_holding->nama_jabatan)->first();
 
-Selamat! Anda telah dinyatakan diterima sebagai " . $get_recruitment_admin->recruitmentAdmin->Jabatan->nama_jabatan . "
-" . $get_recruitment_admin->recruitmentAdmin->Jabatan->Bagian->Divisi->nama_divisi . "
-di $holdings->holding_name. dengan benefit gaji Rp. $request->gaji 🎉
+                //                 $curl = curl_init();
+                //                 curl_setopt_array($curl, array(
+                //                     CURLOPT_URL => 'https://api.fonnte.com/send',
+                //                     CURLOPT_RETURNTRANSFER => true,
+                //                     CURLOPT_ENCODING => '',
+                //                     CURLOPT_MAXREDIRS => 10,
+                //                     CURLOPT_TIMEOUT => 0,
+                //                     CURLOPT_FOLLOWLOCATION => true,
+                //                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                //                     CURLOPT_CUSTOMREQUEST => 'POST',
+                //                     CURLOPT_POSTFIELDS => array(
+                //                         'target' => $get_wa->Authlogin->nomor_whatsapp,
+                //                         'message' =>
+                //                         "Halo " . $get_wa->Cv->nama_lengkap . ",
 
-Kami mengundang Anda untuk hadir pada:
-📅 Hari/Tanggal : $hari_diterima 
-🕒 Pukul : $request->waktu_bekerja
-📍 Lokasi : $site_krj->site_name, $site_krj->gm_link
-Untuk penjelasan lebih lanjut terkait administrasi dan training karyawan baru. Harap membawa dokumen yang diperlukan sesuai instruksi yang akan kami kirimkan.
-Catatan : $request->notes_langsung
+                // Selamat! Anda telah dinyatakan diterima sebagai " . $get_recruitment_admin->recruitmentAdmin->Jabatan->nama_jabatan . "
+                // " . $get_recruitment_admin->recruitmentAdmin->Jabatan->Bagian->Divisi->nama_divisi . "
+                // di $holdings->holding_name. dengan benefit gaji Rp. $request->gaji 🎉
 
-Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
-https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
+                // Kami mengundang Anda untuk hadir pada:
+                // 📅 Hari/Tanggal : $hari_diterima 
+                // 🕒 Pukul : $request->waktu_bekerja
+                // 📍 Lokasi : $site_krj->site_name, $site_krj->gm_link
+                // Untuk penjelasan lebih lanjut terkait administrasi dan training karyawan baru. Harap membawa dokumen yang diperlukan sesuai instruksi yang akan kami kirimkan.
+                // Catatan : $request->notes_langsung
 
-",
-                        'countryCode' => '62', //optional
-                    ),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
-                    ),
-                ));
+                // Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
+                // https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
 
-                $response = curl_exec($curl);
-                if (curl_errno($curl)) {
-                    $error_msg = curl_error($curl);
+                //                 ",
+                //                         'countryCode' => '62', //optional
+                //                     ),
+                //                     CURLOPT_HTTPHEADER => array(
+                //                         'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
+                //                     ),
+                //                 ));
+
+                //                 $response = curl_exec($curl);
+                //                 if (curl_errno($curl)) {
+                //                     $error_msg = curl_error($curl);
+                //                 }
+                //                 curl_close($curl);
+
+                //                 if (isset($error_msg)) {
+                //                     echo $error_msg;
+                //                 }
+
+                // lolos karyawan
+                // dd($site_krj->gm_link, $site_krj->gm_link);
+                $path = "/qontak/chat/v1/broadcasts/whatsapp/direct";
+                if ($site_krj->gm_link == null) {
+                    $gm_link = '-';
+                } else {
+                    $gm_link = $site_krj->gm_link;
                 }
-                curl_close($curl);
+                $payload = [
+                    "to_number" => $this->formatPhoneIndonesia($get_wa->Authlogin->nomor_whatsapp),
+                    "to_name" => $cv->nama_lengkap,
+                    "message_template_id" => "56fcac8b-922d-4067-80f6-fb4cd571c79e",
+                    "channel_integration_id" => "2cde26dd-8c36-4b9e-97d1-4b64634fd72f",
+                    "language" => ["code" => "id"],
+                    "parameters" => [
+                        "body" => [
+                            [
+                                "key" => "1",
+                                "value" => "nama",
+                                "value_text" => $get_wa->Cv->nama_lengkap
+                            ],
+                            [
+                                "key" => "2",
+                                "value" => "jabatan",
+                                "value_text" => $jabatan->nama_jabatan
+                            ],
+                            [
+                                "key" => "3",
+                                "value" => "divisi",
+                                "value_text" => $divisi->nama_divisi
+                            ],
 
-                if (isset($error_msg)) {
-                    echo $error_msg;
+                            [
+                                "key" => "4",
+                                "value" => "holding_name",
+                                "value_text" => $holdings->holding_name
+                            ],
+                            [
+                                "key" => "5",
+                                "value" => "gaji",
+                                "value_text" => "$request->gaji"
+                            ],
+                            [
+                                "key" => "6",
+                                "value" => "hari_diterima",
+                                "value_text" => "$hari_diterima"
+                            ],
+                            [
+                                "key" => "7",
+                                "value" => "waktu_bekerja",
+                                "value_text" => "$request->waktu_bekerja"
+                            ],
+                            [
+                                "key" => "8",
+                                "value" => "site_name",
+                                "value_text" => $site_krj->site_name
+                            ],
+                            [
+                                "key" => "9",
+                                "value" => "gm_link",
+                                "value_text" => $gm_link
+                            ],
+
+                            [
+                                "key" => "10",
+                                "value" => "notes_langsung",
+                                "value_text" => "Lihat di web dan email"
+                            ],
+                            [
+                                "key" => "11",
+                                "value" => "id_user",
+                                "value_text" => "$request->id"
+                            ],
+                        ]
+
+                    ]
+                ];
+                $response = $this->mekari->request('POST', $path, $payload);
+                $status_mekari = 'Success';
+                $message_mekari = null;
+
+                if (is_array($response)) {
+                    $status_mekari = isset($response['error']) ? 'Failed' : 'Success';
+                    $message_mekari = json_encode($response);
+                } elseif (is_object($response)) {
+                    // kalau object biasa (stdClass)
+                    $responseArray = json_decode(json_encode($response), true);
+
+                    $status_mekari = isset($responseArray['error']) ? 'Failed' : 'Success';
+                    $message_mekari = json_encode($responseArray);
+                } else {
+                    // fallback (string / null)
+                    $status_mekari = 'Unknown';
+                    $message_mekari = (string) $response;
                 }
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'table' => 'recruitment_user',
+                    'activity' => $status_mekari,
+                    'description' => 'mengubah status pelamar menjadi lolos langsung ' . $cv->nama_lengkap . ' pada lowongan ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan . ' ' . $message_mekari,
+                    'keterangan' => 'Success',
+                ]);
+
+                $jabatan    = $get_recruitment_admin->recruitmentAdmin->Jabatan->nama_jabatan;
+                $divisi     = $get_recruitment_admin->recruitmentAdmin->Jabatan->Bagian->Divisi->nama_divisi;
+                $gaji       = $request->gaji ?? '-';
+                $email      = $get_wa->Authlogin->email;
+                $nama       = $get_wa->Cv->nama_lengkap;
+                $e_holding  = $holdings->holding_name;
+                $hari       = $hari_diterima;
+                $pukul      = $request->waktu_bekerja;
+                $tempat     = $site_krj->site_name;
+                $maps       = $site_krj->gm_link ?? '-';
+                $user_id    = $request->id;
+                Cache::put("Lolos Langsung:$email", true, now()->addHours(2));
+                Mail::to($email)->send(new LoloslangsungMail($nama, $jabatan, $divisi, $e_holding, $gaji, $hari, $pukul, $tempat, $maps, $user_id));
+                // dd($response);
+
             } elseif ($request->status == '3b') {
                 RecruitmentUser::where('id', $request->id)->update(
 
@@ -2061,41 +3076,93 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                         'created_at'                => date('Y-m-d H:i:s'),
                     ]
                 );
-                // dd($get_wa);
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://api.fonnte.com/send',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => array(
-                        'target' => $get_wa->Authlogin->nomor_whatsapp,
-                        'message' =>
-                        "Halo " . $get_wa->Cv->nama_lengkap . ",
-Terima kasih sudah mengikuti proses wawancara bersama Manager di $holdings->holding_name.
-Setelah mempertimbangkan hasil seleksi, dengan berat hati kami sampaikan bahwa Anda belum dapat melanjutkan ke tahap berikutnya.
-Kami sangat menghargai waktu dan usaha Anda, serta akan menyimpan data Anda untuk kesempatan lain yang lebih sesuai di kemudian hari.
-",
-                        'countryCode' => '62', //optional
-                    ),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
-                    ),
-                ));
+                $get_holding = RecruitmentUser::where('id', $request->id)->first();
+                $holdings = Holding::where('id', $get_holding->holding)->first();
+                $cv = RecruitmentCV::where('users_career_id', $get_holding->users_career_id)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $get_holding->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $get_holding->nama_jabatan)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'table' => 'recruitment_user',
+                    'activity' => 'update',
+                    'description' => 'mengubah status pelamar menjadi tidak lolos interview manager ' . $cv->nama_lengkap . ' pada lowongan ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
 
-                $response = curl_exec($curl);
-                if (curl_errno($curl)) {
-                    $error_msg = curl_error($curl);
-                }
-                curl_close($curl);
+                //                 $curl = curl_init();
+                //                 curl_setopt_array($curl, array(
+                //                     CURLOPT_URL => 'https://api.fonnte.com/send',
+                //                     CURLOPT_RETURNTRANSFER => true,
+                //                     CURLOPT_ENCODING => '',
+                //                     CURLOPT_MAXREDIRS => 10,
+                //                     CURLOPT_TIMEOUT => 0,
+                //                     CURLOPT_FOLLOWLOCATION => true,
+                //                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                //                     CURLOPT_CUSTOMREQUEST => 'POST',
+                //                     CURLOPT_POSTFIELDS => array(
+                //                         'target' => $get_wa->Authlogin->nomor_whatsapp,
+                //                         'message' =>
+                //                         "Halo " . $get_wa->Cv->nama_lengkap . ",
+                // Terima kasih sudah mengikuti proses wawancara bersama Manager di $holdings->holding_name.
+                // Setelah mempertimbangkan hasil seleksi, dengan berat hati kami sampaikan bahwa Anda belum dapat melanjutkan ke tahap berikutnya.
+                // Kami sangat menghargai waktu dan usaha Anda, serta akan menyimpan data Anda untuk kesempatan lain yang lebih sesuai di kemudian hari.
+                //                 ",
+                //                         'countryCode' => '62', //optional
+                //                     ),
+                //                     CURLOPT_HTTPHEADER => array(
+                //                         'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
+                //                     ),
+                //                 ));
 
-                if (isset($error_msg)) {
-                    echo $error_msg;
-                }
+                //                 $response = curl_exec($curl);
+                //                 if (curl_errno($curl)) {
+                //                     $error_msg = curl_error($curl);
+                //                 }
+                //                 curl_close($curl);
+
+                //                 if (isset($error_msg)) {
+                //                     echo $error_msg;
+                //                 }
+
+                $path = "/qontak/chat/v1/broadcasts/whatsapp/direct";
+                $payload = [
+                    "to_number" => $this->formatPhoneIndonesia($get_wa->Authlogin->nomor_whatsapp),
+                    "to_name" => $cv->nama_lengkap,
+                    "message_template_id" => "0b3d29f9-40fb-49f1-b494-719d4e0883f0",
+                    "channel_integration_id" => "2cde26dd-8c36-4b9e-97d1-4b64634fd72f",
+                    "language" => ["code" => "id"],
+                    "parameters" => [
+                        "body" => [
+                            [
+                                "key" => "1",
+                                "value" => "nama_lengkap",
+                                "value_text" => $get_wa->Cv->nama_lengkap
+                            ],
+                            [
+                                "key" => "2",
+                                "value" => "holding_name",
+                                "value_text" => $holdings->holding_name
+                            ],
+
+                        ]
+
+                    ]
+                ];
+                $response = $this->mekari->request('POST', $path, $payload);
+
+                $email      = $get_wa->Authlogin->email;
+                $nama       = $get_wa->Cv->nama_lengkap;
+                $e_holding  = $holdings->holding_name;
+                Cache::put("Gagal:$email", true, now()->addHours(2));
+                Mail::to($email)->send(new TidaklolosMail($nama, $e_holding));
             } elseif ($request->status == '6b') {
                 // dd($request->all());
                 $tanggal_wawancara = Carbon::parse($request->tanggal_wawancara);
@@ -2110,13 +3177,13 @@ Kami sangat menghargai waktu dan usaha Anda, serta akan menyimpan data Anda untu
                             'error' => 'Site Wawancara Kosong',
                         ]);
                     }
-                    $tempat = $site->site_name;
+                    $tempat = 'Lokasi : ' . $site->site_name;
                     $map = $site->gm_link;
                 } elseif ($request->online == 2) {
                     $link_wawancara = 'required';
                     $tempat_wawancara = 'nullable';
-                    $tempat = $request->link_wawancara;
-                    $map = null;
+                    $tempat = 'Link Zoom : ' . $request->link_wawancara;
+                    $map = '-';
                 }
                 $validator = Validator::make(
                     $request->all(),
@@ -2183,48 +3250,145 @@ Kami sangat menghargai waktu dan usaha Anda, serta akan menyimpan data Anda untu
                 ])
                     ->where('id', $request->lowongan_baru)
                     ->first();
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://api.fonnte.com/send',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => array(
-                        'target' => $get_wa->Authlogin->nomor_whatsapp,
-                        'message' =>
-                        "Halo " . $get_wa->Cv->nama_lengkap . ",
-Terima kasih telah mengikuti proses seleksi di $holdings->holding_name. Setelah mempertimbangkan kualifikasi Anda,
-kami melihat potensi Anda lebih sesuai dengan posisi " . $get_posisi_baru->Jabatan->nama_jabatan . ".
-" . $get_posisi_baru->Jabatan->Bagian->Divisi->nama_divisi . ".
+                //                 $curl = curl_init();
+                //                 curl_setopt_array($curl, array(
+                //                     CURLOPT_URL => 'https://api.fonnte.com/send',
+                //                     CURLOPT_RETURNTRANSFER => true,
+                //                     CURLOPT_ENCODING => '',
+                //                     CURLOPT_MAXREDIRS => 10,
+                //                     CURLOPT_TIMEOUT => 0,
+                //                     CURLOPT_FOLLOWLOCATION => true,
+                //                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                //                     CURLOPT_CUSTOMREQUEST => 'POST',
+                //                     CURLOPT_POSTFIELDS => array(
+                //                         'target' => $get_wa->Authlogin->nomor_whatsapp,
+                //                         'message' =>
+                //                         "Halo " . $get_wa->Cv->nama_lengkap . ",
+                // Terima kasih telah mengikuti proses seleksi di $holdings->holding_name. Setelah mempertimbangkan kualifikasi Anda,
+                // kami melihat potensi Anda lebih sesuai dengan posisi " . $get_posisi_baru->Jabatan->nama_jabatan . ".
+                // " . $get_posisi_baru->Jabatan->Bagian->Divisi->nama_divisi . ".
 
-Kami mengundang Anda untuk melanjutkan ke wawancara bersama Manager pada:
-📅 Hari/Tanggal : $hari
-🕒 Pukul : $request->waktu_wawancara WIB
-📍 Lokasi/Link Zoom : $tempat, $map
+                // Kami mengundang Anda untuk melanjutkan ke wawancara bersama Manager pada:
+                // 📅 Hari/Tanggal : $hari
+                // 🕒 Pukul : $request->waktu_wawancara WIB
+                // 📍 $tempat, $map
 
-Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
-https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
-",
-                        'countryCode' => '62', //optional
-                    ),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
-                    ),
-                ));
+                // Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
+                // https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
+                // ",
+                //                         'countryCode' => '62', //optional
+                //                     ),
+                //                     CURLOPT_HTTPHEADER => array(
+                //                         'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
+                //                     ),
+                //                 ));
 
-                $response = curl_exec($curl);
-                if (curl_errno($curl)) {
-                    $error_msg = curl_error($curl);
-                }
-                curl_close($curl);
+                //                 $response = curl_exec($curl);
+                //                 if (curl_errno($curl)) {
+                //                     $error_msg = curl_error($curl);
+                //                 }
+                //                 curl_close($curl);
 
-                if (isset($error_msg)) {
-                    echo $error_msg;
-                }
+                //                 if (isset($error_msg)) {
+                //                     echo $error_msg;
+                //                 }
+                $get_holding = RecruitmentUser::where('id', $request->id)->first();
+                $holdingst = Holding::where('id', $get_holding->holding)->first();
+                $cv = RecruitmentCV::where('users_career_id', $get_holding->users_career_id)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $get_holding->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $get_holding->nama_jabatan)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $holdingst->id,
+                    'holding_category' => $holdingst->holding_category,
+                    'table' => 'recruitment_user',
+                    'activity' => 'update',
+                    'description' => 'memberi tawaran wawancara manager lain ' . $cv->nama_lengkap . ' dari lowongan ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan .
+                        ' menuju ' . $get_posisi_baru->Jabatan->Bagian->Divisi->nama_divisi . ' ' . $get_posisi_baru->Jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
+
+                // lolos wawancara manager lain
+                $path = "/qontak/chat/v1/broadcasts/whatsapp/direct";
+                $payload = [
+                    "to_number" => $this->formatPhoneIndonesia($get_wa->Authlogin->nomor_whatsapp),
+                    "to_name" => $cv->nama_lengkap,
+                    "message_template_id" => "d5e90509-c238-4a2c-9973-be0df2e0274c",
+                    "channel_integration_id" => "2cde26dd-8c36-4b9e-97d1-4b64634fd72f",
+                    "language" => ["code" => "id"],
+                    "parameters" => [
+                        "body" => [
+                            [
+                                "key" => "1",
+                                "value" => "nama_lengkap",
+                                "value_text" => $get_wa->Cv->nama_lengkap
+                            ],
+                            [
+                                "key" => "2",
+                                "value" => "holding_name",
+                                "value_text" => $holdings->holding_name
+                            ],
+                            [
+                                "key" => "3",
+                                "value" => "nama_jabatan",
+                                "value_text" => $jabatan->nama_jabatan
+                            ],
+                            [
+                                "key" => "4",
+                                "value" => "nama_divisi",
+                                "value_text" => $divisi->nama_divisi
+                            ],
+                            [
+                                "key" => "5",
+                                "value" => "hari",
+                                "value_text" => "$hari"
+                            ],
+                            [
+                                "key" => "6",
+                                "value" => "waktu_wawancara",
+                                "value_text" => "$request->waktu_wawancara"
+                            ],
+                            [
+                                "key" => "7",
+                                "value" => "tempa",
+                                "value_text" => "$tempat"
+                            ],
+                            [
+                                "key" => "8",
+                                "value" => "map",
+                                "value_text" => "$map"
+                            ],
+                            [
+                                "key" => "9",
+                                "value" => "id_user",
+                                "value_text" => "$request->id"
+                            ],
+                        ]
+
+                    ]
+                ];
+
+                $response = $this->mekari->request('POST', $path, $payload);
+
+
+                $jabatan    = $get_recruitment_admin->recruitmentAdmin->Jabatan->nama_jabatan;
+                $divisi     = $get_recruitment_admin->recruitmentAdmin->Jabatan->Bagian->Divisi->nama_divisi;
+                $gaji       = $request->gaji;
+                $email      = $get_wa->Authlogin->email;
+                $nama       = $get_wa->Cv->nama_lengkap;
+                $e_holding  = $holdings->holding_name;
+                $pukul      = $request->waktu_wawancara;
+                $tempat     = $request->waktu_wawancara;
+                $maps       = $site_krj->gm_link ?? '-';
+                $user_id    = $request->id;
+                Cache::put("Lolos:$email", true, now()->addHours(2));
+                Mail::to($email)->send(new ManagerlainMail($nama, $e_holding, $jabatan, $divisi, $gaji, $hari, $pukul, $tempat, $maps, $user_id));
             } elseif ($request->status == '7b') {
                 $site_krj = Site::where('id', $request->tempat_bekerja)->first();
                 if ($site_krj == null) {
@@ -2305,51 +3469,161 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                     ->first();
                 $tanggal_diterima = Carbon::parse($request->tanggal_diterima);
                 $hari_diterima2 = $tanggal_diterima->translatedFormat('l, j F Y');
-                $curl = curl_init();
-                curl_setopt_array($curl, array(
-                    CURLOPT_URL => 'https://api.fonnte.com/send',
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_ENCODING => '',
-                    CURLOPT_MAXREDIRS => 10,
-                    CURLOPT_TIMEOUT => 0,
-                    CURLOPT_FOLLOWLOCATION => true,
-                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                    CURLOPT_CUSTOMREQUEST => 'POST',
-                    CURLOPT_POSTFIELDS => array(
-                        'target' => $get_wa->Authlogin->nomor_whatsapp,
-                        'message' =>
-                        "Halo " . $get_wa->Cv->nama_lengkap . ",
-Terima kasih telah mengikuti proses seleksi di $holdings->holding_name. Setelah mempertimbangkan kualifikasi Anda,
-kami melihat potensi Anda lebih sesuai dengan posisi " . $get_posisi_baru->Jabatan->nama_jabatan . ".
-" . $get_posisi_baru->Jabatan->Bagian->Divisi->nama_divisi . ". dengan benefit gaji Rp. $request->gaji 🎉
+                //                 $curl = curl_init();
+                //                 curl_setopt_array($curl, array(
+                //                     CURLOPT_URL => 'https://api.fonnte.com/send',
+                //                     CURLOPT_RETURNTRANSFER => true,
+                //                     CURLOPT_ENCODING => '',
+                //                     CURLOPT_MAXREDIRS => 10,
+                //                     CURLOPT_TIMEOUT => 0,
+                //                     CURLOPT_FOLLOWLOCATION => true,
+                //                     CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                //                     CURLOPT_CUSTOMREQUEST => 'POST',
+                //                     CURLOPT_POSTFIELDS => array(
+                //                         'target' => $get_wa->Authlogin->nomor_whatsapp,
+                //                         'message' =>
+                //                         "Halo " . $get_wa->Cv->nama_lengkap . ",
+                // Terima kasih telah mengikuti proses seleksi di $holdings->holding_name. Setelah mempertimbangkan kualifikasi Anda,
+                // kami melihat potensi Anda lebih sesuai dengan posisi " . $get_posisi_baru->Jabatan->nama_jabatan . ".
+                // " . $get_posisi_baru->Jabatan->Bagian->Divisi->nama_divisi . ". dengan benefit gaji Rp. $request->gaji 🎉
 
-Kami mengundang Anda untuk hadir pada:
-📅 Hari/Tanggal : $hari_diterima2
-🕒 Pukul : $request->waktu_bekerja
-📍 Lokasi : $site_krj->site_name, $site_krj->gm_link
-Untuk penjelasan lebih lanjut terkait administrasi dan training karyawan baru. Harap membawa dokumen yang diperlukan sesuai instruksi yang akan kami kirimkan.
+                // Kami mengundang Anda untuk hadir pada:
+                // 📅 Hari/Tanggal : $hari_diterima2
+                // 🕒 Pukul : $request->waktu_bekerja
+                // 📍 Lokasi : $site_krj->site_name, $site_krj->gm_link
+                // Untuk penjelasan lebih lanjut terkait administrasi dan training karyawan baru. Harap membawa dokumen yang diperlukan sesuai instruksi yang akan kami kirimkan.
 
-Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
-https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
-",
-                        'countryCode' => '62', //optional
-                    ),
-                    CURLOPT_HTTPHEADER => array(
-                        'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
-                    ),
-                ));
+                // Mohon konfirmasi kehadiran Anda pada link di bawah ini (Max. 24 Jam):
+                // https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
+                //                                 ",
+                //                         'countryCode' => '62', //optional
+                //                     ),
+                //                     CURLOPT_HTTPHEADER => array(
+                //                         'Authorization: Xp5bwZZN22VPhojYcPEB' //change TOKEN to your actual token
+                //                     ),
+                //                 ));
 
-                $response = curl_exec($curl);
-                if (curl_errno($curl)) {
-                    $error_msg = curl_error($curl);
+                //                 $response = curl_exec($curl);
+                //                 if (curl_errno($curl)) {
+                //                     $error_msg = curl_error($curl);
+                //                 }
+                //                 curl_close($curl);
+
+                //                 if (isset($error_msg)) {
+                //                     echo $error_msg;
+                //                 }
+                $get_holding = RecruitmentUser::where('id', $request->id)->first();
+                $holdings = Holding::where('id', $get_holding->holding)->first();
+                $cv = RecruitmentCV::where('users_career_id', $get_holding->users_career_id)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+                $divisi = Divisi::where('id', $get_holding->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $get_holding->nama_jabatan)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' => $request->id,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'table' => 'recruitment_user',
+                    'activity' => 'update',
+                    'description' => 'memberi tawaran pekerjaan lain ' . $cv->nama_lengkap . ' dari lowongan ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan .
+                        ' menuju ' . $get_posisi_baru->Jabatan->Bagian->Divisi->nama_divisi . ' ' . $get_posisi_baru->Jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
+
+                // lolos langsung posisi lain
+
+                $path = "/qontak/chat/v1/broadcasts/whatsapp/direct";
+                if ($site_krj->gm_link == null) {
+                    $gm_link = '-';
+                } else {
+                    $gm_link = $site_krj->gm_link;
                 }
-                curl_close($curl);
+                $payload = [
+                    "to_number" => $this->formatPhoneIndonesia($get_wa->Authlogin->nomor_whatsapp),
+                    "to_name" => $get_wa->Cv->nama_lengkap,
+                    "message_template_id" => "cc730d3f-7385-4dc6-89d0-0093b48ce1a2",
+                    "channel_integration_id" => "2cde26dd-8c36-4b9e-97d1-4b64634fd72f",
+                    "language" => ["code" => "id"],
+                    "parameters" => [
+                        "body" => [
+                            [
+                                "key" => "1",
+                                "value" => "nama",
+                                "value_text" => $get_wa->Cv->nama_lengkap
+                            ],
+                            [
+                                "key" => "2",
+                                "value" => "holding_name",
+                                "value_text" => "$holdings->holding_name"
+                            ],
+                            [
+                                "key" => "3",
+                                "value" => "nama_jabatan",
+                                "value_text" => "$jabatan->nama_jabatan"
+                            ],
+                            [
+                                "key" => "4",
+                                "value" => "nama_divisi",
+                                "value_text" => "$divisi->nama_divisi"
+                            ],
+                            [
+                                "key" => "5",
+                                "value" => "gaji",
+                                "value_text" => "$request->gaji"
+                            ],
+                            [
+                                "key" => "6",
+                                "value" => "hari_diterima2",
+                                "value_text" => "$hari_diterima2"
+                            ],
+                            [
+                                "key" => "7",
+                                "value" => "waktu_bekerja",
+                                "value_text" => "$request->waktu_bekerja"
+                            ],
+                            [
+                                "key" => "8",
+                                "value" => "site_name",
+                                "value_text" => "$site_krj->site_name"
+                            ],
+                            [
+                                "key" => "9",
+                                "value" => "gm_link",
+                                "value_text" => "$gm_link"
+                            ],
 
-                if (isset($error_msg)) {
-                    echo $error_msg;
-                }
+                            [
+                                "key" => "10",
+                                "value" => "id_user",
+                                "value_text" => "$request->id"
+                            ],
+                        ]
+
+                    ]
+                ];
+
+                $response = $this->mekari->request('POST', $path, $payload);
+
+
+
+                $jabatan    = $get_recruitment_admin->recruitmentAdmin->Jabatan->nama_jabatan;
+                $divisi     = $get_recruitment_admin->recruitmentAdmin->Jabatan->Bagian->Divisi->nama_divisi;
+                $gaji       = $request->gaji;
+                $email      = $get_wa->Authlogin->email;
+                $nama       = $get_wa->Cv->nama_lengkap;
+                $hari       = $hari_diterima2;
+                $e_holding  = $holdings->holding_name;
+                $pukul      = $request->waktu_wawancara;
+                $tempat     = $request->waktu_wawancara;
+                $maps       = $site_krj->gm_link ?? '-';
+                $user_id    = $request->id;
+                Cache::put("Lolos:$email", true, now()->addHours(2));
+                Mail::to($email)->send(new LolosposisilainMail($nama, $e_holding, $jabatan, $divisi, $pukul, $hari, $tempat, $maps, $user_id));
             }
-
             return response()->json([
                 'code' => 200,
                 'message' => 'Data Berhasil Diupdate'
@@ -2357,7 +3631,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -2531,14 +3805,44 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                         'kuota_cuti_tahunan'        => '0',
                         'kategori'                  => 'Karyawan Bulanan',
                         'kontrak_kerja'             => $get_recruitment_user->holding,
-                        'kategori_jabatan'          => $get_recruitment_user->holding,
-                        'dept_id'                   => $get_recruitment_user->nama_dept,
-                        'divisi_id'                 => $get_recruitment_user->nama_divisi,
-                        'bagian_id'                 => $get_recruitment_user->nama_bagian,
-                        'jabatan_id'                => $get_recruitment_user->nama_jabatan,
-                        'penempatan_kerja'          => $get_recruitment_user->recruitmentAdmin->Sites->site_name,
+                        // 'kategori_jabatan'          => $get_recruitment_user->holding,
+
+                        'penempatan_kerja'          => $get_recruitment_user->tempat_bekerja,
                         'status_aktif'              => 'AKTIF',
                         'created_at'                => date('Y-m-d H:i:s'),
+                    ]
+                );
+                $holdings = Holding::where('id', $get_recruitment_user->holding)->first();
+                $nama_menu = Menu::where('id', $request->menu_id)->first();
+                $user_name = User::where('id', $request->user()->id)->first();
+
+                $divisi = Divisi::where('id', $get_recruitment_user->nama_divisi)->first();
+                $jabatan = Jabatan::where('id', $get_recruitment_user->nama_jabatan)->first();
+                ActivityLog::create([
+                    'user_id' => Auth::user()->id,
+                    'user_name' => $user_name->username,
+                    'menu_id' => $request->menu_id,
+                    'menu_name' => $nama_menu->name,
+                    'id_table' =>  $id_karyawan,
+                    'holding_id' => $holdings->id,
+                    'holding_category' => $holdings->holding_category,
+                    'table' => 'recruitment_user menuju karyawans',
+                    'activity' => 'update',
+                    'description' => 'integrasi data pelamar menjadi karyawan ' . $get_cv->nama_lengkap . 'pada lowongan ' . $divisi->nama_divisi . ' ' . $jabatan->nama_jabatan,
+                    'keterangan' => 'Success',
+                ]);
+                KaryawanJabatan::insert(
+                    [
+                        'id_jbt_karyawan'       => Uuid::uuid4(),
+                        'karyawan_id'           => $id_karyawan,
+                        'departemen_id'         => $get_recruitment_user->nama_dept,
+                        'divisi_id'             => $get_recruitment_user->nama_divisi,
+                        'bagian_id'             => $get_recruitment_user->nama_bagian,
+                        'jabatan_id'            => $get_recruitment_user->nama_jabatan,
+                        'holding_id'            => $get_recruitment_user->holding,
+                        'main'                  => 1,
+                        'is_active'             => 1,
+                        'created_at'            => date('Y-m-d H:i:s'),
                     ]
                 );
                 // dd($ss);
@@ -2552,6 +3856,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                             'jurusan'               => $pp->jurusan,
                             'jenjang'               => $pp->jenjang,
                             'tanggal_masuk'         => $pp->tanggal_masuk,
+                            'tanggal_keluar'        => $pp->tanggal_keluar,
                             'created_at'            => date('Y-m-d H:i:s'),
                         ]
                     );
@@ -2722,21 +4027,35 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         }
     }
 
-    function pg_ujian($holding)
+    function pg_ujian($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $pembobotan = Pembobotan::first();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.ujian.data_ujian', [
             'holding' => $holdings,
             'menus' => $menus,
@@ -2756,13 +4075,14 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
     }
     function pembobotan_post(Request $request)
     {
+        // dd($request->all());
         $validator = Validator::make(
             $request->all(),
             [
                 'esai' => 'required|numeric',
                 'pilihan_ganda' => 'required|numeric',
                 'interview' => 'required|numeric',
-                'interview_user' => 'required|numeric',
+                // 'interview_user' => 'required|numeric',
             ],
             [
                 'required' => ':attribute tidak boleh kosong'
@@ -2780,8 +4100,23 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 'esai' => $request->esai,
                 'pilihan_ganda' => $request->pilihan_ganda,
                 'interview' => $request->interview,
-                'interview_user' => $request->interview_user,
+                // 'interview_user' => $request->interview_user,
                 'updated_at'    => date('Y-m-d H:i:s')
+            ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->pembobotan_id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'pembobotan',
+                'activity' => 'update',
+                'description' => 'mengedit pembobotan esai: ' . $request->esai . '% Pilihan_ganda: ' . $request->pilihan_ganda . '% interview: ' . $request->interview . '%',
+                'keterangan' => 'Success',
             ]);
             return response()->json([
                 'code' => 200,
@@ -2917,7 +4252,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 })
                 ->addColumn('option', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="/edit-ujian/' . $row->kode . '/' . $holding . '" class="btn btn-info btn-sm m-1">
+                    return '<a href="/pg-data-ujian/edit-ujian/' . $row->kode . '/' . $holding . '" class="btn btn-info btn-sm m-1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
                                     <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
                                     <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
@@ -3013,7 +4348,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 })
                 ->addColumn('option', function ($row) {
                     $holding = request()->segment(count(request()->segments()));
-                    return '<a href="/edit-esai/' . $row->kode . '/' . $holding . '" class="btn btn-info btn-sm m-1">
+                    return '<a href="/pg-data-ujian/edit-esai/' . $row->kode . '/' . $holding . '" class="btn btn-info btn-sm m-1">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
                                     <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
                                     <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
@@ -3059,15 +4394,32 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
     }
     public function delete_ujian_kategori(Request $request)
     {
+        // dd($request->all());
         try {
-            UjianKategori::where('id', $request->id)->delete();
+            $delete = UjianKategori::where('id', $request->id)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'ujian_kategori',
+                'activity' => 'delete',
+                'description' => 'menghapus kategori ujian ' . $delete->nama_kategori,
+                'keterangan' => 'Success',
+            ]);
+            $delete->delete();
             return response()->json([
                 'code' => 200,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine(),
             ]);
         }
     }
@@ -3091,11 +4443,27 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
             ]);
         }
         try {
+            $id_kategori = Uuid::uuid4();
             UjianKategori::insert([
-                'id' => Uuid::uuid4(),
+                'id' => $id_kategori,
                 'nama_kategori' => $request->nama_kategori,
                 'created_at'    => date('Y-m-d H:i:s'),
 
+            ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_kategori,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'ujian_kategori',
+                'activity' => 'update',
+                'description' => 'mengedit kategori ujian ' . $request->nama_kategori,
+                'keterangan' => 'Success',
             ]);
             return response()->json([
                 'code' => 200,
@@ -3135,6 +4503,21 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 'created_at'    => date('Y-m-d H:i:s'),
 
             ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'ujian_kategori',
+                'activity' => 'update',
+                'description' => 'menambah kategori ujian ' . $request->nama_kategori,
+                'keterangan' => 'Success',
+            ]);
             return response()->json([
                 'code' => 200,
                 // 'data' => $get_data,
@@ -3168,12 +4551,29 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
             ]);
         }
         try {
+            $id_interview_admin = Uuid::uuid4();
             InterviewAdmin::insert([
-                'id'        => Uuid::uuid4(),
+                'id'        => $id_interview_admin,
                 'parameter' => $request->parameter,
                 'deskripsi' => $request->deskripsi,
                 'created_at' => date('Y-m-d H:i:s'),
 
+            ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            // dd($st->id, $st->holding_categori);
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_interview_admin,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'interview_admin',
+                'activity' => 'create',
+                'description' => 'Menambah penilaian interview ' . $request->parameter,
+                'keterangan' => 'Success',
             ]);
             return response()->json([
                 'code' => 200,
@@ -3228,7 +4628,24 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
     public function interview_admin_delete(Request $request)
     {
         try {
-            InterviewAdmin::where('id', $request->id)->delete();
+            $delete = InterviewAdmin::where('id', $request->id)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            // dd($st->id, $st->holding_categori);
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $delete->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'interview_admin',
+                'activity' => 'delete',
+                'description' => 'menghapus penilaian interview ' . $delete->parameter,
+                'keterangan' => 'Success',
+            ]);
+            $delete->delete();
             return response()->json([
                 'code' => 200,
             ]);
@@ -3265,6 +4682,22 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 'created_at'    => date('Y-m-d H:i:s'),
 
             ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            // dd($st->id, $st->holding_categori);
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'interview_admin',
+                'activity' => 'update',
+                'description' => 'mengedit penilaian interview ' . $request->parameter,
+                'keterangan' => 'Success',
+            ]);
             return response()->json([
                 'code' => 200,
                 // 'data' => $get_data,
@@ -3278,9 +4711,13 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
             ]);
         }
     }
-    function edit_ujian($kode, $holding)
+    function edit_ujian($kode, $holding, Request $request)
     {
         // dd($ujian);
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $ujian = Ujian::where('kode', $kode)->with([
             'ujianKategori' => function ($query) {
@@ -3289,16 +4726,26 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         ])->first();
         $detail_ujian = DetailUjian::where('kode', $kode)->get();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.ujian.data_ujian_edit', [
             'title' => 'Detail Ujian Pilihan Ganda',
             'plugin' => '
@@ -3322,16 +4769,26 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         // dd($ujian);
         $holdings = Holding::where('holding_code', $holding)->first();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.ujian.data_show_esai', [
             'title' => 'Detail Ujian Pilihan Ganda',
             'plugin' => '
@@ -3360,16 +4817,26 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         $detail_esai = DetailEsai::where('kode', $kode)->get();
         // dd($detail_esai);
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.ujian.data_esai_edit', [
             'title' => 'Detail Ujian Pilihan Ganda',
             'plugin' => '
@@ -3389,20 +4856,34 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         ]);
     }
 
-    function pg_ujian_pg($holding)
+    function pg_ujian_pg($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.ujian.data_ujian_create', [
             'holding'   => $holdings,
             'title' => 'Tambah Ujian Pilihan Ganda',
@@ -3421,20 +4902,34 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
             'pembobotan' =>  Pembobotan::first()
         ]);
     }
-    function pg_esai_pg($holding)
+    function pg_esai_pg($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $holdings = Holding::where('holding_code', $holding)->first();
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
         return view('admin.recruitment-users.ujian.data_esai_create', [
             'holding'   => $holdings,
             'title' => 'Tambah Ujian Pilihan Ganda',
@@ -3497,6 +4992,24 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         // dd($ujian);
         Ujian::create($ujian);
         DetailUjian::insert($detail_ujian);
+
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        // dd($st->id, $st->holding_categori);
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => $nama_menu->name,
+            'id_table' => 'Kode: ' . $kode,
+            'holding_id' => '-',
+            'holding_category' => '-',
+            'table' => 'ujian dan ujian_detail',
+            'activity' => 'create',
+            'description' => 'Membuat ujian pilihan ganda baru ' . $request->nama_ujian,
+            'keterangan' => 'Success',
+        ]);
+
         return redirect('pg-data-ujian/' . $request->holding)->with('success', 'Ujian berhasil dibuat');
     }
     function ujian_pg_update(Request $request)
@@ -3535,10 +5048,28 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         }
         // WaktuUjian::insert($waktu_ujian);
         Ujian::where('id', $request->id_soal)->update($ujian);
+
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        // dd($st->id, $st->holding_categori);
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => $nama_menu->name,
+            'id_table' => 'Kode: ' . $request->kode,
+            'holding_id' => '-',
+            'holding_category' => '-',
+            'table' => 'ujian dan ujian_detail',
+            'activity' => 'update',
+            'description' => 'mengedit ujian pilihan ganda ' . $request->nama_ujian,
+            'keterangan' => 'Success',
+        ]);
         return redirect('pg-data-ujian/' . $request->holding)->with('success', 'Ujian berhasil dibuat');
     }
     function esai_pg_store(Request $request)
     {
+        // dd($request->all());
         $kode = Str::random(30);
         $ujian = [
             'kode' => $kode,
@@ -3572,6 +5103,24 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         Ujian::insert($ujian);
         DetailEsai::insert($detail_ujian);
         // WaktuUjian::insert($waktu_ujian);
+
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        // dd($st->id, $st->holding_categori);
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => $nama_menu->name,
+            'id_table' => 'Kode: ' . $kode,
+            'holding_id' => '-',
+            'holding_category' => '-',
+            'table' => 'ujian dan ujian_esai_detail',
+            'activity' => 'create',
+            'description' => 'menambah ujian esai ' . $request->nama_ujian,
+            'keterangan' => 'Success',
+        ]);
+        return redirect('pg-data-ujian/' . $request->holding)->with('success', 'Ujian berhasil dibuat');
         return redirect('pg-data-ujian/' . $request->holding)->with('success', 'Ujian berhasil dibuat');
     }
     function esai_pg_update(Request $request)
@@ -3603,6 +5152,22 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
             // dd($t);
         }
         Ujian::where('id', $request->id_soal)->update($ujian);
+
+        $nama_menu = Menu::where('id', $request->menu_id)->first();
+        $user_name = User::where('id', $request->user()->id)->first();
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'user_name' => $user_name->username,
+            'menu_id' => $request->menu_id,
+            'menu_name' => $nama_menu->name,
+            'id_table' => 'Kode: ' . $request->kode,
+            'holding_id' => '-',
+            'holding_category' => '-',
+            'table' => 'ujian dan ujian_esai_detail',
+            'activity' => 'update',
+            'description' => 'mengedit ujian esai ' . $request->nama_ujian,
+            'keterangan' => 'Success',
+        ]);
         return redirect('pg-data-ujian/' . $request->holding)->with('success', 'Ujian berhasil dibuat');
     }
     public function dt_referensi()
@@ -3644,6 +5209,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
     }
     public function referensi_add(Request $request)
     {
+        // dd($request->all());
         $validator = Validator::make(
             $request->all(),
             [
@@ -3661,12 +5227,28 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
             ]);
         }
         try {
+            $id_referensi = Uuid::uuid4();
             RecruitmentReferensi::create([
-                'id' => Uuid::uuid4(),
+                'id' => $id_referensi,
                 'alamat' => $request->alamat,
                 'tempat_link' => $request->tempat_link,
                 'created_at'    => date('Y-m-d H:i:s'),
 
+            ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $id_referensi,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'recruitment_referensi',
+                'activity' => 'create',
+                'description' => 'menambah referensi pelamar: ' . $request->alamat,
+                'keterangan' => 'Success',
             ]);
             return response()->json([
                 'code' => 200,
@@ -3706,6 +5288,21 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 'created_at'    => date('Y-m-d H:i:s'),
 
             ]);
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id_referensi,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'recruitment_referensi',
+                'activity' => 'update',
+                'description' => 'mengedit referensi pelamar: ' . $request->alamat,
+                'keterangan' => 'Success',
+            ]);
             return response()->json([
                 'code' => 200,
                 // 'data' => $get_data,
@@ -3722,7 +5319,23 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
     public function delete_referensi(Request $request)
     {
         try {
-            RecruitmentReferensi::where('id', $request->id)->delete();
+            $delete = RecruitmentReferensi::where('id', $request->id)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id_referensi,
+                'holding_id' => '-',
+                'holding_category' => '-',
+                'table' => 'recruitment_referensi',
+                'activity' => 'delete',
+                'description' => 'menghapus referensi pelamar: ' . $delete->alamat,
+                'keterangan' => 'Success',
+            ]);
+            $delete->delete();
             return response()->json([
                 'code' => 200,
             ]);
@@ -3734,61 +5347,74 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         }
     }
 
-    function pg_ranking($holding)
+    function pg_ranking($holding, Request $request)
     {
-        $holdings = Holding::where('holding_code', $holding)->first();
-
-        //kadaluarsa diterima langsung
-        $get_recruitment_user_id1 = RecruitmentUser::whereDate('konfirmasi_diterima', '<', date('Y-m-d H:i:s'))
-            ->where('konfirmasi_diterima', '!=', null)
-            ->where('feedback_lanjutan', null)
-            ->get();
-        if ($get_recruitment_user_id1 != null) {
-            foreach ($get_recruitment_user_id1 as $ii) {
-                RecruitmentUser::where('id', $ii->id)->update([
-                    'status_lanjutan'        => '3b',
-                ]);
-                RecruitmentUserRecord::insert([
-                    'id' => Uuid::uuid4(),
-                    'recruitment_user_id' => $ii->id,
-                    'status' => '3b',
-                    'created_at' => date('Y-m-d H:i:s'),
-
-                ]);
-            }
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
         }
+        $holdings = Holding::where('holding_code', $holding)->first();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+        }
+        //kadaluarsa diterima langsung
+        // $get_recruitment_user_id1 = RecruitmentUser::whereDate('konfirmasi_diterima', '<', date('Y-m-d H:i:s'))
+        //     ->where('konfirmasi_diterima', '!=', null)
+        //     ->where('feedback_lanjutan', null)
+        //     ->get();
+        // if ($get_recruitment_user_id1 != null) {
+        //     foreach ($get_recruitment_user_id1 as $ii) {
+        //         RecruitmentUser::where('id', $ii->id)->update([
+        //             'status_lanjutan'        => '3b',
+        //         ]);
+        //         RecruitmentUserRecord::insert([
+        //             'id' => Uuid::uuid4(),
+        //             'recruitment_user_id' => $ii->id,
+        //             'status' => '3b',
+        //             'created_at' => date('Y-m-d H:i:s'),
+
+        //         ]);
+        //     }
+        // }
         //kadaluarsa diterima langsung end
         //kadaluarsa diterima wawancara manager
-        $get_recruitment_user_id2 = RecruitmentUser::whereDate('tanggal_konfirmasi_manager', '<', date('Y-m-d H:i:s'))
-            ->where('tanggal_konfirmasi_manager', '!=', null)
-            ->where('feedback_lanjutan', null)
-            ->get();
-        if ($get_recruitment_user_id2 != null) {
-            foreach ($get_recruitment_user_id2 as $ii) {
-                RecruitmentUser::where('id', $ii->id)->update([
-                    'status_lanjutan'        => '3b',
-                ]);
-                RecruitmentUserRecord::insert([
-                    'id' => Uuid::uuid4(),
-                    'recruitment_user_id' => $ii->id,
-                    'status' => '3b',
-                ]);
-            }
-        }
+        // $get_recruitment_user_id2 = RecruitmentUser::whereDate('tanggal_konfirmasi_manager', '<', date('Y-m-d H:i:s'))
+        //     ->where('tanggal_konfirmasi_manager', '!=', null)
+        //     ->where('feedback_lanjutan', null)
+        //     ->get();
+        // if ($get_recruitment_user_id2 != null) {
+        //     foreach ($get_recruitment_user_id2 as $ii) {
+        //         RecruitmentUser::where('id', $ii->id)->update([
+        //             'status_lanjutan'        => '3b',
+        //         ]);
+        //         RecruitmentUserRecord::insert([
+        //             'id' => Uuid::uuid4(),
+        //             'recruitment_user_id' => $ii->id,
+        //             'status' => '3b',
+        //         ]);
+        //     }
+        // }
         $departemen = Departemen::where('holding', $holdings->id)->orderBy('nama_departemen', 'ASC')->get();
         // dd($get_recruitment_user_id1, $get_recruitment_user_id2);
         //kadaluarsa diterima wawancara manager end
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
         return view('admin.recruitment-users.ranking.data_rankinginterview', [
             // return view('karyawan.index', [
             'title'         => 'Data Ranking',
@@ -3889,7 +5515,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                     return $nama_bagian;
                 })
                 ->addColumn('pelamar', function ($row) use ($holding) {
-                    $url = url('/pg/data-list-ranking/' . $row->id . '/' . $holding);
+                    $url = url('/pg-data-recruitment/data-list-ranking/' . $row->id . '/' . $holding);
                     $btn = '<a href="' . $url . '" class="btn btn-sm btn-primary">
                                 <i class="tf-icons mdi mdi-podium-gold me-1"></i>
                                 &nbsp;List&nbsp;Ranking
@@ -3909,8 +5535,12 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         }
     }
 
-    function pg_list_ranking($id, $holding)
+    function pg_list_ranking($id, $holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $currentDate = date('Y-m-d');
         $recruitment_admin = Recruitment::with([
             'Jabatan' => function ($query) {
@@ -3957,16 +5587,27 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
         $site = Site::get();
         // dd($kuota);
         $roleId = Auth::user();
-        $menus = Menu::whereIn('id', function ($query) use ($roleId) {
-            $query->select('menu_id')
-                ->from('role_menus')
-                ->where('role_id', $roleId->role);
-        })
-            ->whereNull('parent_id') // menu utama
-            ->with('children')
-            ->where('kategori', 'web')      // load submenunya
-            ->orderBy('sort_order')
-            ->get();
+        $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
+        if (count($get_role) == 0) {
+            $roleId = null;
+        } else {
+            $roleId = $get_role;
+        }
+        if ($roleId == null) {
+            $menus = collect();
+        } else {
+            $menus = Menu::whereIn('id', function ($query) use ($roleId) {
+                $query->select('menu_id')
+                    ->from('role_menus')
+                    ->whereIn('role_id', $roleId);
+            })
+                ->whereNull('parent_id') // menu utama
+                ->with('children')
+                ->where('kategori', 'web')      // load submenunya
+                ->orderBy('sort_order')
+                ->get();
+            // dd($menus);
+        }
         return view('admin.recruitment-users.ranking.data_listranking', [
             'title'                 => 'Data Recruitment',
             'holding'               => $holdings,
@@ -4049,6 +5690,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
 
             ])
             ->where('recruitment_admin_id', $id)
+            ->whereNotNull('feedback')
             ->get();
 
         // dd($table);
@@ -4243,6 +5885,7 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
 
             ])
             ->where('recruitment_admin_id', $id)
+            ->whereNotNull('feedback')
             ->get();
 
         // dd($table);
@@ -4254,41 +5897,88 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 })
                 ->addColumn('pilih_status', function ($row) {
                     if ($row->status_lanjutan == null) {
-                        return '<button
-                                data-id="' . $row->id . '"
-                                type="button" class="btn btn-sm btn-info " id="btn_status_ranking">
-                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
-                                Pilih&nbsp;
-                            </button>';
+                        return '<div class="d-flex justify-content-center gap-2">
+                                    <button data-id="' . $row->id . '" type="button" 
+                                        class="btn btn-sm btn-info d-flex align-items-center justify-content-center flex-grow-1" id="btn_status_ranking">
+                                        <i class="tf-icons mdi mdi-check-circle-outline me-1"></i>
+                                        <span>Pilih</span>
+                                    </button>
+                                    
+                                    <button data-id="' . $row->id . '" type="button" 
+                                        class="btn btn-sm btn-danger d-flex align-items-center justify-content-center flex-grow-1" id="btn_pemindahan">
+                                        <i class="tf-icons mdi mdi-swap-horizontal me-1"></i>
+                                        <span>Pindah</span>
+                                    </button>
+                                </div>';
                     } elseif ($row->status_lanjutan == '4b') {
-                        return '<button
-                                data-id="' . $row->id . '"
-                                type="button" class="btn btn-sm btn-success " id="btn_lolos">
-                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
-                                Lolos&nbsp;
-                            </button>';
+                        return '<div class="d-flex justify-content-center gap-2">
+                                    <button
+                                        data-id="' . $row->id . '"
+                                        type="button" class="btn btn-sm btn-success d-flex align-items-center justify-content-center flex-grow-1" id="btn_lolos">
+                                        <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                        <span>Lolos&nbsp;</span>
+                                    </button>
+                                </div>';
                     } elseif ($row->status_lanjutan == '5b') {
-                        return   '<button
-                                data-id="' . $row->id . '"
-                                type="button" class="btn btn-sm btn-danger " id="btn_pemindahan">
-                                <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
-                                Pindah&nbsp;
-                            </button>';
+                        return   '
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button
+                                            data-id="' . $row->id . '"
+                                            type="button" class="btn btn-sm btn-danger d-flex align-items-center justify-content-center flex-grow-1" id="btn_pemindahan">
+                                            <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                            <span>Pindah&nbsp;</span>
+                                        </button>
+                                        
+                                        <button
+                                            data-id="' . $row->id . '"
+                                            type="button" class="btn btn-sm btn-danger d-flex align-items-center justify-content-center flex-grow-1" id="btn_tidak_lolos">
+                                            <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                                            <span>Tolak&nbsp;</span>
+                                        </button>
+                                    </div>';
                     } elseif ($row->status_lanjutan == '2b' && $row->feedback_lanjutan == '2b') {
                         return   '<button
                                 data-id="' . $row->id . '"
-                                type="button" class="btn btn-sm btn-success " id="btn_integrasi">
+                                type="button" class="btn btn-sm btn-success d-flex align-items-center justify-content-center flex-grow-1" id="btn_integrasi">
                                 <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
-                                Masukkan&nbspDatabase&nbspKaryawan
+                                <span>Masukkan&nbspDatabase&nbspKaryawan</span>
                             </button>';
                     } elseif ($row->status_lanjutan == '7b' && $row->feedback_lanjutan == '2b') {
                         return   '<button
                                 data-id="' . $row->id . '"
-                                type="button" class="btn btn-sm btn-success " id="btn_integrasi">
+                                type="button" class="btn btn-sm btn-success d-flex align-items-center justify-content-center flex-grow-1" id="btn_integrasi">
                                 <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
-                                Masukkan&nbspDatabase&nbspKaryawan
+                                <span>Masukkan&nbspDatabase&nbspKaryawan</span>
                             </button>';
-                    } else {
+                        // } elseif ($row->status_lanjutan == '2b' && $row->feedback_lanjutan == '3b') {
+                        //     return   '<button
+                        //                     data-id="' . $row->id . '"
+                        //                     type="button" class="btn btn-sm btn-success " id="btn_lolos">
+                        //                     <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                        //                     Lolos&nbsp;
+                        //                 </button>';
+                        // } elseif ($row->status_lanjutan == '4b' && $row->feedback_lanjutan == '3b') {
+                        //     return   '<button
+                        //                     data-id="' . $row->id . '"
+                        //                     type="button" class="btn btn-sm btn-success " id="btn_lolos">
+                        //                     <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                        //                     Lolos&nbsp;
+                        //                 </button>';
+                        // } elseif ($row->status_lanjutan == '7b' && $row->feedback_lanjutan == '3b') {
+                        //     return   '<button
+                        //                     data-id="' . $row->id . '"
+                        //                     type="button" class="btn btn-sm btn-success " id="btn_lolos">
+                        //                     <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                        //                     Lolos&nbsp;
+                        //                 </button>';
+                        // } elseif ($row->status_lanjutan == '3b') {
+                        //     return   '<button
+                        //                     data-id="' . $row->id . '"
+                        //                     type="button" class="btn btn-sm btn-success " id="btn_lolos">
+                        //                     <i class="tf-icons mdi mdi-eye-circle-outline me-1"></i>
+                        //                     Lolos&nbsp;
+                        //                 </button>';
+                        // } else {
                         return '-';
                     }
                 })
@@ -4367,7 +6057,19 @@ https://karir.sumberpangan.store/cpanel/recruitment_detail/$request->id
                 ->addColumn('alasan_lanjutan', function ($row) {
                     return $row->alasan_lanjutan;
                 })
-                ->rawColumns(['nama_lengkap', 'pilih_status', 'status', 'total_koefisien', 'feedback', 'alasan_lanjutan'])
+                ->addColumn('catatan', function ($row) {
+                    if ($row->DataInterview && $row->DataInterview->catatan) {
+                        return '<button id="btn_catatan"
+                            data-id_catatan="' . $row->id . '"
+                            data-catatan="' . $row->DataInterview->catatan . '"
+                            type="button" class="btn btn-sm btn-warning ">
+                            <i class="tf-icons mdi mdi-pencil-box-multiple"> </i>
+                        </button>';
+                    } else {
+                        return '-';
+                    }
+                })
+                ->rawColumns(['nama_lengkap', 'pilih_status', 'status', 'total_koefisien', 'feedback', 'alasan_lanjutan', 'catatan'])
                 ->make(true);
         }
     }

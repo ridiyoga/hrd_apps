@@ -21,8 +21,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class AccessController extends Controller
 {
-    public function index($holding)
+    public function index($holding, Request $request)
     {
+        if (!Auth::check()) {
+            $request->session()->flash('session_timeout', 'Anda harus login terlebih dahulu');
+            return redirect()->route('login');
+        }
         $get_holding = Holding::where('holding_code', $holding)->first();
         $roleId = Auth::user();
         $get_role = RoleUsers::where('role_user_id', Auth::user()->id)->pluck('role_menu_id')->toArray();
@@ -72,11 +76,11 @@ class AccessController extends Controller
                     ->whereIn('kontrak_kerja', [$holding->id, NULL])
                     ->orderBy('name', 'ASC');
             }])
-            ->whereHas('Karyawan', function ($query) use ($holding) {
-                $query->whereIn('kontrak_kerja', [$holding->id, NULL])
-                    ->orderBy('name', 'ASC');
-            })
-            // ->where('is_admin', 'admin')
+            // ->whereHas('Karyawan', function ($query) use ($holding) {
+            //     $query->whereIn('kontrak_kerja', [$holding->id, NULL])
+            //         ->orderBy('name', 'ASC');
+            // })
+            ->where('is_admin', 'admin')
             // ->limit(10)
             // ->where('username', 'cerdasbadrus')
             ->get();
@@ -261,7 +265,7 @@ class AccessController extends Controller
         } catch (\Exception $e) {
             return response()->json(
                 [
-                    'message' => $e->getMessage(),
+                    'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
                     'code' => 404
                 ]
             );
@@ -290,7 +294,7 @@ class AccessController extends Controller
         } catch (\Exception $e) {
             return response()->json(
                 [
-                    'message' => $e->getMessage(),
+                    'message' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
                     'code' => 404
                 ]
             );

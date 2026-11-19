@@ -40,7 +40,7 @@
 </head>
 
 <body>
-    <h2>HASIL TES DAN WAWANCARA</h2>
+    <h2>HASIL TES DAN WAWANCARA : {{ $table->Cv->nama_lengkap }}</h2>
     <div class="table table-striped">
         <table border="1" class="table" id="table_pelamar3" style="width: 100%; font-size: small;">
             <thead class="table-primary">

@@ -12,30 +12,7 @@
     @include('sweetalert::alert')
     <div class="container-xxl flex-grow-1 container-p-y">
         <div class="row gy-4">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="row layout-top-spacing">
-                        <div class="col-lg-12 layout-spacing">
-                            <div class="widget shadow p-3">
-                                <div class="widget-heading">
-                                    <h5 class="">{{ $ujian->nama }}</h5>
-                                    <table class="mt-2">
-                                        <tr>
-                                            <th>Jumlah Soal</th>
-                                            <th>: {{ $ujian->waktuujian->count() }} Soal</th>
-                                        </tr>
-                                        <tr>
-                                            <th>Waktu Ujian</th>
-                                            <th>: {{ $ujian->jam }} Jam {{ $ujian->menit }} Menit</th>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
 
-                        </div>
-                    </div>
-                </div>
-            </div>
             <div class="col-lg-12">
                 <div class="card">
                     <div class="row layout-top-spacing">
@@ -45,19 +22,29 @@
                                     <h5 class="">{{ $ujian->nama }}</h5>
                                     <table class="mt-2">
                                         <tr>
-                                            <th>Benar</th>
-                                            <th>:</th>
-                                            <th>{{ $benar }} Soal</th>
+                                            <th class="px-2">Jumlah Soal</th>
+                                            <th class="px-2">:</th>
+                                            <th class="px-2"> {{ $PgSiswa->count() }} Soal</th>
                                         </tr>
                                         <tr>
-                                            <th>Salah </th>
-                                            <th>:</th>
-                                            <th>{{ $salah }} Soal</th>
+                                            <th class="px-2">Waktu Ujian</th>
+                                            <th class="px-2">: </th>
+                                            <th class="px-2">{{ $ujian->jam }} Jam {{ $ujian->menit }} Menit</th>
                                         </tr>
                                         <tr>
-                                            <th>Total Nilai</th>
-                                            <th>:</th>
-                                            <th>{{ $total_nilai }}</th>
+                                            <th class="px-2">Benar</th>
+                                            <th class="px-2">:</th>
+                                            <th class="px-2">{{ $benar }} Soal</th>
+                                        </tr>
+                                        <tr>
+                                            <th class="px-2">Salah </th>
+                                            <th class="px-2">:</th>
+                                            <th class="px-2">{{ $salah }} Soal</th>
+                                        </tr>
+                                        <tr>
+                                            <th class="px-2">Total Nilai</th>
+                                            <th class="px-2">:</th>
+                                            <th class="px-2">{{ $total_nilai }}</th>
                                         </tr>
                                     </table>
                                 </div>

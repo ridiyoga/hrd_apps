@@ -1,0 +1,112 @@
+/* ===============================
+   FILTER WRAPPER
+================================ */
+#collapseFilterWrapper {
+    border-bottom: 1px solid #f0f0f0;
+    backdrop-filter: blur(6px);
+}
+
+/* Card body feel */
+#collapseFilterWrapper .card-body {
+    padding: 1.25rem 1.5rem;
+}
+
+/* ===============================
+   FORM FLOATING LOOK
+================================ */
+.form-floating-outline .form-control {
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background-color: #fafafa;
+    transition: all 0.25s ease;
+    font-size: 0.9rem;
+}
+
+.form-floating-outline .form-control:focus {
+    background-color: #fff;
+    border-color: #7367f0;
+    box-shadow: 0 0 0 3px rgba(115, 103, 240, 0.12);
+}
+
+/* Label lebih halus */
+.form-floating-outline label {
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+/* ===============================
+   MULTI SELECT HEIGHT FIX
+================================ */
+/* FIX SELECT2 MULTIPLE SHRINK */
+.select2-container--bootstrap-5 .select2-selection--multiple {
+    min-height: 46px !important;
+    padding: 6px 10px;
+    border-radius: 12px;
+}
+
+.select2-container--bootstrap-5 .select2-selection__rendered {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* ===============================
+   DATE RANGE BUTTON
+================================ */
+#reportrange button {
+    border-radius: 14px;
+    height: 48px;
+    background: linear-gradient(135deg, #eee9f9, #ffffff);
+    border: 1px dashed #d1d5db;
+    font-size: 0.85rem;
+    transition: all 0.3s ease;
+}
+
+#reportrange button:hover {
+    border-color: #7367f0;
+    background: #f5f3ff;
+}
+
+/* ===============================
+   FILTER BUTTON
+================================ */
+#btn_filter {
+    border-radius: 14px;
+    background: linear-gradient(135deg, #7367f0, #8b7cf8);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    height: 48px;
+    box-shadow: 0 8px 20px rgba(115, 103, 240, 0.35);
+    transition: all 0.3s ease;
+}
+
+#btn_filter:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 25px rgba(115, 103, 240, 0.45);
+}
+
+#btn_filter i,
+#btn_filter span {
+    color: #fff !important;
+}
+
+/* ===============================
+   GRID SPACING IMPROVEMENT
+================================ */
+#collapseFilterWrapper .row {
+    row-gap: 1.25rem;
+}
+
+/* ===============================
+   RESPONSIVE TWEAK
+================================ */
+@media (max-width: 768px) {
+    #btn_filter {
+        margin-top: 0.5rem;
+    }
+
+    #reportrange button {
+        font-size: 0.8rem;
+    }
+}

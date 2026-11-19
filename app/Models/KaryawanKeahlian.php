@@ -9,6 +9,7 @@ class KaryawanKeahlian extends Model
 {
     use HasFactory;
     protected $table = 'karyawan_keahlian';
+    protected $keyType = 'string';
     public $incrementing = false;
     protected $primaryKey = 'id_keahlian';
     public $timestamps = false;

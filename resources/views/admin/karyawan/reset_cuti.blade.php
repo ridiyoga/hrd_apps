@@ -152,7 +152,7 @@
     $(document).on('click', '#btn_delete_shift', function() {
         var id = $(this).data('id');
         let holding = $(this).data("holding");
-        console.log(id);
+        // console.log(id);
         Swal.fire({
             title: 'Apakah kamu yakin?',
             text: "Kamu tidak dapat mengembalikan data ini",

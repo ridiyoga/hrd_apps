@@ -44,3 +44,13 @@ function getContrastTextColor($hexColor)
         return 'text-white';
     }
 }
+function hitungJumlahHari($tglMulai, $tglSelesai)
+{
+    if (!$tglMulai || !$tglSelesai) return 0;
+
+    $start = \Carbon\Carbon::parse($tglMulai);
+    $end = \Carbon\Carbon::parse($tglSelesai);
+
+    // diffInDays menghitung selisih, +1 untuk menyertakan hari pertama
+    return $start->diffInDays($end) + 1;
+}

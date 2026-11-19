@@ -86,6 +86,7 @@
                                     <tr>
                                         <th>No.</th>
                                         <th>Divisi</th>
+                                        <th>Jumlah&nbsp;Rekrutmen</th>
                                         <th>Jumlah&nbsp;Pelamar</th>
                                         <th>Rata-rata&nbsp;Waktu</th>
                                         <th>Detail</th>
@@ -99,6 +100,7 @@
                                     <tr>
                                         <th>No.</th>
                                         <th>Divisi</th>
+                                        <th>Jumlah&nbsp;Rekrutmen</th>
                                         <th>Jumlah&nbsp;Pelamar</th>
                                         <th>Rata-rata&nbsp;Waktu</th>
                                         <th>Detail</th>
@@ -134,6 +136,31 @@
 
     <!-- {{-- start datatable  --}} -->
     <script>
+        $(document).ready(function() {
+            var menu_id = $('#asoy_sub').val();
+            // console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
+            var formData = new FormData();
+
+            //ambil data dari form
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('menu_id', menu_id);
+            // console.log(formData);
+
+            $.ajax({
+                type: "POST",
+
+                url: "{{ url('/recruitment/update_menu') }}",
+                data: formData,
+                contentType: false,
+                processData: false,
+                error: function() {
+                    alert('Something is wrong!');
+                    // console.log(formData);
+                },
+            });
+        });
         var holding_id = '{{ $holding->id }}';
         var holding = '{{ $holding->holding_code }}';
         $('#table_divisi_print').on('preXhr.dt', function(e, settings, data) {
@@ -190,7 +217,7 @@
                 info: false,
                 dom: 'Bfrtip',
                 ajax: {
-                    url: "{{ url('/dt_per_divisi_print') }}" + '/' + holding,
+                    url: "{{ url('dt_per_divisi_print') }}" + '/' + holding,
                 },
                 buttons: [{
 
@@ -226,6 +253,10 @@
                     {
                         data: 'divisi',
                         name: 'divisi',
+                    },
+                    {
+                        data: 'jumlah_rekrutmen',
+                        name: 'jumlah_rekrutmen'
                     },
                     {
                         data: 'jumlah_pelamar',
@@ -266,6 +297,10 @@
                 {
                     data: 'divisi',
                     name: 'divisi',
+                },
+                {
+                    data: 'jumlah_rekrutmen',
+                    name: 'jumlah_rekrutmen'
                 },
                 {
                     data: 'jumlah_pelamar',

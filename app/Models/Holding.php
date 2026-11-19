@@ -11,11 +11,18 @@ class Holding extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     protected $fillable = [
+        'id',
         'holding_code',
         'holding_name',
         'holding_number',
         'holding_name_hint',
-        'holding_category'
+        'holding_category',
+        'holding_image',
+        'kota',
+        'alamat',
+        'telepon',
+        'website',
+        'created_at',
     ];
 
     public function Site()

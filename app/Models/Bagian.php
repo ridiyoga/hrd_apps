@@ -14,7 +14,10 @@ class Bagian extends Model
     protected $guarded = ['id'];
     protected $fillable = ['id', 'holding', 'nama_bagian', 'divisi_id', 'created_at', 'updated_at'];
 
-
+    public function Holding(): BelongsTo
+    {
+        return $this->belongsTo(Holding::class, 'holding', 'id');
+    }
     public function Divisi(): BelongsTo
     {
         return $this->belongsTo(Divisi::class, 'divisi_id', 'id');

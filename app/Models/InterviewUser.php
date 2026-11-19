@@ -11,7 +11,7 @@ class InterviewUser extends Model
     use HasFactory, UuidTrait;
     protected $table = 'interview_user';
     public $incrementing = false;
-
+    protected $keyType = 'string';
     protected $guarded = ['id'];
     protected $fillable = [
         'recruitment_user_id',

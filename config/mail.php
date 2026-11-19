@@ -39,14 +39,52 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            'scheme' => env('MAIL_SCHEME', 'smtp'),
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
+            'encryption' => env('MAIL_ENCRYPTION'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        ],
+        'hrd' => [
+            'transport' => 'smtp',
+            'scheme' => env('HRD_MAIL_SCHEME', env('MAIL_SCHEME')),
+            'url' => env('HRD_MAIL_URL', env('MAIL_URL')),
+            'host' => env('HRD_MAIL_HOST', env('MAIL_HOST', '127.0.0.1')),
+            'port' => env('HRD_MAIL_PORT', env('MAIL_PORT', 2525)),
+            'encryption' => env('HRD_MAIL_ENCRYPTION', env('MAIL_ENCRYPTION')),
+            'username' => env('HRD_MAIL_USERNAME', env('MAIL_USERNAME')),
+            'password' => env('HRD_MAIL_PASSWORD', env('MAIL_PASSWORD')),
+            'timeout' => null,
+            'local_domain' => env('HRD_MAIL_EHLO_DOMAIN', env('MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST))),
+
+            'from' => [
+                'address' => env('HRD_MAIL_FROM_ADDRESS', 'no_reply@beraskediri.com'),
+                'name' => env('HRD_MAIL_FROM_NAME', 'HRD Beras Kediri'),
+            ],
+        ],
+
+        // ── Mailer khusus untuk notifikasi Ticket Support ──────────────────────
+        // Mailer ini menggunakan akun email tersendiri, terpisah dari HRD no-reply.
+        // Isi TICKET_MAIL_USERNAME dan TICKET_MAIL_PASSWORD di file .env
+        'ticket' => [
+            'transport'   => 'smtp',
+            'scheme'      => env('TICKET_MAIL_SCHEME', 'smtp'),
+            'host'        => env('TICKET_MAIL_HOST', '127.0.0.1'),
+            'port'        => env('TICKET_MAIL_PORT', 465),
+            'encryption'  => env('TICKET_MAIL_ENCRYPTION', 'ssl'),
+            'username'    => env('TICKET_MAIL_USERNAME'),
+            'password'    => env('TICKET_MAIL_PASSWORD'),
+            'timeout'     => null,
+            'local_domain' => env('TICKET_MAIL_EHLO_DOMAIN', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+
+            'from' => [
+                'address' => env('TICKET_MAIL_FROM_ADDRESS', 'ticket@beraskediri.com'),
+                'name'    => env('TICKET_MAIL_FROM_NAME', 'Ticket Support Beras Kediri'),
+            ],
         ],
 
         'ses' => [

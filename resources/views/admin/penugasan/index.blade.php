@@ -442,7 +442,7 @@
             },
             autoApply: false,
         }, function(start, end, label) {
-            console.log("A new date selection was made: " + start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD'));
+            // console.log("A new date selection was made: " + start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD'));
         });
         $(document).on("click", "#btn_lihat_ttd_pengajuan", function() {
             $('#modal_lihat_ttd_pengajuan').modal('show');
@@ -540,7 +540,7 @@
         $(document).on('click', '#btn_delete_shift', function() {
             var id = $(this).data('id');
             let holding = $(this).data("holding");
-            console.log(id);
+            // console.log(id);
             Swal.fire({
                 title: 'Apakah kamu yakin?',
                 text: "Kamu tidak dapat mengembalikan data ini",

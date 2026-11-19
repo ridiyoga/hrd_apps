@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class WaktuUjian extends Model
 {
     public $table = 'waktu_ujian';
+    protected $keyType = 'string';
     // Disable the model timestamps
     public $timestamps = false;
     use HasFactory;

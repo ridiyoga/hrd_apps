@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
+use App\Models\Holding;
+use App\Models\Karyawan;
 use App\Models\KaryawanKesehatan;
 use App\Models\KaryawanKesehatanKecelakaan;
 use App\Models\KaryawanKesehatanPengobatan;
 use App\Models\KaryawanKesehatanRS;
+use App\Models\Menu;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -63,6 +68,7 @@ class KaryawanKesehatanController extends Controller
             'numeric' => ':attribute harus berupa angka',
             'max' => ':attribute terlalu banyak',
         ]);
+
         if ($validator->fails()) {
             return response()->json([
                 'code' => 400,
@@ -73,41 +79,99 @@ class KaryawanKesehatanController extends Controller
         try {
             // dd($request->all());
             //memasukkan data
-            $kesehatan = KaryawanKesehatan::where('id_karyawan', $request->id_karyawan)->first();
-            $kesehatan->id_karyawan = $request->id_karyawan;
-            $kesehatan->perokok = $request->perokok;
-            $kesehatan->alkohol = $request->alkohol;
-            $kesehatan->alergi = $request->alergi;
-            $kesehatan->sebutkan_alergi = $request->sebutkan_alergi;
-            $kesehatan->phobia = $request->phobia;
-            $kesehatan->sebutkan_phobia = $request->sebutkan_phobia;
-            $kesehatan->keterbatasan_fisik = $request->keterbatasan_fisik;
-            $kesehatan->sebutkan_keterbatasan_fisik = $request->sebutkan_keterbatasan_fisik;
-            $kesehatan->pengobatan_rutin = $request->pengobatan_rutin;
-            $kesehatan->asma = $request->asma;
-            $kesehatan->diabetes = $request->diabetes;
-            $kesehatan->hipertensi = $request->hipertensi;
-            $kesehatan->jantung = $request->jantung;
-            $kesehatan->tbc = $request->tbc;
-            $kesehatan->hepatitis = $request->hepatitis;
-            $kesehatan->epilepsi = $request->epilepsi;
-            $kesehatan->gangguan_mental = $request->gangguan_mental;
-            $kesehatan->gangguan_pengelihatan = $request->gangguan_pengelihatan;
-            $kesehatan->gangguan_lainnya = $request->gangguan_lainnya;
-            $kesehatan->sebutkan_gangguan = $request->sebutkan_gangguan;
-            $kesehatan->pernah_dirawat_rs = $request->pernah_dirawat_rs;
-            $kesehatan->kecelakaan_serius = $request->kecelakaan_serius;
-            $kesehatan->keterbatasan_fisik = $request->keterbatasan_fisik;
-            $kesehatan->mampu_shift = $request->mampu_shift;
-            $kesehatan->pemeriksaan_kerja_sebelumnya = $request->pemeriksaan_kerja_sebelumnya;
-            $kesehatan->pemeriksaan_sebelumnya_hasil = $request->pemeriksaan_sebelumnya_hasil;
-            $kesehatan->covid = $request->covid;
-            $kesehatan->tetanus = $request->tetanus;
-            $kesehatan->vaksin_lainnya = $request->vaksin_lainnya;
-            $kesehatan->sebutkan_vaksin_lainnya = $request->sebutkan_vaksin_lainnya;
-            $kesehatan->persetujuan_kesehatan = $request->persetujuan_kesehatan;
-            $kesehatan->updated_at = date('Y-m-d H:i:s');
-            $kesehatan->save();
+            $data = KaryawanKesehatan::where('id_karyawan', $request->id_karyawan)->first();
+            if ($data == null) {
+                $kesehatan = new KaryawanKesehatan();
+                $kesehatan->id_kesehatan = Uuid::uuid4();
+                $kesehatan->id_karyawan = $request->id_karyawan;
+                $kesehatan->perokok = $request->perokok;
+                $kesehatan->alkohol = $request->alkohol;
+                $kesehatan->alergi = $request->alergi;
+                $kesehatan->sebutkan_alergi = $request->sebutkan_alergi;
+                $kesehatan->phobia = $request->phobia;
+                $kesehatan->sebutkan_phobia = $request->sebutkan_phobia;
+                $kesehatan->keterbatasan_fisik = $request->keterbatasan_fisik;
+                $kesehatan->sebutkan_keterbatasan_fisik = $request->sebutkan_keterbatasan_fisik;
+                $kesehatan->pengobatan_rutin = $request->pengobatan_rutin;
+                $kesehatan->asma = $request->asma;
+                $kesehatan->diabetes = $request->diabetes;
+                $kesehatan->hipertensi = $request->hipertensi;
+                $kesehatan->jantung = $request->jantung;
+                $kesehatan->tbc = $request->tbc;
+                $kesehatan->hepatitis = $request->hepatitis;
+                $kesehatan->epilepsi = $request->epilepsi;
+                $kesehatan->gangguan_mental = $request->gangguan_mental;
+                $kesehatan->gangguan_pengelihatan = $request->gangguan_pengelihatan;
+                $kesehatan->gangguan_lainnya = $request->gangguan_lainnya;
+                $kesehatan->sebutkan_gangguan = $request->sebutkan_gangguan;
+                $kesehatan->pernah_dirawat_rs = $request->pernah_dirawat_rs;
+                $kesehatan->kecelakaan_serius = $request->kecelakaan_serius;
+                $kesehatan->keterbatasan_fisik = $request->keterbatasan_fisik;
+                $kesehatan->mampu_shift = $request->mampu_shift;
+                $kesehatan->pemeriksaan_kerja_sebelumnya = $request->pemeriksaan_kerja_sebelumnya;
+                $kesehatan->pemeriksaan_sebelumnya_hasil = $request->pemeriksaan_sebelumnya_hasil;
+                $kesehatan->covid = $request->covid;
+                $kesehatan->tetanus = $request->tetanus;
+                $kesehatan->vaksin_lainnya = $request->vaksin_lainnya;
+                $kesehatan->sebutkan_vaksin_lainnya = $request->sebutkan_vaksin_lainnya;
+                $kesehatan->persetujuan_kesehatan = $request->persetujuan_kesehatan;
+                $kesehatan->updated_at = date('Y-m-d H:i:s');
+                $kesehatan->save();
+            } else {
+                $data->id_karyawan = $request->id_karyawan;
+                $data->perokok = $request->perokok;
+                $data->alkohol = $request->alkohol;
+                $data->alergi = $request->alergi;
+                $data->sebutkan_alergi = $request->sebutkan_alergi;
+                $data->phobia = $request->phobia;
+                $data->sebutkan_phobia = $request->sebutkan_phobia;
+                $data->keterbatasan_fisik = $request->keterbatasan_fisik;
+                $data->sebutkan_keterbatasan_fisik = $request->sebutkan_keterbatasan_fisik;
+                $data->pengobatan_rutin = $request->pengobatan_rutin;
+                $data->asma = $request->asma;
+                $data->diabetes = $request->diabetes;
+                $data->hipertensi = $request->hipertensi;
+                $data->jantung = $request->jantung;
+                $data->tbc = $request->tbc;
+                $data->hepatitis = $request->hepatitis;
+                $data->epilepsi = $request->epilepsi;
+                $data->gangguan_mental = $request->gangguan_mental;
+                $data->gangguan_pengelihatan = $request->gangguan_pengelihatan;
+                $data->gangguan_lainnya = $request->gangguan_lainnya;
+                $data->sebutkan_gangguan = $request->sebutkan_gangguan;
+                $data->pernah_dirawat_rs = $request->pernah_dirawat_rs;
+                $data->kecelakaan_serius = $request->kecelakaan_serius;
+                $data->keterbatasan_fisik = $request->keterbatasan_fisik;
+                $data->mampu_shift = $request->mampu_shift;
+                $data->pemeriksaan_kerja_sebelumnya = $request->pemeriksaan_kerja_sebelumnya;
+                $data->pemeriksaan_sebelumnya_hasil = $request->pemeriksaan_sebelumnya_hasil;
+                $data->covid = $request->covid;
+                $data->tetanus = $request->tetanus;
+                $data->vaksin_lainnya = $request->vaksin_lainnya;
+                $data->sebutkan_vaksin_lainnya = $request->sebutkan_vaksin_lainnya;
+                $data->persetujuan_kesehatan = $request->persetujuan_kesehatan;
+                $data->updated_at = date('Y-m-d H:i:s');
+                $data->save();
+            }
+
+            $karyawan_id = Karyawan::where('id', $request->id_karyawan)->first();
+            $holdings = Holding::where('id', $karyawan_id->kontrak_kerja)->first();
+            $nama_menu = Menu::where('id', $request->menu_id)->first();
+            $user_name = User::where('id', $request->user()->id)->first();
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'user_name' => $user_name->username,
+                'menu_id' => $request->menu_id,
+                'menu_name' => $nama_menu->name,
+                'id_table' => $request->id_karyawan,
+                'holding_id' => $holdings->id ?? '-',
+                'holding_category' => $holdings->holding_category ?? '-',
+                'table' => 'karyawans',
+                'activity' => 'update',
+                'description' => 'mengupdate data Kesehatan pegawai ' . $karyawan_id->name,
+                'keterangan' => 'Success',
+            ]);
+
             return response()->json([
                 'code' => 200,
                 // 'data' => $get_data,
@@ -117,7 +181,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -126,8 +190,8 @@ class KaryawanKesehatanController extends Controller
     {
         // dd($request->all());
         $validator = Validator::make($request->all(), [
-            'jenis_obat' => 'required',
-            'alasan_obat' => 'required',
+            'obat' => 'required',
+            'alasan' => 'required',
         ], [
             'required' => ':attribute tidak boleh kosong',
         ]);
@@ -143,8 +207,8 @@ class KaryawanKesehatanController extends Controller
             $pengobatan = new KaryawanKesehatanPengobatan();
             $pengobatan->id_pengobatan = Uuid::uuid4();
             $pengobatan->id_karyawan = $request->id_karyawan;
-            $pengobatan->jenis_obat = $request->jenis_obat;
-            $pengobatan->alasan_obat = $request->alasan_obat;
+            $pengobatan->obat = $request->obat;
+            $pengobatan->alasan = $request->alasan;
             $pengobatan->created_at = date('Y-m-d H:i:s');
             $pengobatan->save();
             $data_pengobatan = KaryawanKesehatanPengobatan::select()->where('id_karyawan', $request->id_karyawan)->count();
@@ -157,7 +221,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -167,13 +231,13 @@ class KaryawanKesehatanController extends Controller
         // dd($table);
         if (request()->ajax()) {
             return DataTables::of($table)
-                ->addColumn('jenis_obat', function ($row) {
-                    $jenis_obat = $row->jenis_obat;
-                    return $jenis_obat;
+                ->addColumn('obat', function ($row) {
+                    $obat = $row->obat;
+                    return $obat;
                 })
-                ->addColumn('alasan_obat', function ($row) {
-                    $alasan_obat = $row->alasan_obat;
-                    return $alasan_obat;
+                ->addColumn('alasan', function ($row) {
+                    $alasan = $row->alasan;
+                    return $alasan;
                 })
                 ->addColumn('option', function ($row) {
                     $btn =
@@ -185,7 +249,7 @@ class KaryawanKesehatanController extends Controller
                         ';
                     return $btn;
                 })
-                ->rawColumns(['jenis_obat', 'alasan_obat', 'option'])
+                ->rawColumns(['obat', 'alasan', 'option'])
                 ->make(true);
         }
     }
@@ -203,7 +267,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -221,7 +285,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -239,7 +303,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -281,7 +345,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -327,7 +391,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -345,7 +409,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -363,7 +427,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -404,7 +468,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -450,7 +514,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -468,7 +532,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }
@@ -486,7 +550,7 @@ class KaryawanKesehatanController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage() . ' ' . $e->getLine() . ' ' . $e->getFile(),
             ]);
         }
     }

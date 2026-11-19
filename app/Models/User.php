@@ -25,19 +25,22 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $guard = 'web';
     public $incrementing = false;
-    // protected $guarded = ['id'];
+    protected $keyType = 'string';
+    protected $guarded = ['id'];
     protected $fillable = [
         'karyawan_id',
         'username',
+        'is_admin',
         'password',
         'password_show',
-        'is_admin',
         'access_1',
         'access_2',
         'access_3',
         'role',
         'user_aktif',
+        'photo',
         'alasan',
+        'menu_active',
     ];
 
 
@@ -50,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
     protected $hidden = [
         'password',
         'remember_token',
+        'password_show',
     ];
     public function getJWTIdentifier()
     {
@@ -68,12 +72,22 @@ class User extends Authenticatable implements JWTSubject
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+
     public function Karyawan(): BelongsTo
     {
         return $this->belongsTo(Karyawan::class, 'karyawan_id', 'id');
     }
+    public function KaryawanNIK(): BelongsTo
+    {
+        return $this->belongsTo(Karyawan::class, 'karyawan_id', 'nomor_identitas_karyawan');
+    }
     public function roleUsers(): HasMany
     {
         return $this->hasMany(RoleUsers::class, 'role_user_id', 'id');
+    }
+    public function approvalUsers(): HasMany
+    {
+        return $this->hasMany(ApprovalUser::class, 'approval_user_id', 'id');
     }
 }

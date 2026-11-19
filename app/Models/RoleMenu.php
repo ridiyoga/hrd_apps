@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RoleMenu extends Model
 {
     use HasFactory;
+    protected $keyType = 'int';
+    public $incrementing = true;
     protected $table = 'role_menus';
     protected $fillable = ['can_create', 'can_delete', 'can_edit', 'can_view', 'role_id', 'menu_id'];
 

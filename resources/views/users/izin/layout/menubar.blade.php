@@ -105,7 +105,7 @@
                 <span>Izin</span>
             </li>
             <li class="text-center">
-                <a class="nav-link" id="btn_klik" href="{{ url('/cuti/dashboard/') }}">
+                <a class="nav-link" id="btn_klik" href="{{ url('/cuti/') }}">
                     <span class="dz-icon bg-orange light" style="height: 50px; width: 50px;box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.2), 0 3px 10px 0 rgba(0, 0, 0, 0.1);">
                         <span id="notif_cuti" class="badge badge-danger light" style="position: absolute; margin-top: -12%; margin-right: -12%; "></span>
                         <svg xmlns="http://www.w3.org/2000/svg" style="height: 30px; width: 30px;" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" viewBox="0 0 393.568 393.568" xml:space="preserve">

@@ -1,8 +1,6 @@
 @extends('admin.layouts.dashboard')
 @section('css')
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.5/css/dataTables.bootstrap5.css">
-
-
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.dataTables.css" />
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote.min.css" rel="stylesheet">
@@ -80,143 +78,270 @@
             <!-- Transactions -->
             <div class="col-lg-12">
                 <div class="card">
-                    <div class="card-header">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <h5 class="card-title m-0 me-2">DATA RECRUITMENT</h5>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-primary waves-effect waves-light my-3"
-                            id="btn_modal_recruitment"><i class="menu-icon tf-icons mdi mdi-plus"></i>Tambah</button>
-                    </div>
-                    <div id="collapseFilterWrapper" class="sticky-top bg-white" style="z-index: 1020;">
-                        <div class="card-body">
+                    <ul class="nav nav-tabs" id="myTab" role="tablist">
+                        <!-- TAB: BULAN INI -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active position-relative px-4" id="home-tab" data-bs-toggle="tab"
+                                data-bs-target="#bulan_ini" type="button" role="tab" aria-controls="bulan_ini"
+                                aria-selected="true">
+                                BULAN INI
 
-                            <div class="row gy-4 mb-4">
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="form-floating form-floating-outline">
-                                        <select type="text" class="form-control" name="departemen_filter[]"
-                                            id="departemen_filter" multiple>
-                                            <option disabled value="">-Pilih Departemen-</option>
-                                            @foreach ($departemen as $dept)
-                                                <option value="{{ $dept->id }}">{{ $dept->nama_departemen }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <label for="departemen_filter">Departemen</label>
-                                    </div>
+                            </button>
+                        </li>
+
+                        <!-- TAB: AKTIF -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link position-relative px-4" id="aktif-tab" data-bs-toggle="tab"
+                                data-bs-target="#aktif" type="button" role="tab" aria-controls="aktif"
+                                aria-selected="false">
+                                AKTIF
+                                <span class="position-absolute badge rounded-pill bg-danger"
+                                    style="font-size: 0.55rem; top: 4px; right: 4px;">
+                                    {{ $aktif }}
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </button>
+                        </li>
+
+                        <!-- TAB: KADALUARSA -->
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link position-relative px-4" id="kadaluarsa-tab" data-bs-toggle="tab"
+                                data-bs-target="#kadaluarsa" type="button" role="tab" aria-controls="kadaluarsa"
+                                aria-selected="false">
+                                KADALUARSA
+                                <span class="position-absolute badge rounded-pill bg-danger"
+                                    style="font-size: 0.55rem; top: 4px; right: 4px;">
+                                    {{ $kadaluarsa }}
+                                    <span class="visually-hidden">unread messages</span>
+                                </span>
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <div class="tab-pane fade show active" id="bulan_ini" role="tabpanel"
+                            aria-labelledby="bulan_ini-tab">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h5 class="card-title m-0 me-2">DATA REKRUTMEN</h5>
+                                    <input type="hidden" id="menu_id_add" value="">
                                 </div>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="form-floating form-floating-outline">
-                                        <select type="text" class="form-control" name="divisi_filter[]"
-                                            id="divisi_filter" multiple>
-                                            <option selected disabled value="">-- Pilih Divisi --</option>
-                                        </select>
-                                        <label for="divisi_filter">Divisi</label>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="form-floating form-floating-outline">
-                                        <select type="text" class="form-control" name="bagian_filter[]"
-                                            id="bagian_filter" multiple>
-                                            <option selected disabled value="">-- Pilih Bagian --</option>
-                                        </select>
-                                        <label for="bagian_filter">Bagian</label>
-                                    </div>
-                                </div>
-                                <div class="col-lg-3 col-md-6 col-sm-6">
-                                    <div class="form-floating form-floating-outline">
-                                        <select type="text" class="form-control" name="jabatan_filter[]"
-                                            id="jabatan_filter" multiple>
-                                            <option selected disabled value="">-- Pilih Jabatan --</option>
-                                        </select>
-                                        <label for="jabatan_filter">Jabatan</label>
-                                    </div>
-                                </div>
+                                <button type="button" class="btn btn-sm btn-primary waves-effect waves-light my-3"
+                                    id="btn_modal_recruitment"><i
+                                        class="menu-icon tf-icons mdi mdi-plus"></i>Tambah</button>
                             </div>
+                            <div id="collapseFilterWrapper" class="sticky-top bg-white" style="z-index: 1020;">
+                                <div class="card-body">
 
-                            <div class="row gy-4 align-items-end">
-                                <div class="col-lg-6 col-md-6col-sm-12">
-                                    <div class="form-floating form-floating-outline">
-                                        <div id="reportrange" style="white-space: nowrap;">
-                                            <button class="btn btn-outline-secondary w-100 ">
-                                                <span class="fw-bold">FILTER&nbsp;DATE&nbsp;:&nbsp;</span>
-                                                <span class="date_daterange"></span>
-                                                <input type="date" id="start_date" name="start_date" value=""
-                                                    hidden>
-                                                <input type="date" id="end_date" name="end_date" value="" hidden>
+                                    <div class="row gy-4 mb-4">
+                                        <div class="col-lg-3 col-md-6 col-sm-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <select type="text" class="form-control" name="departemen_filter[]"
+                                                    id="departemen_filter" multiple>
+                                                    <option disabled value="">-Pilih Departemen-</option>
+                                                    @foreach ($departemen as $dept)
+                                                        <option value="{{ $dept->id }}">{{ $dept->nama_departemen }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <label for="departemen_filter">Departemen</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-6 col-sm-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <select type="text" class="form-control" name="divisi_filter[]"
+                                                    id="divisi_filter" multiple>
+                                                    <option selected disabled value="">-- Pilih Divisi --</option>
+                                                </select>
+                                                <label for="divisi_filter">Divisi</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-6 col-sm-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <select type="text" class="form-control" name="bagian_filter[]"
+                                                    id="bagian_filter" multiple>
+                                                    <option selected disabled value="">-- Pilih Bagian --</option>
+                                                </select>
+                                                <label for="bagian_filter">Bagian</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-3 col-md-6 col-sm-6">
+                                            <div class="form-floating form-floating-outline">
+                                                <select type="text" class="form-control" name="jabatan_filter[]"
+                                                    id="jabatan_filter" multiple>
+                                                    <option selected disabled value="">-- Pilih Jabatan --</option>
+                                                </select>
+                                                <label for="jabatan_filter">Jabatan</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row gy-4 align-items-end">
+                                        <div class="col-lg-6 col-md-6col-sm-12">
+                                            <div class="form-floating form-floating-outline">
+                                                <div id="reportrange" style="white-space: nowrap;">
+                                                    <button class="btn btn-outline-secondary w-100 ">
+                                                        <span class="fw-bold">FILTER&nbsp;DATE&nbsp;:&nbsp;</span>
+                                                        <span class="date_daterange"></span>
+                                                        <input type="date" id="start_date" name="start_date"
+                                                            value="" hidden>
+                                                        <input type="date" id="end_date" name="end_date"
+                                                            value="" hidden>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-lg-2 col-md-12 col-sm-12 d-flex justify-content-end">
+                                            <button type="button" class="btn btn-primary w-100" id="btn_filter">
+                                                <i class="mdi mdi-filter-outline"></i>&nbsp;Filter
                                             </button>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="col-lg-2 col-md-12 col-sm-12 d-flex justify-content-end">
-                                    <button type="button" class="btn btn-primary w-100" id="btn_filter">
-                                        <i class="mdi mdi-filter-outline"></i>&nbsp;Filter
-                                    </button>
                                 </div>
                             </div>
+                            <div class="card-body">
+                                <!-- <hr class="my-5">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <hr class="my-5"> -->
 
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <!-- <hr class="my-5">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <hr class="my-5"> -->
+                                <!-- <button type="button" class="btn btn-sm btn-success waves-effect waves-light mb-3" data-bs-toggle="modal" data-bs-target="#modal_import_inventaris"><i class="menu-icon tf-icons mdi mdi-file-excel"></i>Import</button> -->
 
-                        <!-- <button type="button" class="btn btn-sm btn-success waves-effect waves-light mb-3" data-bs-toggle="modal" data-bs-target="#modal_import_inventaris"><i class="menu-icon tf-icons mdi mdi-file-excel"></i>Import</button> -->
+                                <div class="modal fade" id="modal_lihat_syarat" data-bs-backdrop="static"
+                                    tabindex="-1">
+                                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                        <div class=" modal-content">
 
-                        <div class="modal fade" id="modal_lihat_syarat" data-bs-backdrop="static" tabindex="-1">
-                            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                <div class=" modal-content">
-
-                                    <div class="modal-body">
-                                        <div class="col-lg-12">
-                                            <div class="form-floating form-floating-outline">
-                                                <div id="show_desc_recruitment" style="height:auto;"></div>
-                                                <!-- {{-- <input class="form-control @error('show_desc_recruitment') is-invalid @enderror" id="show_desc_recruitment" name="show_desc_recruitment" autofocus value="{{ old('show_desc_recruitment') }}"> --}}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        {{-- <input type="text" id="show_desc_recruitment"> --}} -->
-                                                {{-- <label for="show_desc_recruitment">SYARAT KETENTUAN</label> --}}
+                                            <div class="modal-body">
+                                                <div class="col-lg-12">
+                                                    <div class="form-floating form-floating-outline">
+                                                        <div id="show_desc_recruitment" style="height:auto;"></div>
+                                                        <!-- {{-- <input class="form-control @error('show_desc_recruitment') is-invalid @enderror" id="show_desc_recruitment" name="show_desc_recruitment" autofocus value="{{ old('show_desc_recruitment') }}"> --}}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                {{-- <input type="text" id="show_desc_recruitment"> --}} -->
+                                                        {{-- <label for="show_desc_recruitment">SYARAT KETENTUAN</label> --}}
+                                                    </div>
+                                                    @error('show_desc_recruitment')
+                                                        <span class="invalid-feedback" role="alert">
+                                                            <strong>{{ $message }}</strong>
+                                                        </span>
+                                                    @enderror
+                                                </div>
                                             </div>
-                                            @error('show_desc_recruitment')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-outline-secondary"
+                                                    data-bs-dismiss="modal">
+                                                    Close
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                                            Close
-                                        </button>
-                                    </div>
                                 </div>
+
+                                <table class="table" id="table_recruitment" style="width: 100%; font-size: small;">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <!-- <th>No.</th> -->
+                                            <th>Legal Number</th>
+                                            <th>Status</th>
+                                            <th>Pelamar</th>
+                                            <th>Ranking</th>
+                                            <th>Penempatan</th>
+                                            <th>Departemen</th>
+                                            <th>Divisi</th>
+                                            <th>Bagian</th>
+                                            <th>Jabatan</th>
+                                            <th>Keterangan</th>
+                                            <th>Tanggal Awal</th>
+                                            <th>Tanggal Akhir</th>
+                                            <th>Deadline Recruitment</th>
+                                            <th>Penggantian / Penambahan</th>
+                                            <th>Surat Penambahan</th>
+                                            <th>Kuota</th>
+                                            <th>Opsi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="table-border-bottom-0">
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-
-                        <table class="table" id="table_recruitment" style="width: 100%; font-size: small;">
-                            <thead class="table-primary">
-                                <tr>
-                                    <!-- <th>No.</th> -->
-                                    <th>Legal Number</th>
-                                    <th>Status</th>
-                                    <th>Pelamar</th>
-                                    <th>Tanggal Awal</th>
-                                    <th>Tanggal Akhir</th>
-                                    <th>Penempatan</th>
-                                    <th>Departemen</th>
-                                    <th>Divisi</th>
-                                    <th>Bagian</th>
-                                    <th>Jabatan</th>
-                                    <th>Keterangan</th>
-                                    <th>Deadline Recruitment</th>
-                                    <th>Penggantian / Penambahan</th>
-                                    <th>Surat Penambahan</th>
-                                    <th>Kuota</th>
-                                    <th>Opsi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="table-border-bottom-0">
-                            </tbody>
-                        </table>
+                        <div class="tab-pane fade" id="aktif" role="tabpanel" aria-labelledby="aktif-tab">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h5 class="card-title m-0 me-2">REKRUTMEN AKTIF</h5>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- <hr class="my-5">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <hr class="my-5"> -->
+                                <table class="table" id="table_recruitment_aktif"
+                                    style="width: 100%; font-size: small;">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <!-- <th>No.</th> -->
+                                            <th>Legal Number</th>
+                                            <th>Status</th>
+                                            <th>Pelamar</th>
+                                            <th>Ranking</th>
+                                            <th>Penempatan</th>
+                                            <th>Departemen</th>
+                                            <th>Divisi</th>
+                                            <th>Bagian</th>
+                                            <th>Jabatan</th>
+                                            <th>Keterangan</th>
+                                            <th>Tanggal Awal</th>
+                                            <th>Tanggal Akhir</th>
+                                            <th>Deadline Recruitment</th>
+                                            <th>Penggantian / Penambahan</th>
+                                            <th>Surat Penambahan</th>
+                                            <th>Kuota</th>
+                                            <th>Opsi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="table-border-bottom-0">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="kadaluarsa" role="tabpanel" aria-labelledby="kadaluarsa-tab">
+                            <div class="card-header">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <h5 class="card-title m-0 me-2">REKRUTMEN KADALUARSA</h5>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <!-- <hr class="my-5">
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <hr class="my-5"> -->
+                                <table class="table" id="table_recruitment_kadaluarsa"
+                                    style="width: 100%; font-size: small;">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <!-- <th>No.</th> -->
+                                            <th>Legal Number</th>
+                                            <th>Status</th>
+                                            <th>Pelamar</th>
+                                            <th>Ranking</th>
+                                            <th>Penempatan</th>
+                                            <th>Departemen</th>
+                                            <th>Divisi</th>
+                                            <th>Bagian</th>
+                                            <th>Jabatan</th>
+                                            <th>Keterangan</th>
+                                            <th>Tanggal Awal</th>
+                                            <th>Tanggal Akhir</th>
+                                            <th>Deadline Recruitment</th>
+                                            <th>Penggantian / Penambahan</th>
+                                            <th>Surat Penambahan</th>
+                                            <th>Kuota</th>
+                                            <th>Opsi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="table-border-bottom-0">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+
                 </div>
             </div>
             <!--/ Transactions -->
@@ -736,6 +861,31 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
+            var menu_id = $('#asoy').val();
+            console.log(menu_id);
+            $('#menu_id_add').val(menu_id);
+
+            var formData = new FormData();
+
+            //ambil data dari form
+            formData.append('_token', '{{ csrf_token() }}');
+            formData.append('menu_id', menu_id);
+            // console.log(formData);
+
+            $.ajax({
+                type: "POST",
+
+                url: "{{ url('/recruitment/update_menu') }}",
+                data: formData,
+                contentType: false,
+                processData: false,
+                error: function() {
+                    alert('Something is wrong!');
+                    // console.log(formData);
+                },
+            });
+        })
+        $(document).ready(function() {
             $("#desc_recruitment_add").summernote();
             // $("#show_desc_recruitment").summernote();
             $("#desc_recruitment_update").summernote();
@@ -821,7 +971,7 @@
             $('#start_date').val(lstart);
             $('#end_date').val(lend);
             $('#reportrange .date_daterange').html(start.format('D MMMM YYYY') + ' - ' + end.format('D MMMM YYYY'));
-            console.log(start, end);
+            // console.log(start, end);
         }
 
         var lstart, lend
@@ -869,13 +1019,10 @@
                         data: 'pelamar',
                         name: 'pelamar'
                     },
+
                     {
-                        data: 'created_recruitment',
-                        name: 'created_recruitment'
-                    },
-                    {
-                        data: 'end_recruitment',
-                        name: 'end_recruitment'
+                        data: 'ranking',
+                        name: 'ranking'
                     },
                     {
                         data: 'penempatan',
@@ -900,6 +1047,14 @@
                     {
                         data: 'desc_recruitment',
                         name: 'desc_recruitment',
+                    },
+                    {
+                        data: 'created_recruitment',
+                        name: 'created_recruitment'
+                    },
+                    {
+                        data: 'end_recruitment',
+                        name: 'end_recruitment'
                     },
                     {
                         data: 'deadline_recruitment',
@@ -930,12 +1085,211 @@
             });
         }
 
+        var table1 = $('#table_recruitment_aktif').DataTable({
+            "scrollY": true,
+            "scrollX": true,
+            processing: true,
+            serverSide: true,
+            dom: 'Bfrtip',
+            ajax: {
+                url: "{{ url('/dt/data-recruitment_aktif') }}" + '/' + holding,
+                data: {
+                    start_date: start_date,
+                    end_date: end_date,
+                    departemen_filter: departemen_filter,
+                    divisi_filter: divisi_filter,
+                    bagian_filter: bagian_filter,
+                    jabatan_filter: jabatan_filter,
+                }
+            },
+            columns: [{
+                    data: 'legal_number',
+                    name: 'legal_number'
+                },
+                {
+                    data: 'status_recruitment',
+                    name: 'status_recruitment'
+                },
+                {
+                    data: 'pelamar',
+                    name: 'pelamar'
+                },
+                {
+                    data: 'ranking',
+                    name: 'ranking'
+                },
+                {
+                    data: 'penempatan',
+                    name: 'penempatan'
+                },
+                {
+                    data: 'nama_departemen',
+                    name: 'nama_departemen'
+                },
+                {
+                    data: 'nama_divisi',
+                    name: 'nama_divisi'
+                },
+                {
+                    data: 'nama_bagian',
+                    name: 'nama_bagian'
+                },
+                {
+                    data: 'nama_jabatan',
+                    name: 'nama_jabatan'
+                },
+                {
+                    data: 'desc_recruitment',
+                    name: 'desc_recruitment',
+                },
 
+                {
+                    data: 'created_recruitment',
+                    name: 'created_recruitment'
+                },
+                {
+                    data: 'end_recruitment',
+                    name: 'end_recruitment'
+                },
+                {
+                    data: 'deadline_recruitment',
+                    name: 'deadline_recruitment',
+                },
+                {
+                    data: 'penggantian_penambahan',
+                    name: 'penggantian_penambahan',
+                },
+                {
+                    data: 'surat_penambahan',
+                    name: 'surat_penambahan',
+                },
 
+                {
+                    data: 'kuota',
+                    name: 'kuota',
+                },
+
+                {
+                    data: 'option',
+                    name: 'option'
+                },
+            ],
+            order: [
+                [3, 'desc']
+            ]
+        });
+        $('#aktif-tab').on('shown.bs.tab', function(e) {
+            table1.columns.adjust().draw().responsive.recalc();
+            // table.draw();
+        });
+
+        var table2 = $('#table_recruitment_kadaluarsa').DataTable({
+            "scrollY": true,
+            "scrollX": true,
+            processing: true,
+            serverSide: true,
+            dom: 'Bfrtip',
+            ajax: {
+                url: "{{ url('/dt/data-recruitment_kadaluarsa') }}" + '/' + holding,
+                data: {
+                    start_date: start_date,
+                    end_date: end_date,
+                    departemen_filter: departemen_filter,
+                    divisi_filter: divisi_filter,
+                    bagian_filter: bagian_filter,
+                    jabatan_filter: jabatan_filter,
+                }
+            },
+            columns: [{
+                    data: 'legal_number',
+                    name: 'legal_number'
+                },
+                {
+                    data: 'status_recruitment',
+                    name: 'status_recruitment'
+                },
+                {
+                    data: 'pelamar',
+                    name: 'pelamar'
+                },
+                {
+                    data: 'ranking',
+                    name: 'ranking'
+                },
+                {
+                    data: 'penempatan',
+                    name: 'penempatan'
+                },
+                {
+                    data: 'nama_departemen',
+                    name: 'nama_departemen'
+                },
+                {
+                    data: 'nama_divisi',
+                    name: 'nama_divisi'
+                },
+                {
+                    data: 'nama_bagian',
+                    name: 'nama_bagian'
+                },
+                {
+                    data: 'nama_jabatan',
+                    name: 'nama_jabatan'
+                },
+                {
+                    data: 'desc_recruitment',
+                    name: 'desc_recruitment',
+                },
+                {
+                    data: 'created_recruitment',
+                    name: 'created_recruitment'
+                },
+                {
+                    data: 'end_recruitment',
+                    name: 'end_recruitment'
+                },
+                {
+                    data: 'deadline_recruitment',
+                    name: 'deadline_recruitment',
+                },
+                {
+                    data: 'penggantian_penambahan',
+                    name: 'penggantian_penambahan',
+                },
+                {
+                    data: 'surat_penambahan',
+                    name: 'surat_penambahan',
+                },
+
+                {
+                    data: 'kuota',
+                    name: 'kuota',
+                },
+
+                {
+                    data: 'option',
+                    name: 'option'
+                },
+            ],
+            order: [
+                [3, 'desc']
+            ]
+        });
+        $('#kadaluarsa-tab').on('shown.bs.tab', function(e) {
+            table2.columns.adjust().draw().responsive.recalc();
+            // table.draw();
+        });
+
+        function showSelectLoading(selectId) {
+            $(selectId).prop('disabled', true)
+                .closest('.form-floating')
+                .find('.select-loader')
+                .removeClass('d-none');
+        }
         $('#departemen_filter').change(function(e) {
             departemen_filter_dept = $(this).val() || '';
             var url =
-                "@if (Auth::user()->is_admin == 'hrd'){{ url('hrd/report_recruitment/get_divisi') }}@else{{ url('report_recruitment/get_divisi') }}@endif" +
+                "{{ url('report_recruitment/get_divisi') }}" +
                 '/' + holding_id;
             // console.log(departemen_filter_dept, divisi_filter_dept, bagian_filter_dept, jabatan_filter_dept);
             $.ajax({
@@ -985,7 +1339,7 @@
 
                 error: function(data) {
                     Swal.close();
-                    console.log('error:', data)
+                    // console.log('error:', data)
                     Swal.fire({
                         icon: 'error',
                         title: 'Gagal',
@@ -1002,7 +1356,7 @@
 
             $.ajax({
                 type: 'GET',
-                url: "@if (Auth::user()->is_admin == 'hrd'){{ url('hrd/report_recruitment/get_bagian') }}@else{{ url('report_recruitment/get_bagian') }}@endif" +
+                url: "{{ url('report_recruitment/get_bagian') }}" +
                     '/' + holding_id,
                 data: {
                     holding: holding_id,
@@ -1138,9 +1492,9 @@
         // start add departemen
         $('#nama_dept_add').on('change', function() {
             let id_dept = $(this).val();
-            let url = "{{ url('/bagian/get_divisi') }}" + "/" + id_dept + "/" + holding;
-            console.log(id_dept);
-            console.log(url);
+            let url = "{{ url('/bagian/get_divisi') }}" + "/" + id_dept + "/" + holding_id;
+            // console.log(id_dept);
+            // console.log(url);
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -1155,8 +1509,15 @@
                     $('#nama_divisi_add').html(response);
                 },
                 error: function(data) {
-                    console.log('error:', data)
-                },
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.responseJSON.message,
+                        timer: 4200,
+                        showConfirmButton: false,
+                    })
+                }
 
             })
         })
@@ -1166,8 +1527,8 @@
         $('#nama_divisi_add').on('change', function() {
             let id_divisi = $(this).val();
             let url = "{{ url('/bagian/get_bagian') }}" + "/" + id_divisi;
-            console.log(id_divisi);
-            console.log(url);
+            // console.log(id_divisi);
+            // console.log(url);
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -1182,7 +1543,13 @@
                     $('#nama_bagian_add').html(response);
                 },
                 error: function(data) {
-                    console.log('error:', data)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.responseJSON.message,
+                        timer: 4200,
+                        showConfirmButton: false,
+                    });
                 },
 
             })
@@ -1190,8 +1557,8 @@
         $('#nama_bagian_add').on('change', function() {
             let id_bagian = $(this).val();
             let url = "{{ url('/jabatan/get_jabatan') }}" + "/" + id_bagian;
-            console.log(id_bagian);
-            console.log(url);
+            // console.log(id_bagian);
+            // console.log(url);
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -1206,7 +1573,13 @@
                     $('#nama_jabatan_add').html(response);
                 },
                 error: function(data) {
-                    console.log('error:', data)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.responseJSON.message,
+                        timer: 4200,
+                        showConfirmButton: false,
+                    })
                 },
 
             })
@@ -1216,9 +1589,9 @@
         $('#nama_dept_update').on('change', function() {
             // console.log('asooy');
             let id_dept = $(this).val();
-            let url = "{{ url('/bagian/get_divisi') }}" + "/" + id_dept + "/" + holding;
-            console.log(id_dept);
-            console.log(url);
+            let url = "{{ url('/bagian/get_divisi') }}" + "/" + id_dept + "/" + holding_id;
+            // console.log(id_dept);
+            // console.log(url);
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -1229,11 +1602,17 @@
                 //     id_dept: id_dept
                 // },
                 success: function(response) {
-                    console.log(response);
+                    // console.log(response);
                     $('#nama_divisi_update').html(response);
                 },
                 error: function(data) {
-                    console.log('error:', data)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.responseJSON.message,
+                        timer: 4200,
+                        showConfirmButton: false,
+                    })
                 },
 
             })
@@ -1244,8 +1623,8 @@
         $('#nama_divisi_update').on('change', function() {
             let id_divisi = $(this).val();
             let url = "{{ url('/bagian/get_bagian') }}" + "/" + id_divisi;
-            console.log(id_divisi);
-            console.log(url);
+            // console.log(id_divisi);
+            // console.log(url);
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -1260,7 +1639,13 @@
                     $('#nama_bagian_update').html(response);
                 },
                 error: function(data) {
-                    console.log('error:', data)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.responseJSON.message,
+                        timer: 4200,
+                        showConfirmButton: false,
+                    })
                 },
 
             })
@@ -1268,8 +1653,8 @@
         $('#nama_bagian_update').on('change', function() {
             let id_bagian = $(this).val();
             let url = "{{ url('/jabatan/get_jabatan') }}" + "/" + id_bagian;
-            console.log(id_bagian);
-            console.log(url);
+            // console.log(id_bagian);
+            // console.log(url);
             $.ajax({
                 url: url,
                 method: 'GET',
@@ -1284,7 +1669,13 @@
                     $('#nama_jabatan_update').html(response);
                 },
                 error: function(data) {
-                    console.log('error:', data)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: data.responseJSON.message,
+                        timer: 4200,
+                        showConfirmButton: false,
+                    })
                 },
 
             })
@@ -1313,6 +1704,7 @@
             formData.append('end_recruitment', $('#end_recruitment_add').val());
             formData.append('deadline_recruitment', $('#deadline_recruitment_add').val());
             formData.append('desc_recruitment', $('#desc_recruitment_add').val());
+            formData.append('menu_id', $('#menu_id_add').val());
 
             // post
             $.ajax({
@@ -1401,7 +1793,7 @@
         $(document).on('click', '#btn_lihat_syarat', function() {
             let id = $(this).data('id');
             let desc = $(this).data('desc');
-            console.log(desc);
+            // console.log(desc);
             let holding = $(this).data("holding");
             $('#show_desc_recruitment').html(desc);
             // $('#show_desc_recruitment').summernote('disable');
@@ -1411,9 +1803,9 @@
         // update status aktif to non aktif
         $(document).on('click', '#btn_status_aktif', function() {
             var id = $(this).data('id');
+            let menu_id = $('#menu_id_add').val();
             let holding = window.location.pathname.split("/").pop();
-            console.log(id);
-            console.log(holding);
+            // console.log(menu_id);
             Swal.fire({
                 title: 'Apakah kamu yakin?',
                 text: "Menonaktifkan Recruitment",
@@ -1426,7 +1818,7 @@
                 if (result.value) {
                     $.ajax({
                         url: "{{ url('/recruitment/update/status-recruitment/') }}" + '/' + id +
-                            '/' + holding,
+                            '/' + holding + '/' + menu_id,
                         type: "GET",
                         beforeSend: function() {
                             Swal.fire({
@@ -1468,8 +1860,10 @@
         // update status non aktif to aktif
         $(document).on('click', '#btn_status_naktif', function() {
             var id = $(this).data('id');
-            console.log(id);
-            console.log(holding);
+            let menu_id = $('#menu_id_add').val();
+
+            // console.log(id);
+            // console.log(holding);
             Swal.fire({
                 title: 'Apakah kamu yakin?',
                 text: "Mengaktifkan Recruitment",
@@ -1482,7 +1876,7 @@
                 if (result.value) {
                     $.ajax({
                         url: "{{ url('/recruitment/update/status-recruitment/') }}" + '/' + id +
-                            '/' + holding,
+                            '/' + holding + '/' + menu_id,
                         type: "GET",
                         beforeSend: function() {
                             Swal.fire({
@@ -1588,6 +1982,7 @@
             formData.append('end_recruitment', $('#end_recruitment_update').val());
             formData.append('deadline_recruitment', $('#deadline_recruitment_update').val());
             formData.append('desc_recruitment', $('#desc_recruitment_update').val());
+            formData.append('menu_id', $('#menu_id_add').val());
 
             // post
             $.ajax({
@@ -1614,7 +2009,7 @@
                 },
                 success: function(data) {
                     Swal.close();
-                    console.log(data);
+                    // console.log(data);
                     if (data.code == 200) {
                         Swal.fire({
                             title: 'Berhasil',
@@ -1678,8 +2073,9 @@
         // delete data
         $(document).on('click', '#btn_delete_recruitment', function() {
             var id = $(this).data('id');
+            var menu_id = $('#menu_id_add').val();
             let holding = $(this).data("holding");
-            console.log(id);
+            // console.log(id);
             Swal.fire({
                 title: 'Apakah kamu yakin?',
                 text: "Kamu tidak dapat mengembalikan data ini",
@@ -1691,7 +2087,8 @@
             }).then((result) => {
                 if (result.value) {
                     $.ajax({
-                        url: "{{ url('/recruitment/delete/') }}" + '/' + id + '/' + holding,
+                        url: "{{ url('/recruitment/delete/') }}" + '/' + id + '/' + holding + '/' +
+                            menu_id,
                         type: "GET",
                         beforeSend: function() {
                             Swal.fire({
